@@ -109,10 +109,12 @@ On login, the user sees relevant alerts:
 
 ## 5. Planned Projects
 
-- Users can log a **planned project**: name, description, estimated cost, and expected timing (month).
+- Users can log a **planned project**: name, description, estimated cost, and expected timing (month), optionally assigned to a financial year.
 - Planned projects are **automatically factored into the forecast** — their estimated cost is added to the forecast line for their expected month.
 - Shown on the **forecast chart** in a distinct colour with a marker (see Dashboard, above).
-- Shown in the **planned projects dashboard panel**, listing all currently active projects.
+- Shown in the **planned projects dashboard panel**, listing all currently active projects, amber-highlighted if due within 60 days and red if overdue.
+- The **Projects page** (`/projects`) lists all active projects — name, description (truncated, expandable), estimated cost, expected month/year, financial year if assigned, status, and a colour-coded days-until-due indicator — with the total estimated upcoming spend shown at the top.
+- A project can be **marked complete** (Standard or Admin, with confirmation), which removes it from the active list and the forecast, and moves it into a collapsed **Completed projects** section (visible to Admins). Separately, an **Admin can deactivate** a project (with confirmation) to drop it without marking it complete — both actions turn the project inactive, but only completion sets its distinct "complete" status.
 
 ---
 

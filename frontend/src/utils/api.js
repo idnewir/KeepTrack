@@ -93,6 +93,16 @@ export const contributionsApi = {
   remove: (id, token) => request(`/contributions/${id}`, { method: 'DELETE', token }),
 }
 
+export const projectsApi = {
+  list: (token) => request('/projects', { token }),
+  listAll: (token) => request('/projects/all', { token }),
+  get: (id, token) => request(`/projects/${id}`, { token }),
+  create: (payload, token) => request('/projects', { method: 'POST', body: payload, token }),
+  update: (id, payload, token) => request(`/projects/${id}`, { method: 'PUT', body: payload, token }),
+  deactivate: (id, token) => request(`/projects/${id}`, { method: 'DELETE', token }),
+  complete: (id, token) => request(`/projects/${id}/complete`, { method: 'POST', token }),
+}
+
 export const reconciliationApi = {
   list: (financialYearId, token) => {
     const qs = financialYearId ? `?financial_year_id=${financialYearId}` : ''

@@ -1,0 +1,172 @@
+.kt-project-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.kt-project-form .kt-field {
+  min-width: 200px;
+}
+
+.kt-project-form .kt-field-wide {
+  flex: 1 1 100%;
+}
+
+.kt-project-form textarea {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+  resize: vertical;
+}
+
+.kt-project-form select,
+.kt-project-form input[type='month'] {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+}
+
+.kt-project-form .kt-auth-button {
+  margin-top: 0;
+}
+
+.kt-project-list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kt-project-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.kt-project-urgency-soon {
+  border-color: rgba(230, 160, 32, 0.4);
+  background: rgba(230, 160, 32, 0.05);
+}
+
+.kt-project-urgency-overdue {
+  border-color: rgba(168, 50, 50, 0.4);
+  background: rgba(168, 50, 50, 0.05);
+}
+
+.kt-project-card-main {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.kt-project-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kt-project-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.kt-project-urgency-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.kt-project-urgency-badge-soon {
+  color: #a3690a;
+  background: rgba(230, 160, 32, 0.14);
+}
+
+.kt-project-urgency-badge-overdue {
+  color: #a83232;
+  background: rgba(168, 50, 50, 0.12);
+}
+
+.kt-project-description {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #6b6b67;
+  line-height: 1.5;
+}
+
+.kt-project-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #6b6b67;
+}
+
+.kt-project-actions {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.kt-project-completed-section {
+  margin-top: 8px;
+}
+
+.kt-project-completed-section summary {
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 0;
+}
+
+.kt-project-completed-section .kt-project-list {
+  margin-top: 12px;
+}
+
+.kt-project-completed-section .kt-project-card {
+  opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  .kt-project-card {
+    flex-direction: column;
+  }
+
+  .kt-project-actions {
+    width: 100%;
+  }
+}
+
+/* Planned projects panel on the dashboard reuses the urgency classes/badges
+   above, but rows have no border of their own to tint — colour the
+   background instead. */
+.kt-panel-list-row.kt-project-urgency-soon {
+  background: rgba(230, 160, 32, 0.08);
+}
+
+.kt-panel-list-row.kt-project-urgency-overdue {
+  background: rgba(168, 50, 50, 0.08);
+}

@@ -12,6 +12,7 @@ from routers.contributions import router as contributions_router
 from routers.dashboard import router as dashboard_router
 from routers.financial_years import router as financial_years_router
 from routers.invoices import router as invoices_router
+from routers.projects import router as projects_router
 from routers.reconciliation import router as reconciliation_router
 from routers.settings import router as settings_router
 from services.auth_service import ensure_superadmin
@@ -32,6 +33,7 @@ app.include_router(contributions_router)
 app.include_router(dashboard_router)
 app.include_router(financial_years_router)
 app.include_router(invoices_router)
+app.include_router(projects_router)
 app.include_router(reconciliation_router)
 app.include_router(settings_router)
 

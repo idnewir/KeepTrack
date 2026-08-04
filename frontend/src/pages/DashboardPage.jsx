@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import FinancialChart from '../components/FinancialChart.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { dashboardApi } from '../utils/api.js'
-import { formatCurrency } from '../utils/format.js'
+import { formatCurrency, projectUrgency } from '../utils/format.js'
 
 const STATUS_LABEL = { above: 'Above target', near: 'Near target', below: 'Below target' }
 
@@ -257,18 +257,31 @@ function PlannedProjectsPanel({ items }) {
         <PanelEmptyState>No planned projects logged yet.</PanelEmptyState>
       ) : (
         <ul className="kt-panel-list">
-          {items.map((item) => (
-            <li key={item.id} className="kt-panel-list-row">
-              <span className="kt-panel-list-main">
-                <span className="kt-category-swatch" style={{ background: '#7C5CBF' }} aria-hidden="true" />
-                <span>
-                  <strong>{item.name}</strong>
-                  <span className="kt-panel-list-sub">Expected {item.expected_month_label}</span>
+          {items.map((item) => {
+            const urgency = projectUrgency(item.expected_month)
+            return (
+              <li
+                key={item.id}
+                className={`kt-panel-list-row${urgency.status !== 'normal' ? ` kt-project-urgency-${urgency.status}` : ''}`}
+              >
+                <span className="kt-panel-list-main">
+                  <span className="kt-category-swatch" style={{ background: '#7C5CBF' }} aria-hidden="true" />
+                  <span>
+                    <strong>{item.name}</strong>
+                    <span className="kt-panel-list-sub">
+                      Expected {item.expected_month_label}
+                      {urgency.status !== 'normal' && (
+                        <span className={`kt-project-urgency-badge kt-project-urgency-badge-${urgency.status}`} style={{ marginLeft: 8 }}>
+                          {urgency.label}
+                        </span>
+                      )}
+                    </span>
+                  </span>
                 </span>
-              </span>
-              <span className="kt-panel-list-amount">{formatCurrency(item.estimated_cost)}</span>
-            </li>
-          ))}
+                <span className="kt-panel-list-amount">{formatCurrency(item.estimated_cost)}</span>
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

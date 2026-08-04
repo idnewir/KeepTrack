@@ -312,6 +312,37 @@ class ReconciliationOut(BaseModel):
     reconciled_at: datetime
 
 
+class ProjectOut(BaseModel):
+    id: int
+    name: str
+    description: str | None
+    estimated_cost: Decimal
+    expected_month: date
+    financial_year_id: int | None
+    created_by: int
+    created_at: datetime
+    active: bool
+    completed: bool
+
+    model_config = {"from_attributes": True}
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    estimated_cost: Decimal = Field(gt=0)
+    expected_month: date
+    financial_year_id: int | None = None
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+    estimated_cost: Decimal | None = Field(default=None, gt=0)
+    expected_month: date | None = None
+    financial_year_id: int | None = None
+
+
 class ReconciliationMonthOut(BaseModel):
     financial_year_id: int
     year: int

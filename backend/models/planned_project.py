@@ -3,7 +3,8 @@
 expected_month is stored as a DATE (first of the month), not the SMALLINT
 1-12 documented in docs/database-schema.md, and this table also carries an
 `active` flag not in that doc — both required by the dashboard build's task
-brief. See docs/decisions-log.md.
+brief. `completed` was added later to distinguish a finished project from
+one an Admin simply deactivated. See docs/decisions-log.md.
 """
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func
 
@@ -22,3 +23,4 @@ class PlannedProject(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     active = Column(Boolean, nullable=False, default=True, server_default="true")
+    completed = Column(Boolean, nullable=False, default=False, server_default="false")
