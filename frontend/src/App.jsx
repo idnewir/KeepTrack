@@ -15,11 +15,11 @@ import InvoiceDetailPage from './pages/InvoiceDetailPage.jsx'
 import InvoicesPage from './pages/InvoicesPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import MFAPage from './pages/MFAPage.jsx'
-import PagePlaceholder from './pages/PagePlaceholder.jsx'
 import PendingApprovalPage from './pages/PendingApprovalPage.jsx'
 import ProjectsPage from './pages/ProjectsPage.jsx'
 import ReconciliationPage from './pages/ReconciliationPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
+import ReportsPage from './pages/ReportsPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import SetupPage from './pages/SetupPage.jsx'
 import UploadPage from './pages/UploadPage.jsx'
@@ -69,15 +69,7 @@ export default function App() {
         <Route path="/contributions" element={<ContributionsPage />} />
         <Route path="/reconciliation" element={<ReconciliationPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
-        <Route
-          path="/reports"
-          element={
-            <PagePlaceholder
-              title="Reports"
-              subtitle="Generate and export financial reports."
-            />
-          }
-        />
+        <Route path="/reports" element={<ReportsPage />} />
         <Route
           path="/settings"
           element={

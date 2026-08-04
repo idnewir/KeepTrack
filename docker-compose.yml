@@ -28,6 +28,7 @@ services:
       - ./backend:/app
       - invoice_storage:/data/invoices
       - watched_folder:/data/watched
+      - report_storage:/data/reports
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -66,3 +67,4 @@ volumes:
   postgres_data:
   invoice_storage:
   watched_folder:
+  report_storage:

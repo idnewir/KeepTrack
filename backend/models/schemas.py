@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, EmailStr, Field
 
+from models.report import REPORT_TYPES
 from models.user import ROLES
 
 ASSIGNABLE_ROLES = tuple(r for r in ROLES if r != "superadmin")
@@ -341,6 +342,32 @@ class ProjectUpdate(BaseModel):
     estimated_cost: Decimal | None = Field(default=None, gt=0)
     expected_month: date | None = None
     financial_year_id: int | None = None
+
+
+class ReportOut(BaseModel):
+    id: int
+    title: str
+    generated_by: int
+    generated_by_username: str | None
+    generated_at: datetime
+    date_from: date
+    date_to: date
+    categories_included: list[int]
+    years_included: int
+    report_type: str
+    parameters: dict
+
+    model_config = {"from_attributes": True}
+
+
+class ReportGenerateRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=255)
+    date_from: date
+    date_to: date
+    category_ids: list[int] = Field(default_factory=list)
+    years_included: int = Field(default=3, ge=1, le=5)
+    report_type: str = Field(default="historical", description=f"One of: {', '.join(REPORT_TYPES)}")
+    include_ai_summary: bool = True
 
 
 class ReconciliationMonthOut(BaseModel):

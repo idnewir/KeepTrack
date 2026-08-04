@@ -14,6 +14,7 @@ from routers.financial_years import router as financial_years_router
 from routers.invoices import router as invoices_router
 from routers.projects import router as projects_router
 from routers.reconciliation import router as reconciliation_router
+from routers.reports import router as reports_router
 from routers.settings import router as settings_router
 from services.auth_service import ensure_superadmin
 
@@ -35,6 +36,7 @@ app.include_router(financial_years_router)
 app.include_router(invoices_router)
 app.include_router(projects_router)
 app.include_router(reconciliation_router)
+app.include_router(reports_router)
 app.include_router(settings_router)
 
 
@@ -42,6 +44,7 @@ app.include_router(settings_router)
 def on_startup():
     os.makedirs(os.path.join(settings.invoice_storage_path, "original"), exist_ok=True)
     os.makedirs(settings.signed_invoice_storage_path, exist_ok=True)
+    os.makedirs(settings.report_storage_path, exist_ok=True)
 
     db = SessionLocal()
     try:

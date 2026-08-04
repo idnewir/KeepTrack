@@ -16,3 +16,4 @@ python-multipart==0.0.9
 pymupdf==1.24.10
 anthropic>=0.40.0
 watchdog==4.0.2
+reportlab==4.2.5

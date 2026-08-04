@@ -1,0 +1,93 @@
+.kt-reports-success {
+  background: rgba(29, 158, 117, 0.1);
+  color: var(--kt-accent);
+  border: 1px solid rgba(29, 158, 117, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.kt-reports-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.kt-reports-form .kt-field {
+  min-width: 180px;
+}
+
+.kt-reports-form select,
+.kt-reports-form input[type='date'],
+.kt-reports-form input[type='text'] {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+}
+
+.kt-reports-categories-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kt-reports-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px 16px;
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.kt-reports-category-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.kt-reports-category-checkbox input {
+  cursor: pointer;
+}
+
+.kt-reports-ai-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.kt-reports-ai-toggle input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.kt-reports-generate-button {
+  width: auto;
+  margin-top: 0;
+  padding: 11px 24px;
+}
+
+@media (max-width: 640px) {
+  .kt-reports-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .kt-reports-generate-button {
+    width: 100%;
+  }
+}

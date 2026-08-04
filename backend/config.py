@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     invoice_storage_path: str = "/data/invoices"
     signed_invoice_storage_path: str = "/data/invoices/signed"
     watched_folder_path: str = "/data/watched"
+    report_storage_path: str = "/data/reports"
 
     default_financial_year_start_month: int = 9
     default_financial_year_end_month: int = 8
