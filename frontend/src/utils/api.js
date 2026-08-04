@@ -189,6 +189,7 @@ export const invoicesApi = {
   remove: (id, token) => request(`/invoices/${id}`, { method: 'DELETE', token }),
   sign: (id, payload, token) => request(`/invoices/${id}/sign`, { method: 'POST', body: payload, token }),
   downloadSignedPdf: (id, token) => requestBlob(`/invoices/${id}/signed-pdf`, { token }),
+  getOriginalPdf: (id, token) => requestBlob(`/invoices/${id}/original-pdf`, { token }),
 }
 
 export const reportsApi = {

@@ -178,6 +178,7 @@ def sign_invoice(
             y_pct=payload.y,
             width_pct=payload.width,
             height_pct=payload.height,
+            additional_text=payload.additional_text,
         )
     except ValueError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
@@ -191,6 +192,32 @@ def sign_invoice(
     db.commit()
     db.refresh(invoice)
     return invoice
+
+
+@router.get("/{invoice_id}/original-pdf")
+def get_original_pdf(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_standard),
+):
+    invoice = db.get(Invoice, invoice_id)
+    if invoice is None or invoice.deleted:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
+
+    invoice_file = (
+        db.query(InvoiceFile)
+        .filter(InvoiceFile.invoice_id == invoice_id)
+        .order_by(InvoiceFile.uploaded_at.desc())
+        .first()
+    )
+    if invoice_file is None or not os.path.exists(invoice_file.original_path):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Original PDF not found for this invoice")
+
+    return FileResponse(
+        invoice_file.original_path,
+        media_type="application/pdf",
+        filename=invoice.filename,
+    )
 
 
 @router.get("/{invoice_id}/signed-pdf")

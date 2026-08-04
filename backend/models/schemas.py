@@ -138,6 +138,9 @@ class InvoiceSignRequest(BaseModel):
     y: float = Field(ge=0, le=100, description="Top edge of the signature box, % of page height")
     width: float = Field(gt=0, le=100, description="Signature box width, % of page width")
     height: float = Field(gt=0, le=100, description="Signature box height, % of page height")
+    additional_text: str | None = Field(
+        default=None, max_length=500, description="Optional free text stamped below the signature and date"
+    )
 
 
 class SettingOut(BaseModel):

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
-import { categoriesApi, invoicesApi } from '../utils/api.js'
+import SigningPanel from '../components/SigningPanel.jsx'
+import { categoriesApi, invoicesApi, settingsApi } from '../utils/api.js'
 
 export default function InvoiceDetailPage() {
   const { id } = useParams()
@@ -13,6 +14,7 @@ export default function InvoiceDetailPage() {
 
   const [invoice, setInvoice] = useState(null)
   const [categories, setCategories] = useState([])
+  const [signingEnabled, setSigningEnabled] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -26,8 +28,22 @@ export default function InvoiceDetailPage() {
   const [categoryId, setCategoryId] = useState('')
   const [notes, setNotes] = useState('')
 
+  // Signing flow — loading the original PDF from the server (there's no
+  // in-memory File object here, unlike the upload/review stage) then
+  // handing it to the same SigningPanel used during review.
+  const [signingStage, setSigningStage] = useState(false)
+  const [signFile, setSignFile] = useState(null)
+  const [loadingSignFile, setLoadingSignFile] = useState(false)
+
   useEffect(() => {
     categoriesApi.list(token).then(setCategories).catch(() => setCategories([]))
+    settingsApi
+      .list(token)
+      .then((rows) => {
+        const signing = rows.find((row) => row.key === 'signing_enabled')
+        setSigningEnabled(signing ? signing.value === 'true' : true)
+      })
+      .catch(() => setSigningEnabled(true))
   }, [token])
 
   useEffect(() => {
@@ -91,6 +107,40 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  const handleOpenSigning = async () => {
+    setError('')
+    setLoadingSignFile(true)
+    try {
+      const blob = await invoicesApi.getOriginalPdf(invoice.id, token)
+      setSignFile(blob)
+      setSigningStage(true)
+    } catch (err) {
+      setError(err.message || 'Failed to load the PDF for signing')
+    } finally {
+      setLoadingSignFile(false)
+    }
+  }
+
+  const handleBackFromSigning = () => {
+    setSigningStage(false)
+    setSignFile(null)
+  }
+
+  // The signing endpoint already wrote signed=true and a new
+  // signed_pdf_path — re-fetch to pick that up rather than a separate
+  // confirm step, since the invoice here is already reviewed/confirmed.
+  const handleSigned = async () => {
+    try {
+      const updated = await invoicesApi.get(invoice.id, token)
+      setInvoice(updated)
+    } catch (err) {
+      setError(err.message || 'Signed, but failed to refresh invoice details')
+    } finally {
+      setSigningStage(false)
+      setSignFile(null)
+    }
+  }
+
   const handleDelete = async () => {
     setDeleting(true)
     setError('')
@@ -127,130 +177,162 @@ export default function InvoiceDetailPage() {
         {invoice.signed ? ' · Signed' : ''}
       </p>
 
-      {invoice.signed && canEdit && (
-        <p>
-          <button
-            type="button"
-            className="kt-category-link-button"
-            onClick={handleDownloadSigned}
-            disabled={downloadingSigned}
-          >
-            {downloadingSigned ? 'Downloading…' : 'Download signed PDF'}
-          </button>
-        </p>
-      )}
-
-      <form className="kt-review-fields kt-invoice-detail-form" onSubmit={handleSave}>
-        <div className="kt-field">
-          <label htmlFor="detail-invoice-date">Invoice date</label>
-          <input
-            id="detail-invoice-date"
-            type="date"
-            value={invoiceDate}
-            onChange={(e) => setInvoiceDate(e.target.value)}
-            disabled={!canEdit}
-            required
+      {signingStage ? (
+        <div className="kt-review-card">
+          <SigningPanel
+            invoiceId={invoice.id}
+            invoiceFilename={invoice.filename}
+            file={signFile}
+            token={token}
+            onSigned={handleSigned}
+            onBack={handleBackFromSigning}
           />
         </div>
+      ) : (
+        <>
+          {canEdit && signingEnabled && invoice.reviewed && (
+            <p>
+              <button
+                type="button"
+                className="kt-auth-button"
+                onClick={handleOpenSigning}
+                disabled={loadingSignFile}
+              >
+                {loadingSignFile
+                  ? 'Loading…'
+                  : invoice.signed
+                    ? 'Re-sign and export'
+                    : 'Sign and export'}
+              </button>
+            </p>
+          )}
 
-        <div className="kt-field">
-          <label htmlFor="detail-supplier">Supplier</label>
-          <input
-            id="detail-supplier"
-            type="text"
-            value={supplier}
-            onChange={(e) => setSupplier(e.target.value)}
-            disabled={!canEdit}
-            maxLength={255}
-            required
-          />
-        </div>
+          {invoice.signed && canEdit && (
+            <p>
+              <button
+                type="button"
+                className="kt-category-link-button"
+                onClick={handleDownloadSigned}
+                disabled={downloadingSigned}
+              >
+                {downloadingSigned ? 'Downloading…' : 'Download signed PDF'}
+              </button>
+            </p>
+          )}
 
-        <div className="kt-field">
-          <label htmlFor="detail-amount">Amount (inc. VAT)</label>
-          <div className="kt-amount-input">
-            <span className="kt-amount-prefix">£</span>
-            <input
-              id="detail-amount"
-              type="number"
-              step="0.01"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              disabled={!canEdit}
-              required
-            />
-          </div>
-        </div>
+          <form className="kt-review-fields kt-invoice-detail-form" onSubmit={handleSave}>
+            <div className="kt-field">
+              <label htmlFor="detail-invoice-date">Invoice date</label>
+              <input
+                id="detail-invoice-date"
+                type="date"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
+                disabled={!canEdit}
+                required
+              />
+            </div>
 
-        <div className="kt-field">
-          <label htmlFor="detail-category">Category</label>
-          <select
-            id="detail-category"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-            disabled={!canEdit}
-          >
-            <option value="">Uncategorised</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </div>
+            <div className="kt-field">
+              <label htmlFor="detail-supplier">Supplier</label>
+              <input
+                id="detail-supplier"
+                type="text"
+                value={supplier}
+                onChange={(e) => setSupplier(e.target.value)}
+                disabled={!canEdit}
+                maxLength={255}
+                required
+              />
+            </div>
 
-        <div className="kt-field">
-          <label htmlFor="detail-notes">Notes</label>
-          <textarea
-            id="detail-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            disabled={!canEdit}
-            rows={3}
-          />
-        </div>
+            <div className="kt-field">
+              <label htmlFor="detail-amount">Amount (inc. VAT)</label>
+              <div className="kt-amount-input">
+                <span className="kt-amount-prefix">£</span>
+                <input
+                  id="detail-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  disabled={!canEdit}
+                  required
+                />
+              </div>
+            </div>
 
-        {error && <div className="kt-auth-error">{error}</div>}
+            <div className="kt-field">
+              <label htmlFor="detail-category">Category</label>
+              <select
+                id="detail-category"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                disabled={!canEdit}
+              >
+                <option value="">Uncategorised</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        {canEdit && (
-          <div className="kt-review-actions">
-            <button type="submit" className="kt-auth-button" disabled={saving}>
-              {saving ? 'Saving…' : 'Save changes'}
-            </button>
+            <div className="kt-field">
+              <label htmlFor="detail-notes">Notes</label>
+              <textarea
+                id="detail-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                disabled={!canEdit}
+                rows={3}
+              />
+            </div>
 
-            {canDelete &&
-              (confirmingDelete ? (
-                <span className="kt-review-discard-confirm">
-                  Delete this invoice?
-                  <button
-                    type="button"
-                    className="kt-category-link-button kt-category-danger"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                  >
-                    {deleting ? 'Deleting…' : 'Yes, delete'}
-                  </button>
-                  <button
-                    type="button"
-                    className="kt-category-link-button"
-                    onClick={() => setConfirmingDelete(false)}
-                  >
-                    Cancel
-                  </button>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  className="kt-review-discard-button"
-                  onClick={() => setConfirmingDelete(true)}
-                >
-                  Delete
+            {error && <div className="kt-auth-error">{error}</div>}
+
+            {canEdit && (
+              <div className="kt-review-actions">
+                <button type="submit" className="kt-auth-button" disabled={saving}>
+                  {saving ? 'Saving…' : 'Save changes'}
                 </button>
-              ))}
-          </div>
-        )}
-      </form>
+
+                {canDelete &&
+                  (confirmingDelete ? (
+                    <span className="kt-review-discard-confirm">
+                      Delete this invoice?
+                      <button
+                        type="button"
+                        className="kt-category-link-button kt-category-danger"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                      >
+                        {deleting ? 'Deleting…' : 'Yes, delete'}
+                      </button>
+                      <button
+                        type="button"
+                        className="kt-category-link-button"
+                        onClick={() => setConfirmingDelete(false)}
+                      >
+                        Cancel
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="kt-review-discard-button"
+                      onClick={() => setConfirmingDelete(true)}
+                    >
+                      Delete
+                    </button>
+                  ))}
+              </div>
+            )}
+          </form>
+        </>
+      )}
     </div>
   )
 }

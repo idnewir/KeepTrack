@@ -290,3 +290,22 @@ A running record of significant design decisions, why they were made, and when. 
 
 **Decision:** `InvoicesPage.jsx` accepts a shorthand `?filter=unreviewed` / `?filter=unsigned` URL param, read once on mount alongside the existing `reviewed`/`categoryId`/etc. params, rather than requiring the linking page to know the underlying filter field names.
 **Rationale:** Lets the dashboard notification links stay simple (`/invoices?filter=unsigned`) while the page itself resolves that into the right filter state on load.
+
+---
+
+## 2026-08-04 — Sign and export from invoice detail, free text field in signing panel
+
+**Decision:** Added `GET /invoices/{id}/original-pdf` (not in the original endpoint list), `require_standard`-gated, streaming the same `InvoiceFile.original_path` the `/sign` endpoint already reads. `InvoiceDetailPage.jsx` fetches this as a Blob and hands it to `SigningPanel` as its `file` prop.
+**Rationale:** `SigningPanel` (built for the review stage) expects an in-memory `File`/`Blob` it can render page-by-page via `pdf.js` — the review stage has that for free from the upload `<input>`, but the invoice detail page only has a server-side `id` with no PDF bytes in the browser. Rather than teaching `SigningPanel` two different loading paths, giving the detail page a way to fetch the same shape of object (a `Blob`, which supports `.arrayBuffer()` exactly like a `File`) let it reuse the component unmodified for its data-loading half.
+
+**Decision:** `InvoiceDetailPage.jsx` shows "Sign and export" (unsigned) or "Re-sign and export" (already signed) only when the invoice is `reviewed` **and** the `signing_enabled` setting is on (fetched the same way `UploadPage.jsx` already does), matching the existing `require_standard` gate on both `/sign` and the new `/original-pdf` endpoint.
+**Rationale:** Signing is an app-wide toggle (see the PDF signing workflow build entry above) — showing a sign button on the detail page when an Admin has turned signing off would let a Standard user start a flow the backend will then reject with `400`. Gating on the same setting the review stage already checks keeps the two entry points to signing consistent.
+
+**Decision:** Re-signing from the detail page does not delete the previous `signed_pdf_path` file from disk — `sign_invoice_pdf` still only ever writes a new file and the invoice row's `signed_pdf_path` column is simply repointed to it, identical to how the review-stage signing flow already behaved.
+**Rationale:** The task's "replacing the previous signed version" is satisfied at the database/download level — `GET /invoices/{id}/signed-pdf` always serves the current `signed_pdf_path`, so there is no user-visible old copy. Deleting the orphaned file from storage would be a destructive disk operation with no functional requirement behind it, and removes a fallback if a re-sign is later found to be wrong.
+
+**Decision:** The new "Additional text (optional)" field is added once, inside the shared `SigningPanel.jsx`, rather than duplicated between `ReviewCard` and `InvoiceDetailPage`.
+**Rationale:** Both call sites already render the same `SigningPanel` component for the actual signing UI — adding the field there automatically covers "applies to both the review stage signing and the invoice detail page signing" from a single change.
+
+**Decision:** `sign_invoice_pdf` (`backend/services/signing_service.py`) stamps the optional text in a new text box positioned directly below the signature/date box — same `x`/`width` as the box, clamped to the page's bottom edge — rather than trying to fit a third line inside the user-resizable signature box itself.
+**Rationale:** The signature box's height is user-controlled via the resize handle and the bottom ~28% is already reserved for the date caption; a third line inside that same box would either overflow a small box or need to silently override the user's chosen size. A same-width strip immediately underneath satisfies "below the signature and date, in the same position" (same horizontal placement) without touching the existing box geometry.

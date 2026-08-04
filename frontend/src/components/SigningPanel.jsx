@@ -41,6 +41,7 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   const [hasSignature, setHasSignature] = useState(false)
   const [signatureDataUrl, setSignatureDataUrl] = useState(null)
   const [dateValue, setDateValue] = useState(todayIso())
+  const [additionalText, setAdditionalText] = useState('')
 
   const [placing, setPlacing] = useState(false)
   const [placeError, setPlaceError] = useState('')
@@ -276,6 +277,7 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
           y: box.yPct,
           width: box.wPct,
           height: box.hPct,
+          additional_text: additionalText.trim() || null,
         },
         token
       )
@@ -367,6 +369,18 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
             value={dateValue}
             onChange={(e) => setDateValue(e.target.value)}
             required
+          />
+        </div>
+
+        <div className="kt-field">
+          <label htmlFor="sign-additional-text">Additional text (optional)</label>
+          <input
+            id="sign-additional-text"
+            type="text"
+            value={additionalText}
+            onChange={(e) => setAdditionalText(e.target.value)}
+            placeholder="e.g. your name, a note, or reference number"
+            maxLength={500}
           />
         </div>
 

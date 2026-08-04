@@ -35,6 +35,7 @@ def sign_invoice_pdf(
     y_pct: float,
     width_pct: float,
     height_pct: float,
+    additional_text: str | None = None,
 ) -> str:
     """Return the path of a new signed copy of `original_path` with the
     signature image and date overlaid at the given position on the given
@@ -76,6 +77,21 @@ def sign_invoice_pdf(
             fontsize=9,
             align=fitz.TEXT_ALIGN_CENTER,
         )
+
+        if additional_text:
+            # Stamped directly below the signature/date box, at the same
+            # horizontal position (x0/width) as the box itself.
+            text_height = box_h * 0.4
+            text_y0 = box_y0 + box_h
+            text_y1 = min(text_y0 + text_height, page_height)
+            if text_y1 > text_y0:
+                text_rect = fitz.Rect(box_x0, text_y0, box_x0 + box_w, text_y1)
+                page.insert_textbox(
+                    text_rect,
+                    additional_text,
+                    fontsize=9,
+                    align=fitz.TEXT_ALIGN_CENTER,
+                )
 
         today = date_type.today()
         target_dir = os.path.join(
