@@ -1,0 +1,67 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import AuthCard from '../components/AuthCard.jsx'
+import { useAuth } from '../hooks/AuthContext.jsx'
+
+export default function LoginPage() {
+  const { login } = useAuth()
+  const navigate = useNavigate()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSubmitting(true)
+    try {
+      await login(username, password)
+      navigate('/mfa')
+    } catch (err) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <AuthCard title="Log in" subtitle="Enter your username and password to continue.">
+      <form className="kt-auth-form" onSubmit={handleSubmit}>
+        {error && <div className="kt-auth-error">{error}</div>}
+
+        <div className="kt-field">
+          <label htmlFor="username">Username</label>
+          <input
+            id="username"
+            type="text"
+            autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="kt-field">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+
+        <button className="kt-auth-button" type="submit" disabled={submitting}>
+          {submitting ? 'Logging in…' : 'Log in'}
+        </button>
+      </form>
+
+      <p className="kt-auth-footer">
+        Don't have an account? <Link to="/register">Register</Link>
+      </p>
+    </AuthCard>
+  )
+}

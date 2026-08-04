@@ -54,8 +54,13 @@ Keep Track is a containerised web application with a React single-page frontend,
 
 ## Authentication & Security
 
-- **Login:** username + password, plus mandatory TOTP-based MFA (compatible with Google Authenticator, Authy, and similar apps), implemented with `pyotp`.
-- **Session:** JSON Web Tokens (JWT) issued on successful login, used to authorise subsequent API requests.
+- **First run:** a setup wizard (`POST /auth/setup`) creates the first Admin account and is only reachable while no non-Superadmin user exists yet.
+- **Login:** username + password, plus mandatory TOTP-based MFA (compatible with Google Authenticator, Authy, and similar apps), implemented with `pyotp` (30-second step, ±1 step tolerance for clock drift). Login is two steps: `POST /auth/login` (password) returns a short-lived (5 minute) token scoped to MFA only, then `POST /auth/verify-mfa` (TOTP code) returns the full access token.
+- **Self-registration:** `POST /auth/register` creates a user in a pending state; an Admin approves and assigns their role via `POST /auth/approve-user/{id}`. Registrants are shown their MFA QR code once, immediately after registering, since it's the only point in that flow where they see it.
+- **Session:** JSON Web Tokens (JWT), HS256, expiring after 8 hours, issued once MFA is verified.
+- **Password storage:** bcrypt via `passlib`.
+- **MFA secret storage:** `users.mfa_secret` is encrypted at rest (Fernet) using a key from `MFA_ENCRYPTION_KEY`, not stored as plaintext.
+- **Superadmin:** bootstrapped from `SUPERADMIN_USERNAME` / `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD` env vars on backend startup, independent of the setup wizard — a recovery account, not part of normal onboarding (see [user-roles.md](user-roles.md)).
 - **Authorisation:** role-based access control enforced in the backend (see [user-roles.md](user-roles.md)).
 
 ## Containerisation & Deployment

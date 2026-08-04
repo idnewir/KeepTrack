@@ -1,0 +1,100 @@
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { authApi } from '../utils/api.js'
+
+const TOKEN_KEY = 'kt_access_token'
+const AuthContext = createContext(null)
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [tempToken, setTempToken] = useState(null)
+  const [setupRequired, setSetupRequired] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function bootstrap() {
+      try {
+        const status = await authApi.setupStatus()
+        setSetupRequired(status.setup_required)
+      } catch {
+        setSetupRequired(false)
+      }
+
+      const savedToken = localStorage.getItem(TOKEN_KEY)
+      if (savedToken) {
+        try {
+          const me = await authApi.me(savedToken)
+          setUser({ ...me, token: savedToken })
+        } catch {
+          localStorage.removeItem(TOKEN_KEY)
+        }
+      }
+
+      setLoading(false)
+    }
+    bootstrap()
+  }, [])
+
+  const login = async (username, password) => {
+    const data = await authApi.login({ username, password })
+    setTempToken(data.temp_token)
+    return data
+  }
+
+  const verifyMfa = async (code) => {
+    if (!tempToken) {
+      throw new Error('Login session expired — please sign in again.')
+    }
+    const data = await authApi.verifyMfa({ temp_token: tempToken, code })
+    localStorage.setItem(TOKEN_KEY, data.access_token)
+    const me = await authApi.me(data.access_token)
+    setUser({ ...me, token: data.access_token })
+    setTempToken(null)
+    return me
+  }
+
+  const register = (username, email, password) =>
+    authApi.register({ username, email, password })
+
+  const completeSetup = async (username, email, password) => {
+    // Deliberately does NOT flip setupRequired yet — SetupPage still has the
+    // QR-code and confirmation steps to show, and /setup's route guard would
+    // otherwise redirect away the instant setupRequired becomes false.
+    // markSetupComplete() below is called once the wizard is actually done.
+    return authApi.setup({ username, email, password })
+  }
+
+  const markSetupComplete = () => setSetupRequired(false)
+
+  const logout = () => {
+    localStorage.removeItem(TOKEN_KEY)
+    setUser(null)
+    setTempToken(null)
+  }
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      setupRequired,
+      hasPendingMfa: Boolean(tempToken),
+      login,
+      verifyMfa,
+      register,
+      completeSetup,
+      markSetupComplete,
+      logout,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, loading, setupRequired, tempToken]
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return ctx
+}

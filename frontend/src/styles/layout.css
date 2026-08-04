@@ -24,6 +24,35 @@
   gap: 10px;
 }
 
+.kt-header-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kt-header-username {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b6b67;
+}
+
+.kt-header-logout {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--kt-primary);
+  background: none;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.kt-header-logout:hover {
+  background: var(--kt-background);
+}
+
 .kt-wordmark {
   font-size: 20px;
   font-weight: 600;
