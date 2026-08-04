@@ -26,7 +26,12 @@
       "Bash(/usr/local/bin/python3.12 -m py_compile config.py database.py main.py models/*.py routers/*.py services/*.py utils/*.py alembic/env.py alembic/versions/*.py)",
       "Bash(curl -s http://localhost:8123/health)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('routers/auth.py'\\).read\\(\\)\\); ast.parse\\(open\\('models/schemas.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(npx eslint *)",
+      "Bash(npx vite *)",
+      "Bash(git commit *)"
     ]
   }
 }
