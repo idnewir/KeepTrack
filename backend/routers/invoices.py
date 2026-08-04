@@ -11,21 +11,14 @@ from models.category import Category
 from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
 from models.schemas import InvoiceOut, InvoiceSignRequest, InvoiceUpdate
-from models.setting import Setting
 from models.user import User
 from services.ai_service import check_duplicate, extract_invoice_data
+from services.settings_service import is_signing_enabled
 from services.signing_service import sign_invoice_pdf
 from services.storage_service import save_invoice_pdf
 from utils.deps import get_current_user, require_standard
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
-
-
-def _signing_enabled(db: Session) -> bool:
-    setting = db.query(Setting).filter(Setting.key == "signing_enabled").first()
-    # No row (shouldn't happen post-migration) defaults to enabled rather
-    # than silently skipping an audit-trail step someone may be relying on.
-    return setting is None or setting.value.lower() == "true"
 
 
 @router.post("/upload", response_model=list[InvoiceOut], status_code=status.HTTP_201_CREATED)
@@ -159,7 +152,7 @@ def sign_invoice(
     db: Session = Depends(get_db),
     _user: User = Depends(require_standard),
 ):
-    if not _signing_enabled(db):
+    if not is_signing_enabled(db):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Signing is currently turned off in Settings")
 
     invoice = db.get(Invoice, invoice_id)

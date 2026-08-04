@@ -1,8 +1,19 @@
 from models.category import Category
+from models.contribution import Contribution
 from models.financial_year import FinancialYear
 from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
+from models.planned_project import PlannedProject
 from models.setting import Setting
 from models.user import User
 
-__all__ = ["Category", "FinancialYear", "Invoice", "InvoiceFile", "Setting", "User"]
+__all__ = [
+    "Category",
+    "Contribution",
+    "FinancialYear",
+    "Invoice",
+    "InvoiceFile",
+    "PlannedProject",
+    "Setting",
+    "User",
+]

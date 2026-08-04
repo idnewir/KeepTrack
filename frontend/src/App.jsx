@@ -8,7 +8,8 @@ import {
   RequireSetupNeeded,
 } from './components/RouteGuards.jsx'
 import CategoriesPage from './pages/CategoriesPage.jsx'
-import Dashboard from './pages/Dashboard.jsx'
+import DashboardPage from './pages/DashboardPage.jsx'
+import ForecastBreakdownPage from './pages/ForecastBreakdownPage.jsx'
 import InvoiceDetailPage from './pages/InvoiceDetailPage.jsx'
 import InvoicesPage from './pages/InvoicesPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
@@ -57,7 +58,8 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/forecast" element={<ForecastBreakdownPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="/upload" element={<UploadPage />} />

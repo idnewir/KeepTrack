@@ -1,13 +1,19 @@
 /* Dashboard quick actions */
 
 .kt-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
 .kt-quick-action-button {
+  display: inline-flex;
+  align-items: center;
   width: auto;
   margin-top: 0;
   padding: 9px 18px;
+  text-decoration: none;
 }
 
 /* Invoices table */

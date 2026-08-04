@@ -55,6 +55,11 @@ export const categoriesApi = {
   restore: (id, token) => request(`/categories/${id}/restore`, { method: 'POST', token }),
 }
 
+export const dashboardApi = {
+  summary: (token) => request('/dashboard/summary', { token }),
+  notifications: (token) => request('/dashboard/notifications', { token }),
+}
+
 export const settingsApi = {
   list: (token) => request('/settings', { token }),
   update: (key, value, token) =>

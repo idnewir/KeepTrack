@@ -147,3 +147,43 @@ A running record of significant design decisions, why they were made, and when. 
 
 **Decision:** `/settings` and its sidebar entry are gated behind `RequireAdmin` in full (not just the signing toggle control within the page).
 **Rationale:** `docs/features.md` describes Settings as "Accessible to Admins (and Superadmin); most settings are Admin-only" — treating the whole page as Admin-only mirrors how `/settings/categories` is already gated, rather than building a partially-visible page for roles that can't act on anything in it.
+
+---
+
+## 2026-08-04 — Main dashboard build
+
+**Decision:** A `contributions` table was created now (migration `0008`), matching database-schema.md's already-documented shape exactly, even though the task brief's DATABASE section only asked for `planned_projects`. No CRUD endpoints were added for it.
+**Rationale:** `/dashboard/summary` is explicitly required to report "total contributions received this financial year (from contributions table — nullable, 0 if none yet)" — that table has to exist for the endpoint to run at all. Building the Contributions feature itself (the `/contributions` page is still a placeholder) is out of scope for this task, so the table exists purely as a read target; it will simply stay empty, and the summary correctly reports £0, until that feature is built.
+
+**Decision:** `planned_projects.expected_month` was built as a `DATE` (first of the month) rather than the `SMALLINT` (1-12, CHECK constrained) documented in database-schema.md, and the table also carries an `active BOOLEAN` column not in that doc.
+**Rationale:** Both were explicit, literal requirements of this task's brief ("expected_month (date)", "active (boolean)"), which takes precedence over the older schema doc per the deviation pattern already established in this log (e.g. `invoices.financial_year_id` nullable, `invoices.deleted`). A `DATE` is also strictly more useful here: it disambiguates which calendar year a project's month falls in without leaning on `financial_year_id` (which is nullable), so a project can be forecast into the right month even before it's assigned to a financial year.
+
+**Decision:** The dashboard aggregates invoices and contributions by comparing `invoice_date` (or `contributions.financial_year_id`) against the current financial year's `start_date`/`end_date` range, rather than filtering on `invoices.financial_year_id`.
+**Rationale:** `invoices.financial_year_id` is nullable and nothing in the upload/confirm flow has ever populated it (see the 2026-08-04 invoice upload build entry above) — filtering on it would silently show zero invoices for every financial year. Date-range filtering works with the data that actually exists today; `financial_year_id` can be wired up wherever invoice creation is revisited next.
+
+**Decision:** `financial_years` rows are created lazily — `financial_year_service.get_or_create_financial_year()` inserts the row for the current FY (by date-derived label) the first time anything asks for it, rather than requiring a separate financial-year-rollover step to have run first.
+**Rationale:** No Settings screen or rollover job creates these rows yet (per `docs/features.md`#8, "Financial year configuration" isn't built). Since the dashboard, and now `planned_projects`/`contributions`, all need a real `financial_years.id` to reference, computing it from `today()` and creating it on first use is what lets the dashboard work from a fresh install with zero manual setup.
+
+**Decision:** `GET /dashboard/notifications` computes its notifications live on every request (balance vs. target, stale unreviewed invoices, unsigned confirmed invoices) rather than reading/writing the `notifications` table documented in database-schema.md. "Dismiss" is frontend-only session state (a dismissed banner reappears on next login if the underlying condition is still true).
+**Rationale:** Every notification type in this task's brief is a derived fact about current data ("balance below target," "invoice unreviewed > N days"), not a discrete event a table row would represent well — computing them fresh avoids the row ever going stale or duplicating. The `notifications` table stays available for a future notification type that genuinely is event-shaped (e.g. "duplicate flagged on invoice #123"), which live computation can't express.
+
+**Decision:** The reconciliation-overdue notification is a code comment (in `routers/dashboard.py`), not a notification the endpoint ever emits.
+**Rationale:** The task brief itself calls it a "placeholder for reconciliation overdue (reconciliation not built yet)" — the `monthly_reconciliations` table and feature don't exist yet, so there is no data "overdue" could be computed from. Emitting a fake or always-false notification would be worse than leaving a marked TODO for whoever builds reconciliation next.
+
+**Decision:** The "invoices unreviewed for more than N days" notification threshold reuses the existing `UNCONFIRMED_INVOICE_ALERT_DAYS` config value (default 5) instead of a hardcoded 3 days.
+**Rationale:** `docs/features.md`#8 already documents this exact threshold as configurable ("Notification thresholds — e.g. how many days an invoice can sit unconfirmed... before it triggers a login notification"), and `config.py` already exposes it. The task brief's "3 days" reads as an illustrative example of that same configurable threshold, not a new, second, hardcoded number — introducing one would leave two competing definitions of the same rule.
+
+**Decision:** `routers/invoices.py`'s private `_signing_enabled()` helper was extracted to `services/settings_service.py` as `is_signing_enabled()`, and `invoices.py` was updated to import it.
+**Rationale:** `/dashboard/notifications` needs the same "is signing currently on" check (for the unsigned-invoice notification) that `/invoices/{id}/sign` already had. Duplicating a private, underscore-prefixed helper into a second router would leave two copies of the same rule to keep in sync; moving it to `services/` (where `docs/architecture.md` says business logic belongs) fixes that for both call sites at once.
+
+**Decision:** No charting library was added — the main financial-year chart (`frontend/src/components/FinancialChart.jsx`) is a hand-built inline SVG with a pointer-tracked crosshair/tooltip and legend-button click targets, rather than e.g. Recharts.
+**Rationale:** Consistent with this project's established minimal-dependency pattern (plain `fetch`/XHR instead of axios, native drag events instead of a DnD library, Pointer Events for the signing canvas). A 12-point line/area chart is well within what plain SVG + React state can do cleanly, and it keeps the three click-through targets (income/spend/forecast) fully under the app's own control rather than fighting a library's event model.
+
+**Decision:** Series colours are blue `#2D6B9F` (income), green `#1D9E75` (actual spend), amber `#C97A0C` (forecast), purple `#7C5CBF` (planned-project markers) — the first two are the existing brand primary/accent; amber and purple are new. All four were run through a categorical-palette colourblind/contrast validator before use.
+**Rationale:** The task brief specified blue/green/amber/distinct-colour by role; amber `#C97A0C` and purple `#7C5CBF` were chosen to pass CVD-safe separation (protan/tritan ΔE ≥ 8, normal-vision floor ≥ 15) against the other three and against the app's off-white surface, rather than picking visually-plausible hex values by eye.
+
+**Decision:** A new `/forecast` route (`ForecastBreakdownPage.jsx`) was added, reachable only by clicking the forecast series on the dashboard chart — it is not in the sidebar.
+**Rationale:** `docs/features.md` requires "Click the forecast line to see a breakdown by category," and no such view existed. Not adding it to the sidebar matches how `InvoiceDetailPage` (reached only via the Invoices table) already works — a drill-down view, not a top-level destination.
+
+**Decision:** `InvoicesPage.jsx` now reads its initial `categoryId`/`dateFrom`/`dateTo`/`reviewed` filter state from the URL's query string (`useSearchParams`, read once on mount) instead of always starting blank.
+**Rationale:** The dashboard's "click actual spend → Invoices filtered to this financial year" and the unreviewed-invoices notification link both need to land on Invoices pre-filtered. Without this, every drill-down link into Invoices would silently drop its filter the moment the page loaded.

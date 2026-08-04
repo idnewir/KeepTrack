@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { categoriesApi, invoicesApi } from '../utils/api.js'
 
@@ -19,15 +19,20 @@ export default function InvoicesPage() {
   const navigate = useNavigate()
   const canUpload = user?.role !== 'readonly'
 
+  // Initial filter values can arrive via the URL (e.g. a dashboard chart or
+  // notification linking here already filtered) — read once on mount, same
+  // as arriving with no filters at all.
+  const [searchParams] = useSearchParams()
+
   const [categories, setCategories] = useState([])
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [categoryId, setCategoryId] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
-  const [reviewed, setReviewed] = useState('')
+  const [categoryId, setCategoryId] = useState(searchParams.get('categoryId') || '')
+  const [dateFrom, setDateFrom] = useState(searchParams.get('dateFrom') || '')
+  const [dateTo, setDateTo] = useState(searchParams.get('dateTo') || '')
+  const [reviewed, setReviewed] = useState(searchParams.get('reviewed') || '')
 
   useEffect(() => {
     categoriesApi.list(token).then(setCategories).catch(() => setCategories([]))
