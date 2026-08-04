@@ -190,6 +190,7 @@ export const invoicesApi = {
   sign: (id, payload, token) => request(`/invoices/${id}/sign`, { method: 'POST', body: payload, token }),
   downloadSignedPdf: (id, token) => requestBlob(`/invoices/${id}/signed-pdf`, { token }),
   getOriginalPdf: (id, token) => requestBlob(`/invoices/${id}/original-pdf`, { token }),
+  getPreview: (id, token) => requestBlob(`/invoices/${id}/preview`, { token }),
 }
 
 export const reportsApi = {

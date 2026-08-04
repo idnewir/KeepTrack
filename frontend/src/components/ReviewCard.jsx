@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import SigningPanel from './SigningPanel.jsx'
 import { invoicesApi } from '../utils/api.js'
-import { renderPdfFirstPage } from '../utils/pdf.js'
 
 // A field is treated as "AI couldn't determine this" when it's still at the
 // sentinel empty value the upload endpoint fills in for a NOT NULL column
@@ -15,8 +14,9 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
   const { user } = useAuth()
   const token = user?.token
 
-  const canvasRef = useRef(null)
-  const [previewError, setPreviewError] = useState('')
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(true)
+  const [previewFailed, setPreviewFailed] = useState(false)
 
   const [invoiceDate, setInvoiceDate] = useState(invoice.invoice_date || '')
   const [supplier, setSupplier] = useState(invoice.supplier || '')
@@ -37,17 +37,38 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
   const [confirmingDiscard, setConfirmingDiscard] = useState(false)
   const [discarding, setDiscarding] = useState(false)
 
+  // The thumbnail is rendered server-side (backend/services/preview_service.py,
+  // via PyMuPDF) rather than client-side with pdf.js — pdf.js was not
+  // respecting a PDF's /Rotate page metadata, so rotated invoices previewed
+  // upside down and cropped. See docs/decisions-log.md. The full multi-page
+  // SigningPanel renderer is unaffected and keeps using pdf.js, which does
+  // handle rotation correctly there.
   useEffect(() => {
     let cancelled = false
-    if (file && canvasRef.current) {
-      renderPdfFirstPage(file, canvasRef.current).catch((err) => {
-        if (!cancelled) setPreviewError(err.message || 'Could not preview this PDF')
+    let objectUrl = null
+    setPreviewUrl(null)
+    setPreviewLoading(true)
+    setPreviewFailed(false)
+
+    invoicesApi
+      .getPreview(invoice.id, token)
+      .then((blob) => {
+        if (cancelled) return
+        objectUrl = URL.createObjectURL(blob)
+        setPreviewUrl(objectUrl)
+        setPreviewLoading(false)
       })
-    }
+      .catch(() => {
+        if (cancelled) return
+        setPreviewFailed(true)
+        setPreviewLoading(false)
+      })
+
     return () => {
       cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [file])
+  }, [invoice.id, token])
 
   const supplierMissing = isMissing(supplier)
   const amountMissing = !amount || Number(amount) <= 0
@@ -129,10 +150,23 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
       ) : (
       <div className="kt-review-body">
         <div className="kt-review-preview">
-          {previewError ? (
-            <div className="kt-review-preview-error">{previewError}</div>
+          {previewLoading ? (
+            <div className="kt-review-preview-spinner" role="status" aria-label="Loading preview" />
+          ) : previewFailed ? (
+            <div className="kt-review-preview-error">
+              Preview not available — please check the original PDF
+              <div className="kt-review-preview-filename">{invoice.filename}</div>
+            </div>
           ) : (
-            <canvas ref={canvasRef} className="kt-review-canvas" />
+            <img
+              src={previewUrl}
+              alt={`Preview of ${invoice.filename}`}
+              className="kt-review-canvas"
+              onError={() => {
+                setPreviewFailed(true)
+                setPreviewUrl(null)
+              }}
+            />
           )}
         </div>
 

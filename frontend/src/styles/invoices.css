@@ -257,6 +257,29 @@
   text-align: center;
 }
 
+.kt-review-preview-filename {
+  margin-top: 8px;
+  font-weight: 600;
+  color: var(--kt-text);
+  word-break: break-word;
+}
+
+.kt-review-preview-spinner {
+  width: 36px;
+  height: 36px;
+  margin-top: 120px;
+  border: 3px solid var(--kt-border);
+  border-top-color: var(--kt-accent, #1d9e75);
+  border-radius: 50%;
+  animation: kt-spin 0.8s linear infinite;
+}
+
+@keyframes kt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .kt-review-fields {
   display: flex;
   flex-direction: column;

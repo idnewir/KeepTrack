@@ -3,7 +3,7 @@ import os
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -13,6 +13,7 @@ from models.invoice_file import InvoiceFile
 from models.schemas import InvoiceOut, InvoiceSignRequest, InvoiceUpdate
 from models.user import User
 from services.ai_service import check_duplicate, extract_invoice_data
+from services.preview_service import render_pdf_first_page_png
 from services.settings_service import is_signing_enabled
 from services.signing_service import sign_invoice_pdf
 from services.storage_service import save_invoice_pdf
@@ -218,6 +219,33 @@ def get_original_pdf(
         media_type="application/pdf",
         filename=invoice.filename,
     )
+
+
+@router.get("/{invoice_id}/preview")
+def get_invoice_preview(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_standard),
+):
+    invoice = db.get(Invoice, invoice_id)
+    if invoice is None or invoice.deleted:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
+
+    invoice_file = (
+        db.query(InvoiceFile)
+        .filter(InvoiceFile.invoice_id == invoice_id)
+        .order_by(InvoiceFile.uploaded_at.desc())
+        .first()
+    )
+    if invoice_file is None or not os.path.exists(invoice_file.original_path):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Original PDF not found for this invoice")
+
+    try:
+        png_bytes = render_pdf_first_page_png(invoice_file.original_path)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not render a preview of this PDF") from exc
+
+    return Response(content=png_bytes, media_type="image/png")
 
 
 @router.get("/{invoice_id}/signed-pdf")
