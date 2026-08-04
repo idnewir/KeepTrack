@@ -15,7 +15,7 @@ A backdoor account intended purely for lockout recovery (e.g. if every Admin acc
 **Cannot:**
 - N/A — this is the highest-privilege role, but it exists for recovery, not routine administration.
 
-**Notes:** Has its own MFA. Should be used rarely and its credentials stored securely.
+**Notes:** Logs in with username and password only — no MFA step (see [decisions-log.md](decisions-log.md)). Should be used rarely and its credentials stored securely.
 
 ---
 

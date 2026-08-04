@@ -34,10 +34,25 @@ export function AuthProvider({ children }) {
     bootstrap()
   }, [])
 
+  const finishLogin = async (accessToken) => {
+    localStorage.setItem(TOKEN_KEY, accessToken)
+    const me = await authApi.me(accessToken)
+    setUser({ ...me, token: accessToken })
+    setTempToken(null)
+    return me
+  }
+
+  // Password step. The backend decides whether MFA is required (false only
+  // for the Superadmin break-glass account, based on its stored role) — the
+  // frontend just follows whatever `mfa_required` says.
   const login = async (username, password) => {
     const data = await authApi.login({ username, password })
+    if (!data.mfa_required) {
+      await finishLogin(data.access_token)
+      return { mfaRequired: false }
+    }
     setTempToken(data.temp_token)
-    return data
+    return { mfaRequired: true }
   }
 
   const verifyMfa = async (code) => {
@@ -45,11 +60,7 @@ export function AuthProvider({ children }) {
       throw new Error('Login session expired — please sign in again.')
     }
     const data = await authApi.verifyMfa({ temp_token: tempToken, code })
-    localStorage.setItem(TOKEN_KEY, data.access_token)
-    const me = await authApi.me(data.access_token)
-    setUser({ ...me, token: data.access_token })
-    setTempToken(null)
-    return me
+    return finishLogin(data.access_token)
   }
 
   const register = (username, email, password) =>

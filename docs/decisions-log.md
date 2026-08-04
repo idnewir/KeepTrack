@@ -56,3 +56,10 @@ A running record of significant design decisions, why they were made, and when. 
 **Rationale:** It's the project's single source of config truth, not documentation — and the security requirements explicitly call for an 8-hour JWT expiry and env-sourced Superadmin credentials.
 
 **Not addressed in this pass:** `main.py`'s CORS middleware uses `allow_origins=["*"]` together with `allow_credentials=True`, a combination browsers reject and that's broader than a deployed instance needs. This predates the auth build; worth tightening to the actual frontend origin(s) when deployment URLs are known.
+
+---
+
+## 2026-08-04 — Superadmin has no MFA step
+
+**Decision:** `POST /auth/login` skips the MFA step and returns a full access token directly when the authenticating user's stored role is `superadmin`. All other roles (Admin, Standard, Read only) are unaffected and continue through the existing password → `verify-mfa` flow. The response now carries an `mfa_required` flag so the frontend knows which path it's on; `LoginPage` routes straight to the Dashboard when it's `false` instead of to `/mfa`.
+**Rationale:** Superadmin is a break-glass emergency recovery account (see [user-roles.md](user-roles.md)) — used when Admin accounts are locked out or forgotten. Requiring TOTP on the one account meant to recover from lockouts risks locking out the recovery path itself (e.g. a lost authenticator device with no other Admin left to help). The branch is decided purely by the `role` column on the row already loaded from the database during password verification — nothing in the request body can reach or influence it, so it cannot be triggered for any other account by client-side manipulation.

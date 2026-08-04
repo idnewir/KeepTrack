@@ -55,7 +55,7 @@ Keep Track is a containerised web application with a React single-page frontend,
 ## Authentication & Security
 
 - **First run:** a setup wizard (`POST /auth/setup`) creates the first Admin account and is only reachable while no non-Superadmin user exists yet.
-- **Login:** username + password, plus mandatory TOTP-based MFA (compatible with Google Authenticator, Authy, and similar apps), implemented with `pyotp` (30-second step, ±1 step tolerance for clock drift). Login is two steps: `POST /auth/login` (password) returns a short-lived (5 minute) token scoped to MFA only, then `POST /auth/verify-mfa` (TOTP code) returns the full access token.
+- **Login:** username + password, plus mandatory TOTP-based MFA (compatible with Google Authenticator, Authy, and similar apps), implemented with `pyotp` (30-second step, ±1 step tolerance for clock drift), for every role except Superadmin. Login is two steps: `POST /auth/login` (password) returns a short-lived (5 minute) token scoped to MFA only, then `POST /auth/verify-mfa` (TOTP code) returns the full access token. For Superadmin, `POST /auth/login` returns the full access token directly, based solely on the role stored on that account — see [decisions-log.md](decisions-log.md).
 - **Self-registration:** `POST /auth/register` creates a user in a pending state; an Admin approves and assigns their role via `POST /auth/approve-user/{id}`. Registrants are shown their MFA QR code once, immediately after registering, since it's the only point in that flow where they see it.
 - **Session:** JSON Web Tokens (JWT), HS256, expiring after 8 hours, issued once MFA is verified.
 - **Password storage:** bcrypt via `passlib`.

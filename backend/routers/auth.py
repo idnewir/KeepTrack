@@ -91,10 +91,31 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     if not user.approved:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account pending approval")
 
+    # Superadmin is a break-glass recovery account with no MFA step by
+    # design (see docs/decisions-log.md). This branches solely on the role
+    # stored on the DB row just looked up — nothing in the request payload
+    # can reach this check, so it can't be spoofed from the client.
+    if user.role == "superadmin":
+        access_token = create_token(
+            subject=user.id,
+            scope=SCOPE_ACCESS,
+            expiry_minutes=settings.jwt_expiry_minutes,
+            extra_claims={"role": user.role},
+        )
+        return LoginResponse(
+            mfa_required=False,
+            access_token=access_token,
+            expires_in_minutes=settings.jwt_expiry_minutes,
+        )
+
     temp_token = create_token(
         subject=user.id, scope=SCOPE_MFA, expiry_minutes=settings.jwt_mfa_expiry_minutes
     )
-    return LoginResponse(temp_token=temp_token, expires_in_minutes=settings.jwt_mfa_expiry_minutes)
+    return LoginResponse(
+        mfa_required=True,
+        temp_token=temp_token,
+        expires_in_minutes=settings.jwt_mfa_expiry_minutes,
+    )
 
 
 @router.post("/verify-mfa", response_model=TokenResponse)

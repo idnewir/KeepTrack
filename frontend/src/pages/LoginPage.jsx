@@ -16,8 +16,8 @@ export default function LoginPage() {
     setError('')
     setSubmitting(true)
     try {
-      await login(username, password)
-      navigate('/mfa')
+      const { mfaRequired } = await login(username, password)
+      navigate(mfaRequired ? '/mfa' : '/')
     } catch (err) {
       setError(err.message || 'Login failed')
     } finally {

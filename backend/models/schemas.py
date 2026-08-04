@@ -38,9 +38,14 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    temp_token: str
+    # False only for the Superadmin break-glass account, which has no MFA
+    # step — see docs/decisions-log.md. Driven entirely by the stored role
+    # looked up server-side; nothing in the request can influence it.
+    mfa_required: bool
     token_type: str = "bearer"
     expires_in_minutes: int
+    temp_token: str | None = None
+    access_token: str | None = None
 
 
 class MFAVerifyRequest(BaseModel):
