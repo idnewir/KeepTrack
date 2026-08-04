@@ -31,12 +31,34 @@
 }
 
 .kt-notification-message {
-  color: inherit;
-  text-decoration: none;
   flex: 1;
 }
 
-.kt-notification-message:hover {
+.kt-notification-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.kt-notification-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.kt-notification-view:hover {
+  opacity: 1;
   text-decoration: underline;
 }
 

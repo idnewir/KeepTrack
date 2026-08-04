@@ -9,6 +9,12 @@ const REVIEWED_OPTIONS = [
   { value: 'true', label: 'Reviewed' },
 ]
 
+const SIGNED_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'unsigned', label: 'Unsigned only' },
+  { value: 'signed', label: 'Signed only' },
+]
+
 function formatAmount(amount) {
   return `£${Number(amount).toFixed(2)}`
 }
@@ -29,10 +35,21 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // A dashboard notification can also arrive with a shorthand `filter`
+  // param (unreviewed/unsigned) instead of spelling out `reviewed`/`signed`
+  // directly, so a click lands pre-filtered without the caller needing to
+  // know the underlying field names.
+  const quickFilter = searchParams.get('filter')
+
   const [categoryId, setCategoryId] = useState(searchParams.get('categoryId') || '')
   const [dateFrom, setDateFrom] = useState(searchParams.get('dateFrom') || '')
   const [dateTo, setDateTo] = useState(searchParams.get('dateTo') || '')
-  const [reviewed, setReviewed] = useState(searchParams.get('reviewed') || '')
+  const [reviewed, setReviewed] = useState(
+    quickFilter === 'unreviewed' ? 'false' : searchParams.get('reviewed') || ''
+  )
+  const [signedFilter, setSignedFilter] = useState(
+    quickFilter === 'unsigned' ? 'unsigned' : searchParams.get('signed') || ''
+  )
 
   useEffect(() => {
     categoriesApi.list(token).then(setCategories).catch(() => setCategories([]))
@@ -59,6 +76,16 @@ export default function InvoicesPage() {
   }, [categoryId, dateFrom, dateTo, reviewed, token])
 
   const categoryById = new Map(categories.map((c) => [c.id, c]))
+
+  // Signed status has no backend query param yet, so it's applied client-side
+  // over the already-fetched, already-filtered invoice list. "Unsigned"
+  // matches the badge's own definition — signing only applies once an
+  // invoice has been reviewed, so an unreviewed invoice is neither.
+  const visibleInvoices = invoices.filter((invoice) => {
+    if (signedFilter === 'unsigned') return invoice.reviewed && !invoice.signed
+    if (signedFilter === 'signed') return invoice.signed
+    return true
+  })
 
   return (
     <div>
@@ -107,13 +134,24 @@ export default function InvoicesPage() {
             ))}
           </select>
         </div>
+
+        <div className="kt-field">
+          <label htmlFor="filter-signed">Signed</label>
+          <select id="filter-signed" value={signedFilter} onChange={(e) => setSignedFilter(e.target.value)}>
+            {SIGNED_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {error && <div className="kt-auth-error">{error}</div>}
 
       {loading ? (
         <p className="kt-page-subtitle">Loading invoices…</p>
-      ) : invoices.length === 0 ? (
+      ) : visibleInvoices.length === 0 ? (
         <div className="kt-categories-empty">No invoices match these filters.</div>
       ) : (
         <table className="kt-invoices-table">
@@ -124,10 +162,11 @@ export default function InvoicesPage() {
               <th>Amount</th>
               <th>Category</th>
               <th>Status</th>
+              <th>Signed</th>
             </tr>
           </thead>
           <tbody>
-            {invoices.map((invoice) => {
+            {visibleInvoices.map((invoice) => {
               const category = invoice.category_id != null ? categoryById.get(invoice.category_id) : null
               return (
                 <tr
@@ -160,6 +199,15 @@ export default function InvoicesPage() {
                     )}
                     {invoice.duplicate_flag && (
                       <span className="kt-status-badge kt-status-duplicate">Possible duplicate</span>
+                    )}
+                  </td>
+                  <td>
+                    {invoice.signed ? (
+                      <span className="kt-status-badge kt-status-signed">Signed</span>
+                    ) : (
+                      invoice.reviewed && (
+                        <span className="kt-status-badge kt-status-unsigned">Unsigned</span>
+                      )
                     )}
                   </td>
                 </tr>

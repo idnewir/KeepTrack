@@ -7,6 +7,26 @@ import { formatCurrency, projectUrgency } from '../utils/format.js'
 
 const STATUS_LABEL = { above: 'Above target', near: 'Near target', below: 'Below target' }
 
+// The backend's own `link` field predates the dashboard notification-links
+// task and still points at plain query filters (e.g. reviewed=true) or the
+// dashboard itself for the balance warning. Mapping by notification `type`
+// here sends each one to the specific pre-filtered view the task calls for,
+// without needing a backend change.
+function notificationLink(notification) {
+  switch (notification.type) {
+    case 'invoice_unconfirmed':
+      return '/invoices?filter=unreviewed'
+    case 'invoice_unsigned':
+      return '/invoices?filter=unsigned'
+    case 'balance_below_target':
+      return '/reconciliation'
+    case 'planned_project_overdue':
+      return '/projects'
+    default:
+      return notification.link || '/'
+  }
+}
+
 export default function DashboardPage() {
   const { user } = useAuth()
   const token = user?.token
@@ -119,17 +139,20 @@ export default function DashboardPage() {
         <div className="kt-notifications">
           {visibleNotifications.map((n) => (
             <div key={n.id} className={`kt-notification kt-notification-${n.severity}`}>
-              <Link to={n.link || '/'} className="kt-notification-message">
-                {n.message}
-              </Link>
-              <button
-                type="button"
-                className="kt-notification-dismiss"
-                aria-label="Dismiss notification"
-                onClick={() => dismissNotification(n.id)}
-              >
-                ×
-              </button>
+              <span className="kt-notification-message">{n.message}</span>
+              <div className="kt-notification-actions">
+                <Link to={notificationLink(n)} className="kt-notification-view">
+                  View <span aria-hidden="true">→</span>
+                </Link>
+                <button
+                  type="button"
+                  className="kt-notification-dismiss"
+                  aria-label="Dismiss notification"
+                  onClick={() => dismissNotification(n.id)}
+                >
+                  ×
+                </button>
+              </div>
             </div>
           ))}
         </div>

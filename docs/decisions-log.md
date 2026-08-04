@@ -277,3 +277,16 @@ A running record of significant design decisions, why they were made, and when. 
 
 **Decision:** `generate_report_summary` follows the exact same graceful-degradation contract as invoice extraction (`ai_service.EMPTY_EXTRACTION` / now `EMPTY_REPORT_SUMMARY`): any failure (no API key, API error, unparsable JSON response) returns all-empty fields rather than raising, and `POST /reports/generate` still completes and returns `201` with figures, tables, and charts intact — only the AI narrative sections are left blank in the PDF ("An AI-written summary was not included with this report."). Verified directly: this repo's `.env` has a placeholder `ANTHROPIC_API_KEY`, so every report generated during this build's testing exercised this exact path.
 **Rationale:** Matches the existing project-wide rule (`docs/decisions-log.md`, invoice upload build) that AI failures degrade gracefully rather than blocking the feature — a report is still useful as a figures-and-charts document even without the written summary, so a transient AI/API failure shouldn't prevent generating one.
+
+---
+
+## 2026-08-04 — Frontend tidy-up pass 1: logo link, signed badge, notification links, invoice filters
+
+**Decision:** Dashboard notification links are now computed on the frontend from each notification's `type` (`notificationLink()` in `DashboardPage.jsx`), overriding the backend's own `link` field for the types this pass touches, rather than changing what `GET /dashboard/notifications` (`backend/routers/dashboard.py`) returns.
+**Rationale:** This pass was scoped to `frontend/` only. The backend's `link` values (`/invoices?reviewed=true`, `/` for the balance warning) predate this task's routing requirements (`/invoices?filter=unsigned`, `/reconciliation`); remapping by `type` on the frontend gets the required destinations without a backend change. A `planned_project_overdue` case is included in the mapping even though no such notification is emitted yet (`GET /dashboard/notifications` has no overdue-project logic) — it's a no-op today but means the link is already correct whenever that notification type is added.
+
+**Decision:** The "Signed" invoice filter (All / Unsigned only / Signed only) is applied client-side over the already-fetched invoice list on `InvoicesPage.jsx`, rather than as a new query parameter on `GET /invoices`.
+**Rationale:** Same frontend-only constraint — the backend's invoice list endpoint has no `signed` filter parameter, and adding one was out of scope. "Unsigned only" is defined as `reviewed && !signed` (matching the badge's own condition — signing only applies after review) rather than a plain `!signed`, so it doesn't also surface every not-yet-reviewed invoice, which is trivially unsigned by default.
+
+**Decision:** `InvoicesPage.jsx` accepts a shorthand `?filter=unreviewed` / `?filter=unsigned` URL param, read once on mount alongside the existing `reviewed`/`categoryId`/etc. params, rather than requiring the linking page to know the underlying filter field names.
+**Rationale:** Lets the dashboard notification links stay simple (`/invoices?filter=unsigned`) while the page itself resolves that into the right filter state on load.

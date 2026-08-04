@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import Logo from './Logo.jsx'
 
@@ -23,13 +23,13 @@ export default function Header({ onMenuClick }) {
         <span className="kt-menu-bar" />
       </button>
 
-      <div className="kt-brand">
+      <Link to="/" className="kt-brand" aria-label="Keep Track home">
         <Logo size={28} />
         <span className="kt-wordmark">
           <span style={{ color: 'var(--kt-primary)' }}>Keep</span>{' '}
           <span style={{ color: 'var(--kt-text)' }}>Track</span>
         </span>
-      </div>
+      </Link>
 
       {user && (
         <div className="kt-header-user">
