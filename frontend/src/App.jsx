@@ -8,6 +8,7 @@ import {
   RequireSetupNeeded,
 } from './components/RouteGuards.jsx'
 import CategoriesPage from './pages/CategoriesPage.jsx'
+import ContributionsPage from './pages/ContributionsPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import ForecastBreakdownPage from './pages/ForecastBreakdownPage.jsx'
 import InvoiceDetailPage from './pages/InvoiceDetailPage.jsx'
@@ -16,6 +17,7 @@ import LoginPage from './pages/LoginPage.jsx'
 import MFAPage from './pages/MFAPage.jsx'
 import PagePlaceholder from './pages/PagePlaceholder.jsx'
 import PendingApprovalPage from './pages/PendingApprovalPage.jsx'
+import ReconciliationPage from './pages/ReconciliationPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import SetupPage from './pages/SetupPage.jsx'
@@ -63,24 +65,8 @@ export default function App() {
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="/upload" element={<UploadPage />} />
-        <Route
-          path="/contributions"
-          element={
-            <PagePlaceholder
-              title="Contributions"
-              subtitle="Record monthly contributions by group."
-            />
-          }
-        />
-        <Route
-          path="/reconciliation"
-          element={
-            <PagePlaceholder
-              title="Reconciliation"
-              subtitle="Compare calculated balance against actual bank balance."
-            />
-          }
-        />
+        <Route path="/contributions" element={<ContributionsPage />} />
+        <Route path="/reconciliation" element={<ReconciliationPage />} />
         <Route
           path="/projects"
           element={

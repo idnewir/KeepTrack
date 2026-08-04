@@ -187,3 +187,37 @@ A running record of significant design decisions, why they were made, and when. 
 
 **Decision:** `InvoicesPage.jsx` now reads its initial `categoryId`/`dateFrom`/`dateTo`/`reviewed` filter state from the URL's query string (`useSearchParams`, read once on mount) instead of always starting blank.
 **Rationale:** The dashboard's "click actual spend → Invoices filtered to this financial year" and the unreviewed-invoices notification link both need to land on Invoices pre-filtered. Without this, every drill-down link into Invoices would silently drop its filter the moment the page loaded.
+
+---
+
+## 2026-08-04 — Contributions recording and monthly reconciliation build
+
+**Decision:** `contributions.deleted` (boolean, default `false`) was added via migration `0010`, even though it isn't in database-schema.md's documented column list.
+**Rationale:** The task requires `DELETE /contributions/{id}` to soft-delete, and — exactly as with `invoices.deleted` — there was no existing column that meant "deleted" rather than something else. Matches the precedent set for invoices: preserve financial history rather than hard-delete it.
+
+**Decision:** `financial_years.opening_balance` (`NUMERIC(12,2)`, nullable) was added via migration `0011`, not documented in database-schema.md.
+**Rationale:** The task's OPENING BALANCE section requires `PUT /financial-years/{id}/opening-balance`, but the existing `financial_years` table (built for the dashboard) had nowhere to store it. Nullable because a financial year starts with no opening balance set — the dashboard and Contributions page prompt for it until an Admin sets one.
+
+**Decision:** `monthly_reconciliations.month` is stored as a `DATE` (first of the month), and `notes` is split into two columns, `discrepancy_notes` (user-entered) and `suggested_reason` (system-generated) — both deviating from database-schema.md's `month SMALLINT` and single `notes TEXT`.
+**Rationale:** These were explicit, literal requirements of this task's brief, which takes precedence per the deviation pattern already established in this log (e.g. `planned_projects.expected_month`). Storing the two reasons separately also lets the suggested reason stay intact and re-derivable even after a user edits their own notes.
+
+**Decision:** `calculated_balance` for a given month is computed live (not read from a stored running total) as `opening_balance + contributions recorded in months up to and including this one − confirmed invoices dated on or before the end of this month`, all scoped to one financial year. The same function (`services/reconciliation_service.calculated_balance_for_month`) backs both the Reconciliation page's per-month figure and the Contributions page's "running balance" column.
+**Rationale:** Directly implements docs/features.md#4's formula ("money on hand = opening balance + contributions to date − invoices to date"), evaluated as of a specific past month rather than always "today" — a reconciliation for October needs October's balance, not the current one. Sharing one function between both pages means they can never silently disagree with each other about what "balance so far" means.
+
+**Decision:** `POST /reconciliation` rejects a second submission for a month that's already been reconciled (`400`), rather than overwriting it. `PUT /reconciliation/{id}` only ever updates `discrepancy_notes` — the actual balance, calculated balance, and discrepancy are fixed at submission time.
+**Rationale:** The task brief lists PUT's scope as "update discrepancy notes" only, with no endpoint for correcting a submitted actual balance. Treating a reconciled month as locked (bar its notes) keeps the reconciliation history an honest audit trail of what was actually checked against the bank each month, rather than a value that can quietly drift after the fact. A wrong entry needs an Admin to intervene directly rather than being silently overwritten via the API.
+
+**Decision:** The "small vs. large" discrepancy threshold (`SMALL_DISCREPANCY_THRESHOLD` in `services/reconciliation_service.py`) is a fixed `£20`, not user-configurable.
+**Rationale:** The task brief specifies the suggested-reason categories ("small positive," "large," etc.) without giving a threshold figure. £20 is a reasonable, round default for the scale of a small charity's bank interest/charges; making it a Setting is future work once the terminology/settings system referenced in the task brief exists.
+
+**Decision:** `Contribution.recorded_by` and `MonthlyReconciliation.reconciled_by` are always set from the authenticated user (`Depends(require_standard)`), never from the request body, even though the task brief lists `recorded_by` among `POST /contributions`'s payload fields.
+**Rationale:** Matches the existing `invoices.created_by` precedent — trusting a client-supplied "who did this" field would let one user record a contribution or reconciliation under another user's name. The brief's field list reads as documenting the column being populated, not as a literal request-body requirement.
+
+**Decision:** Added `GET /financial-years/current` (not in the original endpoint list), any authenticated user, returning the current financial year including its opening balance (creating the row lazily if needed, same as the dashboard's existing behaviour).
+**Rationale:** The Contributions and Reconciliation pages both need to know the current financial year's id and opening-balance status without pulling in the whole `/dashboard/summary` payload. Mirrors the precedent set by `/auth/setup-status` — a small lookup endpoint added because the frontend had no other way to answer a question it needed answered before rendering.
+
+**Decision:** `DashboardFinancialYear` (and `/dashboard/summary`'s response) now also carries `opening_balance`, and the Dashboard shows its own "no opening balance set" amber prompt banner.
+**Rationale:** The task brief explicitly asks for the prompt to appear "on the dashboard and contributions page." Reusing the field already being returned for the financial year avoids a second round-trip from the Dashboard just to check one value.
+
+**Decision:** `ReconciliationPage.jsx` loads all 12 months of the financial year up front via 12 parallel calls to `GET /reconciliation/{year}/{month}`, rather than adding a bulk "all months" endpoint.
+**Rationale:** No bulk endpoint was in the task's endpoint list, and each month's tile (reconciled/overdue/discrepancy colour) needs the same per-month shape `GET /reconciliation/{year}/{month}` already returns — including a live `calculated_balance` for months that haven't been reconciled yet, which the "list reconciliations" endpoint alone can't provide since it only has rows for months already reconciled.

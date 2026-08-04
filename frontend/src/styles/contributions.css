@@ -1,0 +1,215 @@
+/* Opening balance panel (Contributions + Reconciliation pages) */
+
+.kt-opening-balance-panel {
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+
+.kt-opening-balance-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: rgba(230, 160, 32, 0.1);
+  border: 1px solid rgba(230, 160, 32, 0.35);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: -20px -24px;
+}
+
+.kt-opening-balance-prompt strong {
+  color: #a3690a;
+  font-size: 15px;
+}
+
+.kt-opening-balance-prompt p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #6b6b67;
+  max-width: 480px;
+}
+
+.kt-opening-balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.kt-opening-balance-label {
+  display: block;
+  font-size: 13px;
+  color: #6b6b67;
+  font-weight: 500;
+}
+
+.kt-opening-balance-value {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.kt-opening-balance-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* Monthly summary table */
+
+.kt-table-scroll {
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.kt-summary-table {
+  white-space: nowrap;
+}
+
+.kt-negative-balance {
+  color: #a83232;
+  font-weight: 600;
+}
+
+/* Reconciliation month tiles */
+
+.kt-month-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.kt-month-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+  background: var(--kt-surface);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kt-month-tile:hover {
+  border-color: var(--kt-primary);
+}
+
+.kt-month-tile.selected {
+  border-color: var(--kt-primary);
+  box-shadow: 0 0 0 2px rgba(45, 107, 159, 0.15);
+}
+
+.kt-month-tile-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.kt-month-tile-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.kt-month-tile.overdue {
+  border-color: rgba(168, 50, 50, 0.4);
+}
+
+.kt-tone-zero {
+  color: var(--kt-accent);
+  background: rgba(29, 158, 117, 0.12);
+}
+
+.kt-tone-small {
+  color: #a3690a;
+  background: rgba(230, 160, 32, 0.14);
+}
+
+.kt-tone-large {
+  color: #a83232;
+  background: rgba(168, 50, 50, 0.12);
+}
+
+.kt-tone-pending {
+  color: #6b6b67;
+  background: rgba(138, 138, 134, 0.12);
+}
+
+/* Reconciliation detail panel */
+
+.kt-reconciliation-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kt-reconciliation-figures .kt-metric-card {
+  min-width: 200px;
+  flex: 1;
+}
+
+.kt-metric-card.kt-tone-zero .kt-metric-value {
+  color: var(--kt-accent);
+}
+
+.kt-metric-card.kt-tone-small .kt-metric-value {
+  color: #a3690a;
+}
+
+.kt-metric-card.kt-tone-large .kt-metric-value {
+  color: #a83232;
+}
+
+.kt-reconcile-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.kt-suggested-reason {
+  font-size: 14px;
+  font-style: italic;
+  color: #6b6b67;
+  margin: 0 0 16px;
+}
+
+.kt-reconcile-notes-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 480px;
+  margin-bottom: 16px;
+}
+
+.kt-reconcile-notes-save {
+  width: auto;
+  margin-top: 0;
+  padding: 9px 18px;
+}
+
+.kt-reconciled-meta {
+  font-size: 13px;
+  color: #8a8a86;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .kt-opening-balance-prompt {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

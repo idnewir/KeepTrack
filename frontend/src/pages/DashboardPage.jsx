@@ -96,6 +96,25 @@ export default function DashboardPage() {
 
   return (
     <div className="kt-dashboard">
+      {summary.financial_year.opening_balance == null && (
+        <div className="kt-opening-balance-panel" style={{ marginBottom: 24 }}>
+          <div className="kt-opening-balance-prompt">
+            <div>
+              <strong>No opening balance set for {summary.financial_year.label}.</strong>
+              <p>
+                Balances and reconciliation for this financial year won't be accurate until an
+                opening balance is set.
+              </p>
+            </div>
+            {(user?.role === 'admin' || user?.role === 'superadmin') && (
+              <Link to="/contributions" className="kt-auth-button">
+                Set opening balance
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
       {visibleNotifications.length > 0 && (
         <div className="kt-notifications">
           {visibleNotifications.map((n) => (

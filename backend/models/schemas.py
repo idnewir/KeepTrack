@@ -158,6 +158,7 @@ class DashboardFinancialYear(BaseModel):
     label: str
     start_date: date
     end_date: date
+    opening_balance: Decimal | None = None
 
 
 class DashboardMonthBreakdown(BaseModel):
@@ -230,3 +231,93 @@ class DashboardNotification(BaseModel):
     severity: str  # "warning" | "urgent"
     message: str
     link: str | None
+
+
+class FinancialYearOut(BaseModel):
+    id: int
+    label: str
+    start_date: date
+    end_date: date
+    opening_balance: Decimal | None
+
+    model_config = {"from_attributes": True}
+
+
+class OpeningBalanceUpdate(BaseModel):
+    opening_balance: Decimal = Field(ge=0)
+
+
+class ContributionOut(BaseModel):
+    id: int
+    financial_year_id: int
+    month: int
+    group_name: str
+    amount: Decimal
+    recorded_by: int
+    recorded_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ContributionCreate(BaseModel):
+    financial_year_id: int
+    month: int = Field(ge=1, le=12)
+    group_name: str = Field(min_length=1, max_length=100)
+    amount: Decimal = Field(gt=0)
+
+
+class ContributionUpdate(BaseModel):
+    month: int | None = Field(default=None, ge=1, le=12)
+    group_name: str | None = Field(default=None, min_length=1, max_length=100)
+    amount: Decimal | None = Field(default=None, gt=0)
+
+
+class ContributionsMonthlySummaryRow(BaseModel):
+    year: int
+    month: int
+    month_label: str
+    breakdown: dict[str, Decimal]
+    total: Decimal
+    running_balance: Decimal
+
+
+class ContributionsMonthlySummaryOut(BaseModel):
+    financial_year_id: int
+    opening_balance: Decimal | None
+    groups: list[str]
+    rows: list[ContributionsMonthlySummaryRow]
+
+
+class ReconciliationCreate(BaseModel):
+    financial_year_id: int
+    month: date
+    actual_balance: Decimal
+
+
+class ReconciliationUpdate(BaseModel):
+    discrepancy_notes: str = Field(min_length=1)
+
+
+class ReconciliationOut(BaseModel):
+    id: int
+    financial_year_id: int
+    month: date
+    calculated_balance: Decimal
+    actual_balance: Decimal
+    discrepancy: Decimal
+    discrepancy_notes: str | None
+    suggested_reason: str | None
+    reconciled_by: int
+    reconciled_by_username: str | None
+    reconciled_at: datetime
+
+
+class ReconciliationMonthOut(BaseModel):
+    financial_year_id: int
+    year: int
+    month: int
+    month_date: date
+    month_label: str
+    calculated_balance: Decimal
+    reconciled: bool
+    reconciliation: ReconciliationOut | None

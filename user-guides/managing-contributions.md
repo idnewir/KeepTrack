@@ -1,30 +1,69 @@
 # Managing Contributions
 
-"Contributions" are the money coming in — for example, monthly payments from different groups that support your organisation. This guide explains how to record them.
+"Contributions" are the money coming in — for example, monthly payments from
+different groups that support your organisation. This guide explains how to
+record and review them on the **Contributions** page.
 
 ## Who can do this
 
-Administrators and Standard users can record contributions. Read-only users can view them but not add or change anything.
+- **Administrators and Standard users** can record, edit, and view
+  contributions.
+- **Administrators only** can delete a contribution, and can set the
+  financial year's opening balance.
+- **Read-only users** can view everything on the page but can't add, change,
+  or delete anything.
+
+## Setting the opening balance (once per financial year)
+
+Every calculated and running balance on this page and on Reconciliation
+depends on knowing how much money you had on hand at the very start of the
+financial year.
+
+- If it hasn't been set yet, you'll see a prominent amber banner at the top
+  of the page (and on the Dashboard) — **Administrators** can click **Set
+  opening balance** and enter the figure.
+- Once set, it's shown at the top of the page with an **Edit** link for
+  Administrators, in case it needs correcting.
 
 ## Recording a contribution
 
 1. Go to the **Contributions** page from the sidebar.
-2. Check the month and financial year shown are correct — it defaults to the current month.
-3. For each contributing group, type in the amount they've paid.
-4. Click **Save**.
+2. Click **+ Record contribution**.
+3. Choose the **month** it applies to (any month in the current financial
+   year).
+4. Type the **group or source** name — start typing and previously used
+   names will suggest themselves, so the same group is spelled consistently
+   from month to month.
+5. Enter the **amount**, then click **Save**.
 
-That's it — the amount is added straight away, and you'll see it reflected on the Dashboard and in the ledger.
+The new contribution appears immediately in both the monthly summary table
+and the full list of entries below it.
 
-## Adding a new contributing group
+## The monthly summary table
 
-If a group isn't listed yet, ask an Administrator — group names are managed as part of setting up the contribution records.
+One row per month, with a column for every group or source that's
+contributed so far this financial year, plus:
 
-## Checking past contributions
+- **Total** — everything received that month, across all groups.
+- **Running balance** — opening balance, plus every contribution to date,
+  minus every confirmed invoice to date. This is the same figure
+  Reconciliation compares your bank statement against, so it's worth keeping
+  an eye on here too.
 
-1. On the Contributions page, use the month and year selectors to look back at previous entries.
-2. You can also click on the **income** line on the Dashboard chart to see a table of all contributions, grouped by month and by group.
+## Editing or deleting an entry
+
+Every individual contribution is listed under **All entries**, below the
+summary table.
+
+- Click **Edit** to change its month, group name, or amount.
+- Click **Delete** to remove one (Administrators only) — you'll be asked to
+  confirm first. Deleting doesn't erase it from history entirely; it's kept
+  on record but no longer counted in any balance.
 
 ## Tips
 
-- Record contributions as soon as they come in — this keeps your balance and reserve gauge accurate.
-- If a contribution is missing, it's often the reason a monthly reconciliation doesn't balance — see the [Reconciliation Guide](reconciliation-guide.md).
+- Record contributions as soon as they come in — this keeps the running
+  balance and the Dashboard's target reserve gauge accurate.
+- If a monthly reconciliation doesn't balance, a missing or mistyped
+  contribution is one of the most common reasons — see the
+  [Reconciliation Guide](reconciliation-guide.md).

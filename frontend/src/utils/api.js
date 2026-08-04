@@ -66,6 +66,44 @@ export const settingsApi = {
     request(`/settings/${key}`, { method: 'PUT', body: { value }, token }),
 }
 
+export const financialYearsApi = {
+  current: (token) => request('/financial-years/current', { token }),
+  setOpeningBalance: (id, openingBalance, token) =>
+    request(`/financial-years/${id}/opening-balance`, {
+      method: 'PUT',
+      body: { opening_balance: openingBalance },
+      token,
+    }),
+}
+
+export const contributionsApi = {
+  list: (filters = {}, token) => {
+    const params = new URLSearchParams()
+    if (filters.financialYearId) params.set('financial_year_id', filters.financialYearId)
+    if (filters.month) params.set('month', filters.month)
+    const qs = params.toString()
+    return request(`/contributions${qs ? `?${qs}` : ''}`, { token })
+  },
+  monthlySummary: (financialYearId, token) => {
+    const qs = financialYearId ? `?financial_year_id=${financialYearId}` : ''
+    return request(`/contributions/monthly-summary${qs}`, { token })
+  },
+  create: (payload, token) => request('/contributions', { method: 'POST', body: payload, token }),
+  update: (id, payload, token) => request(`/contributions/${id}`, { method: 'PUT', body: payload, token }),
+  remove: (id, token) => request(`/contributions/${id}`, { method: 'DELETE', token }),
+}
+
+export const reconciliationApi = {
+  list: (financialYearId, token) => {
+    const qs = financialYearId ? `?financial_year_id=${financialYearId}` : ''
+    return request(`/reconciliation${qs}`, { token })
+  },
+  getMonth: (year, month, token) => request(`/reconciliation/${year}/${month}`, { token }),
+  create: (payload, token) => request('/reconciliation', { method: 'POST', body: payload, token }),
+  update: (id, discrepancyNotes, token) =>
+    request(`/reconciliation/${id}`, { method: 'PUT', body: { discrepancy_notes: discrepancyNotes }, token }),
+}
+
 // Plain fetch returning a Blob, for authenticated file downloads (the browser
 // can't attach an Authorization header to a plain <a href> download).
 async function requestBlob(path, { token } = {}) {

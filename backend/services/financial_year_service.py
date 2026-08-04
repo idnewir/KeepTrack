@@ -285,7 +285,13 @@ def build_summary(db: Session, today: date | None = None) -> dict:
         })
 
     return {
-        "financial_year": {"id": fy.id, "label": fy.label, "start_date": fy.start_date, "end_date": fy.end_date},
+        "financial_year": {
+            "id": fy.id,
+            "label": fy.label,
+            "start_date": fy.start_date,
+            "end_date": fy.end_date,
+            "opening_balance": fy.opening_balance,
+        },
         "total_invoices_confirmed": total_invoices_confirmed,
         "total_spent": total_spent,
         "total_contributions": total_contributions,
