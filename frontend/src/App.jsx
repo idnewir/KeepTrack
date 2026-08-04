@@ -1,6 +1,13 @@
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
-import { DefaultRedirect, RequireAuth, RequireGuest, RequireSetupNeeded } from './components/RouteGuards.jsx'
+import {
+  DefaultRedirect,
+  RequireAdmin,
+  RequireAuth,
+  RequireGuest,
+  RequireSetupNeeded,
+} from './components/RouteGuards.jsx'
+import CategoriesPage from './pages/CategoriesPage.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import MFAPage from './pages/MFAPage.jsx'
@@ -99,6 +106,14 @@ export default function App() {
               title="Settings"
               subtitle="Configure categories, users, and system options."
             />
+          }
+        />
+        <Route
+          path="/settings/categories"
+          element={
+            <RequireAdmin>
+              <CategoriesPage />
+            </RequireAdmin>
           }
         />
       </Route>

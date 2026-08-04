@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import SessionLocal
 from routers.auth import router as auth_router
+from routers.categories import router as categories_router
 from services.auth_service import ensure_superadmin
 
 app = FastAPI(title="Keep Track API", version="0.1.0")
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(categories_router)
 
 
 @app.on_event("startup")

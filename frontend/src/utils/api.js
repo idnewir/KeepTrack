@@ -44,3 +44,13 @@ export const authApi = {
   approveUser: (id, role, token) =>
     request(`/auth/approve-user/${id}`, { method: 'POST', body: { role }, token }),
 }
+
+export const categoriesApi = {
+  list: (token) => request('/categories', { token }),
+  listAll: (token) => request('/categories/all', { token }),
+  create: (payload, token) => request('/categories', { method: 'POST', body: payload, token }),
+  update: (id, payload, token) =>
+    request(`/categories/${id}`, { method: 'PUT', body: payload, token }),
+  deactivate: (id, token) => request(`/categories/${id}`, { method: 'DELETE', token }),
+  restore: (id, token) => request(`/categories/${id}/restore`, { method: 'POST', token }),
+}

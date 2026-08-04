@@ -21,7 +21,17 @@ Decide how many days an invoice can sit unreviewed before Keep Track flags it as
 
 ### Categories
 
-Add new categories, rename existing ones, change their colour, or deactivate ones you no longer use (deactivating keeps past invoices intact — it just stops the category being offered for new ones).
+Categories are what invoices get classified against (Electricity, Water, Broadband, and so on). Keep Track comes with seven ready to use — Electricity, Water, Broadband, HVAC, Alarm, Supplies, and General Maintenance — but you can add, rename, recolour, or retire them to fit your own organisation.
+
+To get there: **Settings → Categories** in the sidebar (only Admins see this sub-item).
+
+- **View categories** — the page lists every category with its colour, name, and whether it's Active or Inactive.
+- **Add a category** — click **+ Add category**, type a name, pick a colour, and save. The colour is used consistently for that category everywhere it appears (charts, tables, badges).
+- **Edit a category** — click **Edit** next to it to rename it or change its colour, then **Save**.
+- **Deactivate a category** — click **Deactivate**, then confirm with **Yes, deactivate**. This doesn't delete it — any invoice already using that category keeps it — it just won't be offered as an option for new invoices.
+- **Restore a category** — if you've deactivated one by mistake, or need it again, click **Restore** to bring it back to Active.
+
+Category names must be unique — Keep Track will tell you if you try to add or rename one to something already in use.
 
 ### User management
 

@@ -38,6 +38,18 @@ export function RequireSetupNeeded({ children }) {
   return children
 }
 
+// For Admin-only pages (e.g. Categories): requires an Admin or Superadmin role.
+export function RequireAdmin({ children }) {
+  const { user, loading, setupRequired } = useAuth()
+
+  if (loading) return <LoadingScreen />
+  if (setupRequired) return <Navigate to="/setup" replace />
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'admin' && user.role !== 'superadmin') return <Navigate to="/" replace />
+
+  return children
+}
+
 // Catch-all: send unmatched paths wherever the user should currently be.
 export function DefaultRedirect() {
   const { user, loading, setupRequired } = useAuth()

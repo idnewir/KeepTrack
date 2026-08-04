@@ -144,6 +144,37 @@
   font-size: 15px;
 }
 
+.kt-nav-sublist {
+  list-style: none;
+  margin: 4px 0 4px 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kt-nav-sublink {
+  display: block;
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: #6b6b67;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.kt-nav-sublink:hover {
+  background: var(--kt-background);
+  color: var(--kt-text);
+}
+
+.kt-nav-sublink.active {
+  background: var(--kt-background);
+  color: var(--kt-primary);
+  font-weight: 600;
+}
+
 .kt-sidebar-backdrop {
   display: none;
 }

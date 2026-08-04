@@ -63,3 +63,22 @@ A running record of significant design decisions, why they were made, and when. 
 
 **Decision:** `POST /auth/login` skips the MFA step and returns a full access token directly when the authenticating user's stored role is `superadmin`. All other roles (Admin, Standard, Read only) are unaffected and continue through the existing password → `verify-mfa` flow. The response now carries an `mfa_required` flag so the frontend knows which path it's on; `LoginPage` routes straight to the Dashboard when it's `false` instead of to `/mfa`.
 **Rationale:** Superadmin is a break-glass emergency recovery account (see [user-roles.md](user-roles.md)) — used when Admin accounts are locked out or forgotten. Requiring TOTP on the one account meant to recover from lockouts risks locking out the recovery path itself (e.g. a lost authenticator device with no other Admin left to help). The branch is decided purely by the `role` column on the row already loaded from the database during password verification — nothing in the request body can reach or influence it, so it cannot be triggered for any other account by client-side manipulation.
+
+---
+
+## 2026-08-04 — Category management build
+
+**Decision:** The seven default categories are inserted with `op.bulk_insert` inside the Alembic migration (`0003_create_categories_table.py`) that creates the `categories` table, rather than at backend startup like the Superadmin bootstrap.
+**Rationale:** Unlike the Superadmin account, the default category list is fixed and not env-driven — there's no configuration to read at runtime. Alembic is the single place where a fresh database's schema and its baseline data are established together, so seeding at migration time keeps "run the migrations" the one step needed to get a fully working install, with no separate seed script to remember.
+
+**Decision:** `DELETE /categories/{id}` deactivates (`active = false`) rather than removing the row, and there is no hard-delete endpoint at all.
+**Rationale:** `invoices.category_id` references `categories(id)`; deleting a category a historical invoice points to would either violate that foreign key or silently orphan financial history. Matches the schema doc's own annotation ("Deactivated, not deleted — preserves history") and the feature spec's explicit requirement.
+
+**Decision:** `GET /categories` (active only) is available to any authenticated user, while `GET /categories/all`, create, update, deactivate, and restore are all Admin-only (`require_admin`).
+**Rationale:** Every role needs the active category list to classify or filter invoices day-to-day (per [user-roles.md](user-roles.md), all roles can "browse all data"), but only Admin/Superadmin can "manage categories" per that same table — Standard and Read-only cannot add, edit, or deactivate them.
+
+**Decision:** Category names are enforced unique at three layers: a `UNIQUE` DB constraint, an explicit pre-insert/pre-rename check in the router (returning a clear `400` message rather than a raw integrity-error 500), and client-side error display on the Categories page.
+**Rationale:** Categories are used consistently for colour-coding across charts and badges — silently allowing duplicate names would make that classification ambiguous. A friendly `400` with a specific message is better than surfacing a database constraint violation to the user.
+
+**Decision:** The Categories page lives at `/settings/categories`, reachable only via a Settings sub-item in the sidebar that's hidden for non-Admins, and the route itself is wrapped in a new `RequireAdmin` guard (`frontend/src/components/RouteGuards.jsx`) — the first role-based (as opposed to purely authenticated) route guard in the app.
+**Rationale:** No admin-only route existed yet to model this on; `RequireAdmin` follows the same shape as the existing `RequireAuth`/`RequireGuest` guards but additionally checks `user.role`, so a non-Admin who navigates to the URL directly is redirected to the Dashboard rather than seeing the page flash before data loads.
