@@ -61,7 +61,13 @@
       "Bash(node test_dashboard.js)",
       "Bash(node test_dashboard2.js)",
       "Bash(node debug_spend_click.js)",
-      "Bash(node debug2.js)"
+      "Bash(node debug2.js)",
+      "Bash(pip3 install *)",
+      "Bash(docker restart *)",
+      "Bash(pip3 list *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(node test_reports.mjs)",
+      "Bash(node test_generate.mjs)"
     ]
   }
 }
