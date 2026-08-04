@@ -21,5 +21,16 @@ class Settings(BaseSettings):
     superadmin_email: str | None = None
     superadmin_password: str | None = None
 
+    anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-sonnet-4-6"
+
+    invoice_storage_path: str = "/data/invoices"
+    signed_invoice_storage_path: str = "/data/invoices/signed"
+    watched_folder_path: str = "/data/watched"
+
+    default_financial_year_start_month: int = 9
+    default_financial_year_end_month: int = 8
+    unconfirmed_invoice_alert_days: int = 5
+
 
 settings = Settings()

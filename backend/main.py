@@ -1,10 +1,14 @@
 """Keep Track backend entrypoint."""
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from config import settings
 from database import SessionLocal
 from routers.auth import router as auth_router
 from routers.categories import router as categories_router
+from routers.invoices import router as invoices_router
 from services.auth_service import ensure_superadmin
 
 app = FastAPI(title="Keep Track API", version="0.1.0")
@@ -19,10 +23,14 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(categories_router)
+app.include_router(invoices_router)
 
 
 @app.on_event("startup")
 def on_startup():
+    os.makedirs(os.path.join(settings.invoice_storage_path, "original"), exist_ok=True)
+    os.makedirs(settings.signed_invoice_storage_path, exist_ok=True)
+
     db = SessionLocal()
     try:
         ensure_superadmin(db)

@@ -35,3 +35,10 @@ def require_admin(user: User = Depends(get_current_user)) -> User:
     if user.role not in ("admin", "superadmin"):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin privileges required")
     return user
+
+
+def require_standard(user: User = Depends(get_current_user)) -> User:
+    """Any authenticated role except Read Only — Standard, Admin, or Superadmin."""
+    if user.role == "readonly":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Read-only accounts cannot perform this action")
+    return user

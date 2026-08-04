@@ -2,13 +2,18 @@
 
 Some organisations using Keep Track require invoices to be signed off before they're filed — a bit like initialling a paper invoice to show it's been checked and approved. This guide explains that step. If your organisation doesn't use signing, you can skip this guide — you'll simply confirm invoices without signing them.
 
+> **Note:** Signing (steps 2–4 below) is planned but not yet available in the current version of Keep Track — right now, every invoice goes straight from review to confirmation. This guide is kept up to date so it's ready as soon as signing is switched on.
+
 ## Step 1: Review the details
 
-Before you can sign anything, make sure the invoice details are correct:
+Every uploaded invoice lands on a **review card** before it's saved anywhere. Make sure the details are correct before you confirm:
 
-1. Look at the PDF preview.
-2. Check the date, supplier, amount, category, and notes against it.
+1. Look at the PDF preview on the left of the card — it's rendered directly from the file you uploaded.
+2. Check the invoice date, supplier, amount (this should be the total including VAT), category, and notes on the right against it.
 3. Fix anything that isn't right by clicking into the field and typing the correction.
+4. Any field outlined in amber with a "Please fill this in" note is one the AI couldn't read from the document — always fill these in before confirming.
+5. If you see a red duplicate warning banner at the top of the card, double-check your existing invoices before continuing — it may already be on file.
+6. If the invoice was uploaded by mistake, click **Discard** instead of confirming.
 
 ## Step 2: Add your signature
 

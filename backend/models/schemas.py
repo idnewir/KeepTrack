@@ -1,5 +1,6 @@
 """Pydantic request/response schemas for the auth API."""
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -98,3 +99,31 @@ class CategoryCreate(BaseModel):
 class CategoryUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     colour: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
+
+
+class InvoiceOut(BaseModel):
+    id: int
+    filename: str
+    upload_date: datetime
+    invoice_date: date
+    supplier: str
+    amount: Decimal
+    category_id: int | None
+    notes: str | None
+    signed: bool
+    signed_pdf_path: str | None
+    financial_year_id: int | None
+    reviewed: bool
+    duplicate_flag: bool
+    created_by: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class InvoiceUpdate(BaseModel):
+    invoice_date: date | None = None
+    supplier: str | None = Field(default=None, min_length=1, max_length=255)
+    amount: Decimal | None = Field(default=None, gt=0)
+    category_id: int | None = None
+    notes: str | None = None

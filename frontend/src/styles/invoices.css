@@ -1,0 +1,341 @@
+/* Dashboard quick actions */
+
+.kt-quick-actions {
+  margin-bottom: 24px;
+}
+
+.kt-quick-action-button {
+  width: auto;
+  margin-top: 0;
+  padding: 9px 18px;
+}
+
+/* Invoices table */
+
+.kt-invoices-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.kt-invoices-upload-button {
+  width: auto;
+  margin-top: 0;
+  padding: 9px 18px;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.kt-invoices-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.kt-invoices-filters .kt-field {
+  min-width: 160px;
+}
+
+.kt-invoices-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.kt-invoices-table th,
+.kt-invoices-table td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--kt-border);
+  font-size: 14px;
+}
+
+.kt-invoices-table th {
+  font-weight: 600;
+  color: #6b6b67;
+  background: var(--kt-background);
+}
+
+.kt-invoice-row {
+  cursor: pointer;
+}
+
+.kt-invoice-row:hover td {
+  background: rgba(45, 107, 159, 0.05);
+}
+
+.kt-invoice-row:last-child td {
+  border-bottom: none;
+}
+
+.kt-invoice-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kt-status-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-right: 6px;
+  white-space: nowrap;
+}
+
+.kt-status-reviewed {
+  color: var(--kt-accent);
+  background: rgba(29, 158, 117, 0.1);
+}
+
+.kt-status-unreviewed {
+  color: #a3690a;
+  background: rgba(230, 126, 34, 0.15);
+}
+
+.kt-status-duplicate {
+  color: #a83232;
+  background: rgba(168, 50, 50, 0.1);
+}
+
+/* Upload dropzone */
+
+.kt-dropzone {
+  border: 2px dashed var(--kt-border);
+  border-radius: 12px;
+  padding: 56px 24px;
+  text-align: center;
+  background: var(--kt-surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.kt-dropzone.dragging {
+  border-color: var(--kt-primary);
+  background: rgba(45, 107, 159, 0.05);
+}
+
+.kt-dropzone-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.kt-dropzone-subtitle {
+  color: #8a8a86;
+  margin: 8px 0;
+}
+
+.kt-dropzone-browse {
+  width: auto;
+  margin-top: 8px;
+  padding: 9px 18px;
+}
+
+.kt-pending-files {
+  margin-top: 20px;
+}
+
+.kt-pending-files-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--kt-border);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.kt-pending-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--kt-surface);
+}
+
+.kt-pending-file-name {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kt-pending-file-progress {
+  font-size: 13px;
+  color: var(--kt-primary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* Review cards */
+
+.kt-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.kt-review-card {
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.kt-review-duplicate-banner {
+  background: rgba(168, 50, 50, 0.1);
+  color: #a83232;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(168, 50, 50, 0.2);
+}
+
+.kt-review-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 24px;
+}
+
+.kt-review-preview {
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  min-height: 320px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  padding: 12px;
+}
+
+.kt-review-canvas {
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.kt-review-preview-error {
+  color: #8a8a86;
+  font-size: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.kt-review-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kt-review-fields textarea {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  resize: vertical;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+}
+
+.kt-field-needs-attention {
+  border-color: #e6a020 !important;
+  background: rgba(230, 160, 32, 0.06) !important;
+}
+
+.kt-field-hint {
+  font-size: 12px;
+  color: #a3690a;
+}
+
+.kt-amount-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  overflow: hidden;
+}
+
+.kt-amount-input input {
+  border: none;
+  flex: 1;
+  padding: 10px 12px 10px 4px;
+  font-family: inherit;
+  font-size: 14px;
+  background: transparent;
+  color: var(--kt-text);
+}
+
+.kt-amount-input input:focus {
+  outline: none;
+}
+
+.kt-amount-prefix {
+  padding-left: 12px;
+  color: #6b6b67;
+  font-weight: 500;
+}
+
+.kt-review-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.kt-review-actions .kt-auth-button {
+  width: auto;
+  margin-top: 0;
+  padding: 9px 18px;
+}
+
+.kt-review-discard-button {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #a83232;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
+.kt-review-discard-confirm {
+  font-size: 14px;
+  color: #6b6b67;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kt-invoice-detail-form {
+  max-width: 480px;
+}
+
+@media (max-width: 800px) {
+  .kt-review-body {
+    grid-template-columns: 1fr;
+  }
+}

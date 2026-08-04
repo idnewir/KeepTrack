@@ -9,12 +9,15 @@ import {
 } from './components/RouteGuards.jsx'
 import CategoriesPage from './pages/CategoriesPage.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import InvoiceDetailPage from './pages/InvoiceDetailPage.jsx'
+import InvoicesPage from './pages/InvoicesPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import MFAPage from './pages/MFAPage.jsx'
 import PagePlaceholder from './pages/PagePlaceholder.jsx'
 import PendingApprovalPage from './pages/PendingApprovalPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import SetupPage from './pages/SetupPage.jsx'
+import UploadPage from './pages/UploadPage.jsx'
 
 export default function App() {
   return (
@@ -54,15 +57,9 @@ export default function App() {
         }
       >
         <Route path="/" element={<Dashboard />} />
-        <Route
-          path="/invoices"
-          element={
-            <PagePlaceholder
-              title="Invoices"
-              subtitle="Upload, review, sign, and manage invoices."
-            />
-          }
-        />
+        <Route path="/invoices" element={<InvoicesPage />} />
+        <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
+        <Route path="/upload" element={<UploadPage />} />
         <Route
           path="/contributions"
           element={
