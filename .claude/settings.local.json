@@ -31,7 +31,26 @@
       "Bash(node -e ' *)",
       "Bash(npx eslint *)",
       "Bash(npx vite *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(docker compose *)",
+      "Bash(break)",
+      "Bash(curl *)",
+      "Bash(python3 -m json.tool)",
+      "Bash(node -e \"require\\('playwright'\\); console.log\\('playwright module resolvable'\\)\")",
+      "Bash(mkdir -p \"/private/tmp/claude-501/-Users-richardnewitt-Documents-AI-Keep-Track/5ed8872a-c9cc-45b8-b52e-b36763b20f1e/scratchpad/shots\")",
+      "Bash(npx --yes playwright install chromium)",
+      "Bash(npm init *)",
+      "Bash(npx playwright *)",
+      "Bash(node drive.js)",
+      "Bash(lsof -ti:5180 -sTCP:LISTEN)",
+      "Bash(xargs -r kill)",
+      "Skill(claude-api)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\([p for p in d['paths'] if 'invoice' in p]\\)\")",
+      "Bash(npm -v)",
+      "Bash(chromium-cli --help)",
+      "Bash(npx --yes playwright install chromium --with-deps)",
+      "Bash(python3 *)",
+      "Bash(node test-upload.js)"
     ]
   }
 }
