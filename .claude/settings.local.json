@@ -50,7 +50,18 @@
       "Bash(chromium-cli --help)",
       "Bash(npx --yes playwright install chromium --with-deps)",
       "Bash(python3 *)",
-      "Bash(node test-upload.js)"
+      "Bash(node test-upload.js)",
+      "Bash(node -e \"require\\('playwright'\\); console.log\\('playwright ok'\\)\")",
+      "Bash(npm ls *)",
+      "Bash(kill 98175 98176)",
+      "Bash(node test2.js)",
+      "Bash(node test3.js)",
+      "Bash(docker info *)",
+      "Bash(node -e \"require\\('playwright'\\)\")",
+      "Bash(node test_dashboard.js)",
+      "Bash(node test_dashboard2.js)",
+      "Bash(node debug_spend_click.js)",
+      "Bash(node debug2.js)"
     ]
   }
 }
