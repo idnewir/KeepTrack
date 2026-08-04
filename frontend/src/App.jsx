@@ -16,6 +16,7 @@ import MFAPage from './pages/MFAPage.jsx'
 import PagePlaceholder from './pages/PagePlaceholder.jsx'
 import PendingApprovalPage from './pages/PendingApprovalPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
+import SettingsPage from './pages/SettingsPage.jsx'
 import SetupPage from './pages/SetupPage.jsx'
 import UploadPage from './pages/UploadPage.jsx'
 
@@ -99,10 +100,9 @@ export default function App() {
         <Route
           path="/settings"
           element={
-            <PagePlaceholder
-              title="Settings"
-              subtitle="Configure categories, users, and system options."
-            />
+            <RequireAdmin>
+              <SettingsPage />
+            </RequireAdmin>
           }
         />
         <Route

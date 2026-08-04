@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import SigningPanel from './SigningPanel.jsx'
 import { invoicesApi } from '../utils/api.js'
 import { renderPdfFirstPage } from '../utils/pdf.js'
 
@@ -10,7 +11,7 @@ function isMissing(value) {
   return value === '' || value === null || value === undefined
 }
 
-export default function ReviewCard({ invoice, file, categories, onConfirm, onDiscard }) {
+export default function ReviewCard({ invoice, file, categories, signingEnabled, onConfirm, onDiscard }) {
   const { user } = useAuth()
   const token = user?.token
 
@@ -26,6 +27,10 @@ export default function ReviewCard({ invoice, file, categories, onConfirm, onDis
     invoice.category_id != null ? String(invoice.category_id) : ''
   )
   const [notes, setNotes] = useState(invoice.notes || '')
+
+  // 'fields' = reviewing/correcting extracted data; 'signing' = the
+  // draw-and-place-signature step, shown only when signing is enabled.
+  const [stage, setStage] = useState('fields')
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -48,7 +53,7 @@ export default function ReviewCard({ invoice, file, categories, onConfirm, onDis
   const amountMissing = !amount || Number(amount) <= 0
   const categoryMissing = isMissing(categoryId)
 
-  const handleConfirm = async (e) => {
+  const handleContinue = async (e) => {
     e.preventDefault()
     setError('')
     setSaving(true)
@@ -64,12 +69,29 @@ export default function ReviewCard({ invoice, file, categories, onConfirm, onDis
         },
         token
       )
+      if (signingEnabled) {
+        setStage('signing')
+      } else {
+        const confirmed = await invoicesApi.confirm(invoice.id, token)
+        onConfirm(confirmed)
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to save invoice')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Called once SigningPanel has embedded the signature into a signed PDF
+  // and triggered its download — the last step is writing the invoice's
+  // reviewed flag so it moves into the confirmed invoice list.
+  const handleSigned = async () => {
+    try {
       const confirmed = await invoicesApi.confirm(invoice.id, token)
       onConfirm(confirmed)
     } catch (err) {
-      setError(err.message || 'Failed to confirm invoice')
-    } finally {
-      setSaving(false)
+      setError(err.message || 'Signed, but failed to confirm the invoice')
+      setStage('fields')
     }
   }
 
@@ -95,6 +117,16 @@ export default function ReviewCard({ invoice, file, categories, onConfirm, onDis
         </div>
       )}
 
+      {stage === 'signing' ? (
+        <SigningPanel
+          invoiceId={invoice.id}
+          invoiceFilename={invoice.filename}
+          file={file}
+          token={token}
+          onSigned={handleSigned}
+          onBack={() => setStage('fields')}
+        />
+      ) : (
       <div className="kt-review-body">
         <div className="kt-review-preview">
           {previewError ? (
@@ -104,7 +136,7 @@ export default function ReviewCard({ invoice, file, categories, onConfirm, onDis
           )}
         </div>
 
-        <form className="kt-review-fields" onSubmit={handleConfirm}>
+        <form className="kt-review-fields" onSubmit={handleContinue}>
           <div className="kt-field">
             <label htmlFor={`invoice-date-${invoice.id}`}>Invoice date</label>
             <input
@@ -181,7 +213,7 @@ export default function ReviewCard({ invoice, file, categories, onConfirm, onDis
 
           <div className="kt-review-actions">
             <button type="submit" className="kt-auth-button" disabled={saving || discarding}>
-              {saving ? 'Confirming…' : 'Confirm'}
+              {saving ? 'Saving…' : signingEnabled ? 'Continue to sign' : 'Confirm'}
             </button>
 
             {confirmingDiscard ? (
@@ -216,6 +248,7 @@ export default function ReviewCard({ invoice, file, categories, onConfirm, onDis
           </div>
         </form>
       </div>
+      )}
     </div>
   )
 }

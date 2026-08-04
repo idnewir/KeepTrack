@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ReviewCard from '../components/ReviewCard.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
-import { categoriesApi, invoicesApi } from '../utils/api.js'
+import { categoriesApi, invoicesApi, settingsApi } from '../utils/api.js'
 
 function isPdf(file) {
   return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
@@ -14,6 +14,7 @@ export default function UploadPage() {
   const canUpload = user?.role !== 'readonly'
 
   const [categories, setCategories] = useState([])
+  const [signingEnabled, setSigningEnabled] = useState(true)
   const [pendingFiles, setPendingFiles] = useState([])
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -28,6 +29,13 @@ export default function UploadPage() {
 
   useEffect(() => {
     categoriesApi.list(token).then(setCategories).catch(() => setCategories([]))
+    settingsApi
+      .list(token)
+      .then((rows) => {
+        const signing = rows.find((row) => row.key === 'signing_enabled')
+        setSigningEnabled(signing ? signing.value === 'true' : true)
+      })
+      .catch(() => setSigningEnabled(true))
   }, [token])
 
   const addFiles = (fileList) => {
@@ -186,6 +194,7 @@ export default function UploadPage() {
                 invoice={item.invoice}
                 file={item.file}
                 categories={categories}
+                signingEnabled={signingEnabled}
                 onConfirm={handleConfirmed}
                 onDiscard={handleDiscarded}
               />

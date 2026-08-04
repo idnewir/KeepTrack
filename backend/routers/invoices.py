@@ -1,20 +1,31 @@
-"""Invoice endpoints: upload with AI extraction, review, list, update, and delete."""
+"""Invoice endpoints: upload with AI extraction, review, list, update, sign, and delete."""
+import os
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from database import get_db
 from models.category import Category
 from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
-from models.schemas import InvoiceOut, InvoiceUpdate
+from models.schemas import InvoiceOut, InvoiceSignRequest, InvoiceUpdate
+from models.setting import Setting
 from models.user import User
 from services.ai_service import check_duplicate, extract_invoice_data
+from services.signing_service import sign_invoice_pdf
 from services.storage_service import save_invoice_pdf
 from utils.deps import get_current_user, require_standard
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
+
+
+def _signing_enabled(db: Session) -> bool:
+    setting = db.query(Setting).filter(Setting.key == "signing_enabled").first()
+    # No row (shouldn't happen post-migration) defaults to enabled rather
+    # than silently skipping an audit-trail step someone may be relying on.
+    return setting is None or setting.value.lower() == "true"
 
 
 @router.post("/upload", response_model=list[InvoiceOut], status_code=status.HTTP_201_CREATED)
@@ -139,6 +150,75 @@ def confirm_invoice(
     db.commit()
     db.refresh(invoice)
     return invoice
+
+
+@router.post("/{invoice_id}/sign", response_model=InvoiceOut)
+def sign_invoice(
+    invoice_id: int,
+    payload: InvoiceSignRequest,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_standard),
+):
+    if not _signing_enabled(db):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Signing is currently turned off in Settings")
+
+    invoice = db.get(Invoice, invoice_id)
+    if invoice is None or invoice.deleted:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
+
+    invoice_file = (
+        db.query(InvoiceFile)
+        .filter(InvoiceFile.invoice_id == invoice_id)
+        .order_by(InvoiceFile.uploaded_at.desc())
+        .first()
+    )
+    if invoice_file is None or not os.path.exists(invoice_file.original_path):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Original PDF not found for this invoice")
+
+    try:
+        signed_path = sign_invoice_pdf(
+            original_path=invoice_file.original_path,
+            signature_image=payload.signature_image,
+            signed_date=payload.date,
+            page_number=payload.page,
+            x_pct=payload.x,
+            y_pct=payload.y,
+            width_pct=payload.width,
+            height_pct=payload.height,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Could not sign PDF: {exc}") from exc
+
+    # The original file (referenced by invoice_file.original_path) is never
+    # touched — sign_invoice_pdf always writes a brand new file.
+    invoice.signed = True
+    invoice.signed_pdf_path = signed_path
+    db.commit()
+    db.refresh(invoice)
+    return invoice
+
+
+@router.get("/{invoice_id}/signed-pdf")
+def get_signed_pdf(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_standard),
+):
+    invoice = db.get(Invoice, invoice_id)
+    if invoice is None or invoice.deleted:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
+    if not invoice.signed or not invoice.signed_pdf_path:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "This invoice has not been signed")
+    if not os.path.exists(invoice.signed_pdf_path):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Signed PDF file is missing from storage")
+
+    return FileResponse(
+        invoice.signed_pdf_path,
+        media_type="application/pdf",
+        filename=f"signed_{invoice.filename}",
+    )
 
 
 @router.delete("/{invoice_id}", response_model=InvoiceOut)

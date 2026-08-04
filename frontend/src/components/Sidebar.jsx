@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   {
     label: 'Settings',
     to: '/settings',
+    adminOnly: true,
     children: [{ label: 'Categories', to: '/settings/categories', adminOnly: true }],
   },
 ]
@@ -23,7 +24,7 @@ export default function Sidebar({ open, onNavigate }) {
     <>
       <nav className={`kt-sidebar${open ? ' open' : ''}`}>
         <ul className="kt-nav-list">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => {
             const children = (item.children || []).filter((child) => !child.adminOnly || isAdmin)
             return (
               <li key={item.to}>

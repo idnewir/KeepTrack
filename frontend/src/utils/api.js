@@ -55,6 +55,30 @@ export const categoriesApi = {
   restore: (id, token) => request(`/categories/${id}/restore`, { method: 'POST', token }),
 }
 
+export const settingsApi = {
+  list: (token) => request('/settings', { token }),
+  update: (key, value, token) =>
+    request(`/settings/${key}`, { method: 'PUT', body: { value }, token }),
+}
+
+// Plain fetch returning a Blob, for authenticated file downloads (the browser
+// can't attach an Authorization header to a plain <a href> download).
+async function requestBlob(path, { token } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    let data = null
+    try {
+      data = await res.json()
+    } catch {
+      // no JSON body
+    }
+    throw new ApiError(data?.detail || `Request failed (${res.status})`, res.status, data)
+  }
+  return res.blob()
+}
+
 // XHR (not fetch) so upload progress is observable via xhr.upload.onprogress.
 function requestForm(path, { method = 'POST', formData, token, onProgress } = {}) {
   return new Promise((resolve, reject) => {
@@ -110,4 +134,6 @@ export const invoicesApi = {
   update: (id, payload, token) => request(`/invoices/${id}`, { method: 'PUT', body: payload, token }),
   confirm: (id, token) => request(`/invoices/${id}/confirm`, { method: 'POST', token }),
   remove: (id, token) => request(`/invoices/${id}`, { method: 'DELETE', token }),
+  sign: (id, payload, token) => request(`/invoices/${id}/sign`, { method: 'POST', body: payload, token }),
+  downloadSignedPdf: (id, token) => requestBlob(`/invoices/${id}/signed-pdf`, { token }),
 }

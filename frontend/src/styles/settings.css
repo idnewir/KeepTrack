@@ -1,0 +1,246 @@
+.kt-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--kt-border);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.kt-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px;
+  background: var(--kt-surface);
+  flex-wrap: wrap;
+}
+
+.kt-settings-row-text {
+  flex: 1;
+  min-width: 240px;
+}
+
+.kt-settings-row-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.kt-settings-row-description {
+  margin: 0;
+  font-size: 13px;
+  color: #6b6b67;
+  max-width: 520px;
+}
+
+.kt-settings-row-status {
+  font-size: 13px;
+  color: #8a8a86;
+  flex-shrink: 0;
+}
+
+.kt-settings-link-button {
+  width: auto;
+  margin-top: 0;
+  padding: 9px 18px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.kt-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.kt-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.kt-toggle-track {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--kt-border);
+  position: relative;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.kt-toggle.on .kt-toggle-track {
+  background: var(--kt-accent);
+}
+
+.kt-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.kt-toggle.on .kt-toggle-thumb {
+  transform: translateX(20px);
+}
+
+.kt-toggle-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--kt-text);
+  min-width: 26px;
+}
+
+/* Signing panel */
+
+.kt-sign-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 24px;
+}
+
+.kt-sign-preview {
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  max-height: 640px;
+  overflow: auto;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.kt-sign-pages {
+  position: relative;
+}
+
+.kt-sign-page {
+  position: relative;
+}
+
+.kt-sign-canvas {
+  display: block;
+  max-width: 100%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.kt-sign-page-label {
+  display: block;
+  font-size: 11px;
+  color: #8a8a86;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.kt-sign-box {
+  position: absolute;
+  border: 2px dashed var(--kt-primary);
+  background: rgba(45, 107, 159, 0.08);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.kt-sign-box:active {
+  cursor: grabbing;
+}
+
+.kt-sign-box-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kt-sign-box-image {
+  max-width: 90%;
+  max-height: 70%;
+  object-fit: contain;
+}
+
+.kt-sign-box-placeholder {
+  font-size: 12px;
+  color: var(--kt-primary);
+  font-weight: 600;
+}
+
+.kt-sign-box-date {
+  font-size: 10px;
+  color: #444;
+}
+
+.kt-sign-box-handle {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--kt-primary);
+  border: 2px solid #fff;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.kt-sign-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kt-sign-instructions {
+  margin: 0;
+  font-size: 13px;
+  color: #6b6b67;
+  background: rgba(45, 107, 159, 0.06);
+  border: 1px solid rgba(45, 107, 159, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.kt-sign-pad {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: 150px;
+  border: 1px dashed var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  touch-action: none;
+  cursor: crosshair;
+  margin-bottom: 8px;
+}
+
+.kt-sign-success {
+  color: var(--kt-accent);
+  background: rgba(29, 158, 117, 0.1);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@media (max-width: 800px) {
+  .kt-sign-body {
+    grid-template-columns: 1fr;
+  }
+}

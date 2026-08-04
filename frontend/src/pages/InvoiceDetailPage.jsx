@@ -18,6 +18,7 @@ export default function InvoiceDetailPage() {
   const [saving, setSaving] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [downloadingSigned, setDownloadingSigned] = useState(false)
 
   const [invoiceDate, setInvoiceDate] = useState('')
   const [supplier, setSupplier] = useState('')
@@ -70,6 +71,26 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  const handleDownloadSigned = async () => {
+    setError('')
+    setDownloadingSigned(true)
+    try {
+      const blob = await invoicesApi.downloadSignedPdf(invoice.id, token)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `signed_${invoice.filename}`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err.message || 'Failed to download signed PDF')
+    } finally {
+      setDownloadingSigned(false)
+    }
+  }
+
   const handleDelete = async () => {
     setDeleting(true)
     setError('')
@@ -103,7 +124,21 @@ export default function InvoiceDetailPage() {
         Uploaded as {invoice.filename} ·{' '}
         {invoice.reviewed ? 'Reviewed' : 'Not yet reviewed'}
         {invoice.duplicate_flag ? ' · Possible duplicate' : ''}
+        {invoice.signed ? ' · Signed' : ''}
       </p>
+
+      {invoice.signed && canEdit && (
+        <p>
+          <button
+            type="button"
+            className="kt-category-link-button"
+            onClick={handleDownloadSigned}
+            disabled={downloadingSigned}
+          >
+            {downloadingSigned ? 'Downloading…' : 'Download signed PDF'}
+          </button>
+        </p>
+      )}
 
       <form className="kt-review-fields kt-invoice-detail-form" onSubmit={handleSave}>
         <div className="kt-field">

@@ -10,10 +10,14 @@ Only **Administrators** (and the Superadmin recovery account) can view and chang
 
 ### Signing and export
 
-Turn the invoice-signing step on or off for the whole organisation.
+On the Settings page, a single on/off switch controls the invoice-signing step for the whole organisation:
 
-- **On** — everyone will be asked to sign invoices (with a drawn signature and date) before they're confirmed, and can export the signed copy.
-- **Off** — invoices are confirmed straight away after review, with no signing step.
+> When enabled, users will be asked to sign and date invoices before confirming them. Turn this off for personal use cases where signing is not required.
+
+- **On** (the default) — everyone will be asked to sign and date invoices (see [Reviewing and Signing](reviewing-and-signing.md)) before they're confirmed; the signed PDF downloads automatically and is kept alongside the original.
+- **Off** — invoices are confirmed straight away after review, with no signing step — the review card's button simply reads **Confirm**.
+
+Changing this switch takes effect immediately for everyone, including anyone partway through reviewing an invoice.
 
 ### Notification thresholds
 

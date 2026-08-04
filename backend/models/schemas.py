@@ -127,3 +127,27 @@ class InvoiceUpdate(BaseModel):
     amount: Decimal | None = Field(default=None, gt=0)
     category_id: int | None = None
     notes: str | None = None
+
+
+class InvoiceSignRequest(BaseModel):
+    signature_image: str = Field(min_length=1, description="Base64 PNG, data URL prefix optional")
+    date: date
+    page: int = Field(ge=1, description="1-indexed page number to place the signature on")
+    x: float = Field(ge=0, le=100, description="Left edge of the signature box, % of page width")
+    y: float = Field(ge=0, le=100, description="Top edge of the signature box, % of page height")
+    width: float = Field(gt=0, le=100, description="Signature box width, % of page width")
+    height: float = Field(gt=0, le=100, description="Signature box height, % of page height")
+
+
+class SettingOut(BaseModel):
+    id: int
+    key: str
+    value: str
+    updated_by: int | None
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class SettingUpdate(BaseModel):
+    value: str = Field(min_length=1, max_length=500)
