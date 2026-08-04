@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(python3 -c \"import playwright\")",
+      "Bash(npx --yes playwright --version)"
+    ]
+  }
+}

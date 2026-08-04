@@ -1,0 +1,35 @@
+:root {
+  --kt-primary: #2D6B9F;
+  --kt-accent: #1D9E75;
+  --kt-background: #F7F7F5;
+  --kt-text: #2C2C2A;
+  --kt-surface: #FFFFFF;
+  --kt-border: #E4E4E0;
+  --kt-sidebar-width: 240px;
+  --kt-header-height: 64px;
+  --kt-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--kt-font);
+  background: var(--kt-background);
+  color: var(--kt-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--kt-primary);
+}
+
+button {
+  font-family: inherit;
+}

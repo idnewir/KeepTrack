@@ -1,0 +1,154 @@
+.kt-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header */
+.kt-header {
+  height: var(--kt-header-height);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  background: var(--kt-surface);
+  border-bottom: 1px solid var(--kt-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.kt-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kt-wordmark {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.kt-menu-button {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.kt-menu-bar {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: var(--kt-text);
+  border-radius: 2px;
+}
+
+/* Body: sidebar + main */
+.kt-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.kt-sidebar {
+  width: var(--kt-sidebar-width);
+  flex-shrink: 0;
+  background: var(--kt-surface);
+  border-right: 1px solid var(--kt-border);
+  padding: 20px 12px;
+}
+
+.kt-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kt-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: var(--kt-text);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.kt-nav-link:hover {
+  background: var(--kt-background);
+}
+
+.kt-nav-link.active {
+  background: var(--kt-primary);
+  color: #fff;
+}
+
+.kt-main {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+.kt-page-title {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.kt-page-subtitle {
+  margin: 0 0 28px;
+  color: #6b6b67;
+  font-size: 15px;
+}
+
+.kt-sidebar-backdrop {
+  display: none;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .kt-menu-button {
+    display: flex;
+  }
+
+  .kt-sidebar {
+    position: fixed;
+    top: var(--kt-header-height);
+    left: 0;
+    bottom: 0;
+    z-index: 30;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .kt-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .kt-sidebar-backdrop.open {
+    display: block;
+    position: fixed;
+    inset: var(--kt-header-height) 0 0 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 25;
+  }
+
+  .kt-main {
+    padding: 20px;
+  }
+}
