@@ -7,6 +7,7 @@ from models.monthly_reconciliation import MonthlyReconciliation
 from models.planned_project import PlannedProject
 from models.report import Report
 from models.setting import Setting
+from models.system_event import SystemEvent
 from models.user import User
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "PlannedProject",
     "Report",
     "Setting",
+    "SystemEvent",
     "User",
 ]

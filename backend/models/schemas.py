@@ -428,6 +428,17 @@ class ReportGenerateRequest(BaseModel):
     include_ai_summary: bool = True
 
 
+class SystemResetRequest(BaseModel):
+    superadmin_password: str = Field(min_length=1)
+    confirmation_phrase: str = Field(min_length=1)
+    wipe_files: bool = False
+
+
+class SystemResetResponse(BaseModel):
+    message: str
+    reset_at: datetime
+
+
 class ReconciliationMonthOut(BaseModel):
     financial_year_id: int
     year: int

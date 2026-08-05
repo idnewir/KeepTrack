@@ -16,6 +16,7 @@ from routers.projects import router as projects_router
 from routers.reconciliation import router as reconciliation_router
 from routers.reports import router as reports_router
 from routers.settings import router as settings_router
+from routers.system import router as system_router
 from services.auth_service import ensure_superadmin
 
 app = FastAPI(title="Keep Track API", version="0.1.0")
@@ -38,6 +39,7 @@ app.include_router(projects_router)
 app.include_router(reconciliation_router)
 app.include_router(reports_router)
 app.include_router(settings_router)
+app.include_router(system_router)
 
 
 @app.on_event("startup")

@@ -80,6 +80,38 @@ To get there: **Settings → Target Reserve**.
 
 Whichever method you choose, the dashboard gauge shows the calculation method underneath it in small text, so everyone can see how the target was arrived at.
 
+### System reset (Danger Zone)
+
+Only the **Superadmin** recovery account can see or use this — not even a regular Administrator can. It permanently erases everything in Keep Track and puts it back exactly as it was the day it was installed.
+
+To get there: **Settings → Danger Zone** (Superadmin only).
+
+**What it deletes:**
+
+- All invoices and their uploaded PDF files (only if you also choose to wipe files — see below)
+- All contributions and reconciliations
+- All planned projects
+- All reports
+- Every user account except the Superadmin account itself
+- All settings, reset back to their defaults
+- All categories, reset back to the original seven (Electricity, Water, Broadband, HVAC, Alarm, Supplies, General Maintenance)
+
+Nothing survives except the Superadmin account. The next person to visit Keep Track will see the first-run setup wizard, exactly as if it had just been installed.
+
+**When to use it:** this is for starting completely over — decommissioning a test/demo instance, handing the same installation to a different organisation, or recovering from data you no longer trust and want to wipe rather than fix by hand. It is not for correcting a single mistake; for that, edit or delete the individual record instead.
+
+**How it works:**
+
+1. **Wipe files** — an optional toggle, off by default. Turn it on to also permanently delete every original and signed PDF from storage, not just the database records pointing to them. Keep Track warns you clearly once this is switched on — make sure you have copies elsewhere first if you might need them.
+2. **Type the confirmation phrase** — you must type `RESET KEEP TRACK` exactly. The **Reset all data** button stays greyed out until you do.
+3. **Enter your Superadmin password** — this field only appears once the phrase above is correct. Keep Track checks it against your real password before doing anything.
+
+Only once all three are satisfied does **Reset all data** become clickable. After a successful reset you're signed out automatically and taken straight to the setup wizard to start again.
+
+For security, every reset attempt — whether it succeeds, fails, or is blocked — is written to a permanent internal log that a reset itself can never erase, and the endpoint only allows 3 attempts per hour to protect against someone trying to guess the Superadmin password.
+
+**This cannot be undone.** There is no confirmation email, no recycle bin, and no way to recover the data afterwards.
+
 ## Tips
 
 - Changes to settings apply immediately for all users.
