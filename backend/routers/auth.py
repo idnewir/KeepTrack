@@ -1,4 +1,8 @@
 """Authentication endpoints: first-run setup, login+MFA, self-registration, and approvals."""
+import secrets
+import string
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -6,10 +10,12 @@ from config import settings
 from database import get_db
 from models.schemas import (
     ApproveUserRequest,
+    ForcePasswordChangeRequest,
     LoginRequest,
     LoginResponse,
     MFAVerifyRequest,
     PasswordChangeRequest,
+    PasswordResetOut,
     ProfileUpdateRequest,
     RegisterRequest,
     RegisterResponse,
@@ -20,6 +26,7 @@ from models.schemas import (
     SetupStatusResponse,
     TokenResponse,
     UserOut,
+    UserRoleUpdate,
     ASSIGNABLE_ROLES,
 )
 from models.setting import Setting
@@ -128,12 +135,20 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid username or password")
     if not user.approved:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account pending approval")
+    if not user.is_active:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Your account has been deactivated. Please contact an Administrator.",
+        )
 
     # Superadmin is a break-glass recovery account with no MFA step by
     # design (see docs/decisions-log.md). This branches solely on the role
     # stored on the DB row just looked up — nothing in the request payload
     # can reach this check, so it can't be spoofed from the client.
     if user.role == "superadmin":
+        user.last_login = datetime.now(timezone.utc)
+        db.commit()
+
         access_token = create_token(
             subject=user.id,
             scope=SCOPE_ACCESS,
@@ -166,9 +181,17 @@ def verify_mfa(payload: MFAVerifyRequest, db: Session = Depends(get_db)):
     user = db.get(User, int(claims["sub"]))
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User no longer exists")
+    if not user.is_active:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Your account has been deactivated. Please contact an Administrator.",
+        )
 
     if not verify_totp_code(decrypt_secret(user.mfa_secret), payload.code):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid authentication code")
+
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
 
     access_token = create_token(
         subject=user.id,
@@ -241,6 +264,115 @@ def approve_user(
     return user
 
 
+@router.get("/users", response_model=list[UserOut])
+def list_users(db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
+    return db.query(User).order_by(User.username).all()
+
+
+def _reject_action_on_self_or_superadmin(target: User, admin: User, action: str) -> None:
+    if target.id == admin.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Cannot {action} your own account")
+    if target.role == "superadmin":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Cannot {action} the Superadmin account")
+
+
+@router.put("/users/{user_id}/role", response_model=UserOut)
+def update_user_role(
+    user_id: int,
+    payload: UserRoleUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    if payload.role not in ASSIGNABLE_ROLES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Role must be one of: {', '.join(ASSIGNABLE_ROLES)}",
+        )
+
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
+    _reject_action_on_self_or_superadmin(user, admin, "change the role of")
+
+    user.role = payload.role
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.put("/users/{user_id}/deactivate", response_model=UserOut)
+def deactivate_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
+    _reject_action_on_self_or_superadmin(user, admin, "deactivate")
+
+    user.is_active = False
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.put("/users/{user_id}/reactivate", response_model=UserOut)
+def reactivate_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.post("/users/{user_id}/reset-password", response_model=PasswordResetOut)
+def reset_user_password(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
+    _reject_action_on_self_or_superadmin(user, admin, "reset the password of")
+
+    alphabet = string.ascii_letters + string.digits
+    temporary_password = "".join(secrets.choice(alphabet) for _ in range(8))
+
+    user.password_hash = hash_password(temporary_password)
+    user.must_change_password = True
+    db.commit()
+
+    return PasswordResetOut(temporary_password=temporary_password, must_change_password=True)
+
+
+@router.delete("/reject-user/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def reject_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    if user.approved:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cannot reject an already-approved user")
+
+    db.delete(user)
+    db.commit()
+
+
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
     return user
@@ -273,6 +405,24 @@ def change_my_password(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
 
     user.password_hash = hash_password(payload.new_password)
+    user.must_change_password = False
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.put("/me/force-password-change", response_model=UserOut)
+def force_change_my_password(
+    payload: ForcePasswordChangeRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """No current-password check: only reachable with a valid access token,
+    which the user just obtained by authenticating with their (temporary)
+    current password moments earlier. Used by the forced-change redirect
+    that follows an Admin password reset — see docs/decisions-log.md."""
+    user.password_hash = hash_password(payload.new_password)
+    user.must_change_password = False
     db.commit()
     db.refresh(user)
     return user

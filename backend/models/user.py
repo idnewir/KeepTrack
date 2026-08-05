@@ -24,3 +24,6 @@ class User(Base):
     mfa_secret = Column(String(255), nullable=False)
     approved = Column(Boolean, nullable=False, default=False, server_default="false")
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    last_login = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    must_change_password = Column(Boolean, nullable=False, default=False, server_default="false")

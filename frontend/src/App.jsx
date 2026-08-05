@@ -9,6 +9,7 @@ import {
   RequireSetupNeeded,
 } from './components/RouteGuards.jsx'
 import CategoriesPage from './pages/CategoriesPage.jsx'
+import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
 import ContributionsPage from './pages/ContributionsPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import ForecastBreakdownPage from './pages/ForecastBreakdownPage.jsx'
@@ -57,6 +58,14 @@ export default function App() {
           />
           <Route path="/mfa" element={<MFAPage />} />
           <Route path="/pending-approval" element={<PendingApprovalPage />} />
+          <Route
+            path="/change-password"
+            element={
+              <RequireAuth>
+                <ChangePasswordPage />
+              </RequireAuth>
+            }
+          />
 
           <Route
             element={

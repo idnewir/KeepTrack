@@ -47,6 +47,16 @@ export const authApi = {
   pendingUsers: (token) => request('/auth/pending-users', { token }),
   approveUser: (id, role, token) =>
     request(`/auth/approve-user/${id}`, { method: 'POST', body: { role }, token }),
+  rejectUser: (id, token) => request(`/auth/reject-user/${id}`, { method: 'DELETE', token }),
+  listUsers: (token) => request('/auth/users', { token }),
+  updateUserRole: (id, role, token) =>
+    request(`/auth/users/${id}/role`, { method: 'PUT', body: { role }, token }),
+  deactivateUser: (id, token) => request(`/auth/users/${id}/deactivate`, { method: 'PUT', token }),
+  reactivateUser: (id, token) => request(`/auth/users/${id}/reactivate`, { method: 'PUT', token }),
+  resetUserPassword: (id, token) =>
+    request(`/auth/users/${id}/reset-password`, { method: 'POST', token }),
+  forcePasswordChange: (payload, token) =>
+    request('/auth/me/force-password-change', { method: 'PUT', body: payload, token }),
   setupAppStartDate: (appStartDate, financialYearStartMonth) =>
     request('/auth/setup/app-start-date', {
       method: 'PUT',

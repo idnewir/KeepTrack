@@ -18,6 +18,9 @@ class UserOut(BaseModel):
     role: str
     approved: bool
     created_at: datetime
+    last_login: datetime | None = None
+    is_active: bool = True
+    must_change_password: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -78,6 +81,19 @@ class RegisterResponse(BaseModel):
 
 class ApproveUserRequest(BaseModel):
     role: str = Field(description=f"One of: {', '.join(ASSIGNABLE_ROLES)}")
+
+
+class UserRoleUpdate(BaseModel):
+    role: str = Field(description=f"One of: {', '.join(ASSIGNABLE_ROLES)}")
+
+
+class PasswordResetOut(BaseModel):
+    temporary_password: str
+    must_change_password: bool = True
+
+
+class ForcePasswordChangeRequest(BaseModel):
+    new_password: str = Field(min_length=8, max_length=255)
 
 
 class ProfileUpdateRequest(BaseModel):

@@ -1,8 +1,16 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 
 export function LoadingScreen() {
   return <div className="kt-auth-loading">Loading…</div>
+}
+
+// True once an Admin-initiated password reset (or any other future forced
+// -change trigger) means the user must set a new password before doing
+// anything else. Shared by RequireAuth/RequireAdmin below so neither the
+// main app shell nor an Admin-only page can be reached around it.
+function needsForcedPasswordChange(user, pathname) {
+  return Boolean(user?.must_change_password) && pathname !== '/change-password'
 }
 
 // Protects the main app shell: requires a logged-in user with a valid token.
@@ -11,9 +19,13 @@ export function LoadingScreen() {
 // button or a direct /setup visit (see RequireSetupNeeded below).
 export function RequireAuth({ children }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
+  if (needsForcedPasswordChange(user, location.pathname)) {
+    return <Navigate to="/change-password" replace />
+  }
 
   return children
 }
@@ -44,10 +56,14 @@ export function RequireSetupNeeded({ children }) {
 // For Admin-only pages (e.g. Categories): requires an Admin or Superadmin role.
 export function RequireAdmin({ children }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
   if (user.role !== 'admin' && user.role !== 'superadmin') return <Navigate to="/" replace />
+  if (needsForcedPasswordChange(user, location.pathname)) {
+    return <Navigate to="/change-password" replace />
+  }
 
   return children
 }
@@ -58,6 +74,7 @@ export function DefaultRedirect() {
 
   if (loading) return <LoadingScreen />
   if (!user) return <Navigate to="/login" replace />
+  if (user.must_change_password) return <Navigate to="/change-password" replace />
 
   return <Navigate to="/" replace />
 }

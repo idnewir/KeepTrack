@@ -169,8 +169,19 @@
   color: var(--kt-text-secondary);
 }
 
-.kt-auth-footer a {
+.kt-auth-footer a,
+.kt-auth-footer button.kt-link-button {
   font-weight: 500;
+}
+
+.kt-auth-footer button.kt-link-button {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--kt-primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .kt-auth-qr {

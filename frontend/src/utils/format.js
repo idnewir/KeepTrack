@@ -27,6 +27,28 @@ export function formatCurrencyCompact(amount) {
   return `£${value.toLocaleString('en-GB', { maximumFractionDigits: 0 })}`
 }
 
+export function formatDate(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+// Relative time for "Last login" columns — falls back to a full date once
+// it's more than a month ago, since "27 days ago" stops being useful further out.
+export function formatRelativeTime(dateStr) {
+  if (!dateStr) return 'Never'
+  const then = new Date(dateStr)
+  const diffMs = Date.now() - then.getTime()
+  const diffMin = Math.round(diffMs / 60000)
+  const diffHour = Math.round(diffMin / 60)
+  const diffDay = Math.round(diffHour / 24)
+
+  if (diffMin < 1) return 'Just now'
+  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`
+  if (diffHour < 24) return `${diffHour} hour${diffHour === 1 ? '' : 's'} ago`
+  if (diffDay < 30) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`
+  return formatDate(dateStr)
+}
+
 export function formatMonthYear(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`)
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })

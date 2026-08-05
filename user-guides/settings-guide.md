@@ -39,9 +39,25 @@ Category names must be unique — Keep Track will tell you if you try to add or 
 
 ### User management
 
-- See a list of people waiting to be approved.
-- Approve a new user and choose their role (Admin, Standard, or Read only).
-- Change an existing user's role, or deactivate an account that's no longer needed.
+To get there: **Settings → Users**. There are two tabs — **Active users** and **Pending approval**.
+
+#### Active users
+
+A table of every approved account, showing their name/username, email, role, when they joined, when they last logged in ("Never" if they haven't yet), and whether they're Active or Inactive.
+
+- **Change a role** — pick a new role directly from the dropdown in the Role column. Changes take effect immediately.
+- **Reset a password** — click **Reset password**, confirm, and Keep Track generates a random 8-character temporary password on the spot. Copy it and share it with the user yourself (by whatever secure means you'd normally use) — Keep Track doesn't email it. The user must set their own new password the next time they log in before they can do anything else.
+- **Deactivate an account** — click **Deactivate** and confirm. A deactivated user can no longer log in ("Your account has been deactivated. Please contact an Administrator.") but their history (invoices, contributions, etc.) is untouched.
+- **Reactivate an account** — click **Reactivate** on an inactive user to restore their access.
+
+You can't change the role of, reset the password of, or deactivate **your own account** or the **Superadmin account** — those actions are hidden for those rows. The Superadmin account can never be deactivated, since it's the recovery login for when every Admin account is locked out or forgotten.
+
+#### Pending approval
+
+Anyone who self-registers shows up here first, with their username, email, and registration date.
+
+- **Approve** — pick their role from the dropdown (Admin, Standard, or Read only) and click **Approve**. They can log in from that point on.
+- **Reject** — click **Reject** and confirm to turn away a registration you don't recognise or don't want. This removes the registration entirely; they'd need to register again if that was a mistake.
 
 ### Watched folder
 
