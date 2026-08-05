@@ -32,7 +32,8 @@ export async function loadPdfDocument(file) {
 // pdf.js document onto the given canvas, scaled to fill `targetWidth` CSS
 // pixels while preserving aspect ratio, returning the rendered {width,
 // height} *in CSS pixels* so callers can lay out per-page overlays without
-// re-measuring.
+// re-measuring, plus the pdf.js `renderTask` itself so the caller can track
+// and cancel it.
 //
 // The canvas's backing-store resolution (its width/height attributes) is set
 // to targetWidth * devicePixelRatio for crisp rendering on high-DPI screens,
@@ -42,6 +43,15 @@ export async function loadPdfDocument(file) {
 // shrink the canvas instead of rendering it at the right size to begin with)
 // is what previously made the draggable signature box drift out of sync
 // with the visually displayed PDF.
+//
+// This function deliberately does NOT await the render to completion — it
+// returns as soon as `page.render()` has started, handing back the
+// `renderTask` so the caller can store it *before* the pixels are actually
+// painted. pdf.js throws "Cannot use the same canvas during multiple
+// render() operations" if a second render is started on the same canvas
+// before the first is cancelled or finished, so callers must track the
+// previous renderTask per canvas and call `.cancel()` on it before invoking
+// this function again for that canvas.
 export async function renderPdfPage(pdf, pageNumber, canvas, targetWidth) {
   const page = await pdf.getPage(pageNumber)
   const baseWidth = page.getViewport({ scale: 1 }).width
@@ -58,6 +68,6 @@ export async function renderPdfPage(pdf, pageNumber, canvas, targetWidth) {
 
   const context = canvas.getContext('2d')
   const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null
-  await page.render({ canvasContext: context, viewport, transform }).promise
-  return { width: cssWidth, height: cssHeight }
+  const renderTask = page.render({ canvasContext: context, viewport, transform })
+  return { width: cssWidth, height: cssHeight, renderTask }
 }

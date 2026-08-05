@@ -37,6 +37,16 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   const hasStrokeRef = useRef(false)
   const pdfRef = useRef(null)
   const resizeTimerRef = useRef(null)
+  // One pdf.js RenderTask (or null) per page index, so a render that's still
+  // in flight can always be cancelled before a new one starts on the same
+  // canvas — see the RenderingCancelledException handling below and
+  // utils/pdf.js's renderPdfPage doc comment.
+  const renderTasksRef = useRef([])
+  // Bumped every time a new PDF is loaded; folded into each page canvas's
+  // React `key` so a new document always gets brand-new <canvas> DOM nodes
+  // rather than reusing (and potentially still-rendering-into) the previous
+  // document's canvases.
+  const docIdRef = useRef(0)
 
   // Enter/exit transition — `visible` drives the CSS class that fades/scales
   // the overlay in on mount; `closing` reverses it, and the real onBack/
@@ -48,6 +58,7 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   const [pageSizes, setPageSizes] = useState([]) // [{width, height}] in CSS px
   const [previewError, setPreviewError] = useState('')
   const [containerWidth, setContainerWidth] = useState(0)
+  const [docId, setDocId] = useState(0)
 
   const [box, setBox] = useState(null) // {page, xPct, yPct, wPct, hPct}
   const [hasSignature, setHasSignature] = useState(false)
@@ -75,6 +86,18 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   const requestClose = useCallback((after) => {
     setClosing(true)
     window.setTimeout(after, TRANSITION_MS)
+  }, [])
+
+  // Cancels every render still in flight (used on unmount, when the PDF
+  // changes, and before a fresh render pass starts) so no stale render can
+  // ever land on a canvas after the fact — pdf.js's own guard against two
+  // concurrent renders on one canvas is what throws the "Cannot use the same
+  // canvas during multiple render() operations" error this is fixing.
+  const cancelAllRenderTasks = useCallback(() => {
+    renderTasksRef.current.forEach((task) => {
+      if (task) task.cancel()
+    })
+    renderTasksRef.current = []
   }, [])
 
   // Track the width actually available for the PDF (the area beside/above
@@ -106,6 +129,20 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   // each page — doing it here would race ahead of that DOM update.
   useEffect(() => {
     let cancelled = false
+
+    // A fresh document means every previous canvas is about to be torn down
+    // (see the `docId`-keyed canvases below) — cancel whatever was still
+    // rendering into them first, and destroy the previous pdf.js document
+    // instance rather than leaving it (and any in-flight worker requests) to
+    // outlive the panel switching to a new file.
+    cancelAllRenderTasks()
+    if (pdfRef.current) {
+      pdfRef.current.destroy()
+      pdfRef.current = null
+    }
+    canvasRefs.current = []
+    docIdRef.current += 1
+    setDocId(docIdRef.current)
     setNumPages(0)
     setPageSizes([])
     setBox(null)
@@ -126,12 +163,13 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
 
     return () => {
       cancelled = true
+      cancelAllRenderTasks()
       if (pdfRef.current) {
         pdfRef.current.destroy()
         pdfRef.current = null
       }
     }
-  }, [file])
+  }, [file, cancelAllRenderTasks])
 
   // Renders every page at the current container width — re-runs whenever
   // the page count first becomes known, or the available width changes
@@ -139,15 +177,41 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   useEffect(() => {
     if (!numPages || !pdfRef.current || !containerWidth) return undefined
     let cancelled = false
+    const pdf = pdfRef.current
 
     async function renderAll() {
       const sizes = []
       for (let i = 1; i <= numPages; i += 1) {
+        // Checked on every iteration (not just after the loop) so a stale
+        // pass — e.g. superseded by a resize that changed containerWidth
+        // again while this one was still running — stops immediately
+        // instead of continuing to render pages nobody wants anymore.
+        if (cancelled) return
         const canvas = canvasRefs.current[i - 1]
         if (!canvas) continue
+
+        // Cancel whatever was previously rendering into this exact canvas
+        // before starting a new render on it — required even though each
+        // new *document* gets fresh canvases (via the docId key below),
+        // because a resize can trigger a second render pass over the same
+        // document's same canvases while the first pass is still running.
+        const prevTask = renderTasksRef.current[i - 1]
+        if (prevTask) prevTask.cancel()
+
         // eslint-disable-next-line no-await-in-loop
-        const size = await renderPdfPage(pdfRef.current, i, canvas, containerWidth)
-        sizes.push(size)
+        const { width, height, renderTask } = await renderPdfPage(pdf, i, canvas, containerWidth)
+        renderTasksRef.current[i - 1] = renderTask
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await renderTask.promise
+        } catch (err) {
+          if (err?.name === 'RenderingCancelledException') return
+          throw err
+        } finally {
+          if (renderTasksRef.current[i - 1] === renderTask) renderTasksRef.current[i - 1] = null
+        }
+        if (cancelled) return
+        sizes.push({ width, height })
       }
       if (cancelled) return
       setPageSizes(sizes)
@@ -162,8 +226,11 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
 
     return () => {
       cancelled = true
+      renderTasksRef.current.forEach((task) => {
+        if (task) task.cancel()
+      })
     }
-  }, [numPages, containerWidth])
+  }, [numPages, containerWidth, docId])
 
   const cumulativeTop = useMemo(() => {
     const offsets = []
@@ -400,7 +467,7 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
             <div className="kt-sign-pages" style={{ width: maxWidth || undefined }}>
               {Array.from({ length: numPages }).map((_, i) => (
                 <div
-                  key={i}
+                  key={`${docId}-${i}`}
                   className="kt-sign-page"
                   style={{ marginBottom: i === numPages - 1 ? 0 : PAGE_GAP }}
                 >
