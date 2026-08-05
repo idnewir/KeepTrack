@@ -14,52 +14,27 @@ export default function Sidebar({ open, onNavigate }) {
     { label: terminology.term_reconciliation, to: '/reconciliation' },
     { label: terminology.term_projects, to: '/projects' },
     { label: 'Reports', to: '/reports' },
-    {
-      label: 'Settings',
-      to: '/settings',
-      adminOnly: true,
-      children: [{ label: 'Categories', to: '/settings/categories', adminOnly: true }],
-    },
+    { label: 'Settings', to: '/settings', adminOnly: true },
   ]
 
   return (
     <>
       <nav className={`kt-sidebar${open ? ' open' : ''}`}>
         <ul className="kt-nav-list">
-          {navItems.filter((item) => !item.adminOnly || isAdmin).map((item) => {
-            const children = (item.children || []).filter((child) => !child.adminOnly || isAdmin)
-            return (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  end={item.to === '/'}
-                  onClick={onNavigate}
-                  className={({ isActive }) =>
-                    `kt-nav-link${isActive ? ' active' : ''}`
-                  }
-                >
-                  {item.label}
-                </NavLink>
-                {children.length > 0 && (
-                  <ul className="kt-nav-sublist">
-                    {children.map((child) => (
-                      <li key={child.to}>
-                        <NavLink
-                          to={child.to}
-                          onClick={onNavigate}
-                          className={({ isActive }) =>
-                            `kt-nav-sublink${isActive ? ' active' : ''}`
-                          }
-                        >
-                          {child.label}
-                        </NavLink>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            )
-          })}
+          {navItems.filter((item) => !item.adminOnly || isAdmin).map((item) => (
+            <li key={item.to}>
+              <NavLink
+                to={item.to}
+                end={item.to === '/'}
+                onClick={onNavigate}
+                className={({ isActive }) =>
+                  `kt-nav-link${isActive ? ' active' : ''}`
+                }
+              >
+                {item.label}
+              </NavLink>
+            </li>
+          ))}
         </ul>
       </nav>
       <div

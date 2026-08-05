@@ -1,7 +1,31 @@
+.kt-app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.kt-app-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kt-footer {
+  flex-shrink: 0;
+  text-align: center;
+  padding: 14px 20px;
+  font-size: 12px;
+  color: var(--kt-text-tertiary);
+  border-top: 1px solid var(--kt-border);
+  background: var(--kt-surface);
+}
+
 .kt-app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Header */
@@ -209,37 +233,6 @@
   margin: 0 0 28px;
   color: #6b6b67;
   font-size: 15px;
-}
-
-.kt-nav-sublist {
-  list-style: none;
-  margin: 4px 0 4px 14px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.kt-nav-sublink {
-  display: block;
-  padding: 8px 14px;
-  border-radius: 8px;
-  color: #6b6b67;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.kt-nav-sublink:hover {
-  background: var(--kt-background);
-  color: var(--kt-text);
-}
-
-.kt-nav-sublink.active {
-  background: var(--kt-background);
-  color: var(--kt-primary);
-  font-weight: 600;
 }
 
 .kt-sidebar-backdrop {

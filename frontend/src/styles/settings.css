@@ -263,6 +263,16 @@
   max-width: 520px;
 }
 
+.kt-settings-row-control select {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+}
+
 .kt-settings-row-status {
   font-size: 13px;
   color: #8a8a86;

@@ -3,6 +3,7 @@
   --kt-accent: #1D9E75;
   --kt-background: #F7F7F5;
   --kt-text: #2C2C2A;
+  --kt-text-tertiary: #9A9A95;
   --kt-surface: #FFFFFF;
   --kt-border: #E4E4E0;
   --kt-sidebar-width: 240px;
@@ -32,4 +33,11 @@ a {
 
 button {
   font-family: inherit;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 15px;
 }
