@@ -207,6 +207,46 @@
   margin: 0;
 }
 
+.kt-edited-meta {
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Admin correction form for an already-reconciled month */
+
+.kt-reconcile-admin-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 480px;
+  margin: 12px 0 16px;
+  padding: 16px;
+  border: 1px solid rgba(168, 50, 50, 0.3);
+  border-radius: 10px;
+  background: rgba(168, 50, 50, 0.04);
+}
+
+.kt-admin-edit-warning {
+  margin: 0;
+  font-size: 13px;
+  color: #a3690a;
+}
+
+.kt-admin-edit-actions,
+.kt-admin-edit-confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kt-admin-edit-actions .kt-auth-button,
+.kt-admin-edit-confirm .kt-auth-button {
+  width: auto;
+  margin-top: 0;
+  padding: 9px 18px;
+}
+
 @media (max-width: 640px) {
   .kt-opening-balance-prompt {
     flex-direction: column;

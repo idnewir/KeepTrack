@@ -27,3 +27,9 @@ class MonthlyReconciliation(Base):
     suggested_reason = Column(Text, nullable=True)
     reconciled_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     reconciled_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    # Set only when an Admin corrects an already-reconciled month — see
+    # docs/decisions-log.md. Null for every reconciliation that hasn't been
+    # edited after its original submission.
+    edited_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    edited_at = Column(DateTime(timezone=True), nullable=True)
+    edit_reason = Column(Text, nullable=True)

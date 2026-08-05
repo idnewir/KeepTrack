@@ -113,8 +113,7 @@ export const reconciliationApi = {
   },
   getMonth: (year, month, token) => request(`/reconciliation/${year}/${month}`, { token }),
   create: (payload, token) => request('/reconciliation', { method: 'POST', body: payload, token }),
-  update: (id, discrepancyNotes, token) =>
-    request(`/reconciliation/${id}`, { method: 'PUT', body: { discrepancy_notes: discrepancyNotes }, token }),
+  update: (id, payload, token) => request(`/reconciliation/${id}`, { method: 'PUT', body: payload, token }),
 }
 
 // Plain fetch returning a Blob, for authenticated file downloads (the browser

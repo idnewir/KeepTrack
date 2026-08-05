@@ -303,7 +303,12 @@ class ReconciliationCreate(BaseModel):
 
 
 class ReconciliationUpdate(BaseModel):
-    discrepancy_notes: str = Field(min_length=1)
+    discrepancy_notes: str | None = Field(default=None, min_length=1)
+    # Admin-only correction of an already-reconciled month. actual_balance
+    # requires edit_reason (enforced in the router, not here, since the
+    # requirement is conditional on actual_balance being present at all).
+    actual_balance: Decimal | None = None
+    edit_reason: str | None = Field(default=None, min_length=1)
 
 
 class ReconciliationOut(BaseModel):
@@ -318,6 +323,10 @@ class ReconciliationOut(BaseModel):
     reconciled_by: int
     reconciled_by_username: str | None
     reconciled_at: datetime
+    edited_by: int | None = None
+    edited_by_username: str | None = None
+    edited_at: datetime | None = None
+    edit_reason: str | None = None
 
 
 class ProjectOut(BaseModel):
@@ -331,6 +340,10 @@ class ProjectOut(BaseModel):
     created_at: datetime
     active: bool
     completed: bool
+    edited_by: int | None = None
+    edited_at: datetime | None = None
+    edit_reason: str | None = None
+    admin_edit_notes: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -349,6 +362,11 @@ class ProjectUpdate(BaseModel):
     estimated_cost: Decimal | None = Field(default=None, gt=0)
     expected_month: date | None = None
     financial_year_id: int | None = None
+    # Admin-only unlock for editing a completed (otherwise locked) project.
+    # edit_reason is required whenever admin_override is used (enforced in
+    # the router, since the requirement is conditional).
+    admin_override: bool = False
+    edit_reason: str | None = Field(default=None, min_length=1)
 
 
 class ReportOut(BaseModel):

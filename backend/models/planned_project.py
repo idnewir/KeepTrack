@@ -24,3 +24,11 @@ class PlannedProject(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     active = Column(Boolean, nullable=False, default=True, server_default="true")
     completed = Column(Boolean, nullable=False, default=False, server_default="false")
+    # Set only when an Admin corrects a completed (locked) project via
+    # admin_override — see docs/decisions-log.md. Null otherwise.
+    edited_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    edited_at = Column(DateTime(timezone=True), nullable=True)
+    edit_reason = Column(Text, nullable=True)
+    # Human-readable record of what changed on an admin-overridden edit
+    # (e.g. the previous estimated_cost), not a general free-text notes field.
+    admin_edit_notes = Column(Text, nullable=True)

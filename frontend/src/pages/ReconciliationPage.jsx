@@ -15,6 +15,7 @@ export default function ReconciliationPage() {
   const { user } = useAuth()
   const token = user?.token
   const canReconcile = user?.role !== 'readonly'
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
 
   const [fy, setFy] = useState(null)
   const [months, setMonths] = useState([])
@@ -26,6 +27,9 @@ export default function ReconciliationPage() {
   const [notesInput, setNotesInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [savingNotes, setSavingNotes] = useState(false)
+
+  const [adminEdit, setAdminEdit] = useState(null) // { actualBalance, notes, reason, step: 'form' | 'confirm' }
+  const [editSubmitting, setEditSubmitting] = useState(false)
 
   const appStartDate = useAppStartDate(token)
   // Phantom months before app_start_date are filtered for display here
@@ -85,6 +89,7 @@ export default function ReconciliationPage() {
   useEffect(() => {
     setActualBalanceInput(selected?.reconciliation ? String(selected.reconciliation.actual_balance) : '')
     setNotesInput(selected?.reconciliation?.discrepancy_notes || '')
+    setAdminEdit(null)
   }, [selected])
 
   const todayKey = useMemo(() => {
@@ -124,7 +129,7 @@ export default function ReconciliationPage() {
     setError('')
     setSavingNotes(true)
     try {
-      await reconciliationApi.update(selected.reconciliation.id, notesInput, token)
+      await reconciliationApi.update(selected.reconciliation.id, { discrepancy_notes: notesInput }, token)
       const results = await loadMonths(fy)
       const updated = results.find((m) => m.year === selected.year && m.month === selected.month)
       setSelected(updated || null)
@@ -133,6 +138,50 @@ export default function ReconciliationPage() {
     } finally {
       setSavingNotes(false)
     }
+  }
+
+  const openAdminEdit = () => {
+    if (!selected?.reconciliation) return
+    setAdminEdit({
+      actualBalance: String(selected.reconciliation.actual_balance),
+      notes: selected.reconciliation.discrepancy_notes || '',
+      reason: '',
+      step: 'form',
+    })
+  }
+
+  const cancelAdminEdit = () => setAdminEdit(null)
+
+  const submitAdminEdit = async () => {
+    if (!selected?.reconciliation || !adminEdit) return
+    setError('')
+    setEditSubmitting(true)
+    try {
+      const payload = {
+        actual_balance: Number(adminEdit.actualBalance),
+        edit_reason: adminEdit.reason,
+      }
+      if (adminEdit.notes.trim()) payload.discrepancy_notes = adminEdit.notes.trim()
+      await reconciliationApi.update(selected.reconciliation.id, payload, token)
+      setAdminEdit(null)
+      const results = await loadMonths(fy)
+      const updated = results.find((m) => m.year === selected.year && m.month === selected.month)
+      setSelected(updated || null)
+    } catch (err) {
+      setError(err.message || 'Failed to save the correction')
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  const handleAdminEditSubmit = (e) => {
+    e.preventDefault()
+    if (!adminEdit) return
+    if (adminEdit.step !== 'confirm') {
+      setAdminEdit((prev) => ({ ...prev, step: 'confirm' }))
+      return
+    }
+    submitAdminEdit()
   }
 
   if (loading) {
@@ -247,29 +296,109 @@ export default function ReconciliationPage() {
             <>
               <p className="kt-suggested-reason">{selected.reconciliation.suggested_reason}</p>
 
-              <form className="kt-reconcile-notes-form" onSubmit={handleSaveNotes}>
-                <div className="kt-field">
-                  <label htmlFor="discrepancy-notes">Notes</label>
-                  <textarea
-                    id="discrepancy-notes"
-                    rows={3}
-                    value={notesInput}
-                    onChange={(e) => setNotesInput(e.target.value)}
-                    placeholder="Add your own explanation for this discrepancy…"
-                    disabled={!canReconcile}
-                  />
-                </div>
-                {canReconcile && (
-                  <button className="kt-auth-button kt-reconcile-notes-save" type="submit" disabled={savingNotes}>
-                    {savingNotes ? 'Saving…' : 'Save notes'}
-                  </button>
-                )}
-              </form>
+              {isAdmin && !adminEdit && (
+                <button type="button" className="kt-category-link-button" onClick={openAdminEdit}>
+                  Edit (Admin)
+                </button>
+              )}
+
+              {adminEdit ? (
+                <form className="kt-reconcile-admin-edit-form" onSubmit={handleAdminEditSubmit}>
+                  <p className="kt-admin-edit-warning">
+                    Correcting a reconciled month recalculates the discrepancy and is recorded against
+                    your account.
+                  </p>
+                  <div className="kt-field">
+                    <label htmlFor="admin-edit-actual-balance">Actual balance</label>
+                    <div className="kt-amount-input">
+                      <span className="kt-amount-prefix">£</span>
+                      <input
+                        id="admin-edit-actual-balance"
+                        type="number"
+                        step="0.01"
+                        value={adminEdit.actualBalance}
+                        onChange={(e) => setAdminEdit((prev) => ({ ...prev, actualBalance: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="kt-field kt-field-wide">
+                    <label htmlFor="admin-edit-notes">Discrepancy notes</label>
+                    <textarea
+                      id="admin-edit-notes"
+                      rows={3}
+                      value={adminEdit.notes}
+                      onChange={(e) => setAdminEdit((prev) => ({ ...prev, notes: e.target.value }))}
+                    />
+                  </div>
+                  <div className="kt-field kt-field-wide">
+                    <label htmlFor="admin-edit-reason">Reason for edit</label>
+                    <textarea
+                      id="admin-edit-reason"
+                      rows={2}
+                      value={adminEdit.reason}
+                      onChange={(e) => setAdminEdit((prev) => ({ ...prev, reason: e.target.value }))}
+                      placeholder="Why is this reconciliation being corrected?"
+                      required
+                    />
+                  </div>
+
+                  {adminEdit.step === 'confirm' ? (
+                    <div className="kt-admin-edit-confirm">
+                      <span className="kt-category-confirm-text">
+                        Are you sure you want to edit this reconciliation? This action will be logged.
+                      </span>
+                      <button className="kt-auth-button" type="submit" disabled={editSubmitting}>
+                        {editSubmitting ? 'Saving…' : 'Yes, save changes'}
+                      </button>
+                      <button type="button" className="kt-category-link-button" onClick={cancelAdminEdit}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="kt-admin-edit-actions">
+                      <button className="kt-auth-button" type="submit">
+                        Save changes
+                      </button>
+                      <button type="button" className="kt-category-link-button" onClick={cancelAdminEdit}>
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </form>
+              ) : (
+                <form className="kt-reconcile-notes-form" onSubmit={handleSaveNotes}>
+                  <div className="kt-field">
+                    <label htmlFor="discrepancy-notes">Notes</label>
+                    <textarea
+                      id="discrepancy-notes"
+                      rows={3}
+                      value={notesInput}
+                      onChange={(e) => setNotesInput(e.target.value)}
+                      placeholder="Add your own explanation for this discrepancy…"
+                      disabled={!canReconcile}
+                    />
+                  </div>
+                  {canReconcile && (
+                    <button className="kt-auth-button kt-reconcile-notes-save" type="submit" disabled={savingNotes}>
+                      {savingNotes ? 'Saving…' : 'Save notes'}
+                    </button>
+                  )}
+                </form>
+              )}
 
               <p className="kt-reconciled-meta">
                 Reconciled by {selected.reconciliation.reconciled_by_username || 'someone'} on{' '}
                 {new Date(selected.reconciliation.reconciled_at).toLocaleString('en-GB')}
               </p>
+
+              {selected.reconciliation.edited_by && (
+                <p className="kt-reconciled-meta kt-edited-meta">
+                  Edited by {selected.reconciliation.edited_by_username || 'an admin'} on{' '}
+                  {new Date(selected.reconciliation.edited_at).toLocaleString('en-GB')} —{' '}
+                  {selected.reconciliation.edit_reason}
+                </p>
+              )}
             </>
           )}
         </div>

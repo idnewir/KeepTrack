@@ -28,6 +28,11 @@ export default function ProjectsPage() {
   const [confirmAction, setConfirmAction] = useState(null) // { id, type: 'complete' | 'deactivate' }
   const [busyId, setBusyId] = useState(null)
 
+  const [completedEditId, setCompletedEditId] = useState(null)
+  const [completedEditForm, setCompletedEditForm] = useState({ name: '', description: '', estimatedCost: '', reason: '' })
+  const [completedEditStep, setCompletedEditStep] = useState('form') // 'form' | 'confirm'
+  const [completedEditSaving, setCompletedEditSaving] = useState(false)
+
   const loadAll = async () => {
     setLoading(true)
     setError('')
@@ -145,6 +150,52 @@ export default function ProjectsPage() {
       setError(err.message || 'Failed to deactivate project')
     } finally {
       setBusyId(null)
+    }
+  }
+
+  const openCompletedEdit = (project) => {
+    setCompletedEditId(project.id)
+    setCompletedEditForm({
+      name: project.name,
+      description: project.description || '',
+      estimatedCost: String(project.estimated_cost),
+      reason: '',
+    })
+    setCompletedEditStep('form')
+  }
+
+  const cancelCompletedEdit = () => {
+    setCompletedEditId(null)
+    setCompletedEditForm({ name: '', description: '', estimatedCost: '', reason: '' })
+    setCompletedEditStep('form')
+  }
+
+  const handleCompletedEditSubmit = async (e) => {
+    e.preventDefault()
+    if (completedEditStep !== 'confirm') {
+      setCompletedEditStep('confirm')
+      return
+    }
+    setError('')
+    setCompletedEditSaving(true)
+    try {
+      await projectsApi.update(
+        completedEditId,
+        {
+          name: completedEditForm.name.trim(),
+          description: completedEditForm.description.trim() || null,
+          estimated_cost: Number(completedEditForm.estimatedCost),
+          admin_override: true,
+          edit_reason: completedEditForm.reason,
+        },
+        token
+      )
+      cancelCompletedEdit()
+      await loadAll()
+    } catch (err) {
+      setError(err.message || 'Failed to save changes')
+    } finally {
+      setCompletedEditSaving(false)
     }
   }
 
@@ -294,9 +345,87 @@ export default function ProjectsPage() {
                   setConfirmAction={setConfirmAction}
                   busy={false}
                   readOnly
+                  onAdminEdit={() => openCompletedEdit(project)}
                 />
               ))}
             </ul>
+          )}
+
+          {completedEditId != null && (
+            <form className="kt-project-form kt-project-admin-edit-form" onSubmit={handleCompletedEditSubmit}>
+              <p className="kt-admin-edit-warning kt-field-wide">
+                You are editing a completed project. Status and completion date cannot be changed.
+              </p>
+              <div className="kt-field">
+                <label htmlFor="completed-edit-name">Name</label>
+                <input
+                  id="completed-edit-name"
+                  type="text"
+                  value={completedEditForm.name}
+                  maxLength={255}
+                  onChange={(e) => setCompletedEditForm((f) => ({ ...f, name: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="kt-field kt-field-wide">
+                <label htmlFor="completed-edit-description">Description</label>
+                <textarea
+                  id="completed-edit-description"
+                  rows={3}
+                  value={completedEditForm.description}
+                  onChange={(e) => setCompletedEditForm((f) => ({ ...f, description: e.target.value }))}
+                />
+              </div>
+              <div className="kt-field">
+                <label htmlFor="completed-edit-cost">Estimated cost</label>
+                <div className="kt-amount-input">
+                  <span className="kt-amount-prefix">£</span>
+                  <input
+                    id="completed-edit-cost"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={completedEditForm.estimatedCost}
+                    onChange={(e) => setCompletedEditForm((f) => ({ ...f, estimatedCost: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="kt-field kt-field-wide">
+                <label htmlFor="completed-edit-reason">Reason for edit</label>
+                <textarea
+                  id="completed-edit-reason"
+                  rows={2}
+                  value={completedEditForm.reason}
+                  onChange={(e) => setCompletedEditForm((f) => ({ ...f, reason: e.target.value }))}
+                  placeholder="Why is this completed project being corrected?"
+                  required
+                />
+              </div>
+
+              {completedEditStep === 'confirm' ? (
+                <div className="kt-admin-edit-confirm kt-field-wide">
+                  <span className="kt-category-confirm-text">
+                    Are you sure you want to edit this completed project? This action will be logged.
+                  </span>
+                  <button className="kt-auth-button" type="submit" disabled={completedEditSaving}>
+                    {completedEditSaving ? 'Saving…' : 'Yes, save changes'}
+                  </button>
+                  <button type="button" className="kt-category-link-button" onClick={cancelCompletedEdit}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="kt-admin-edit-actions kt-field-wide">
+                  <button className="kt-auth-button" type="submit">
+                    Save changes
+                  </button>
+                  <button type="button" className="kt-category-link-button" onClick={cancelCompletedEdit}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </form>
           )}
         </details>
       )}
@@ -317,6 +446,7 @@ function ProjectCard({
   onEdit,
   onComplete,
   onDeactivate,
+  onAdminEdit,
   readOnly = false,
 }) {
   const description = project.description || ''
@@ -420,6 +550,14 @@ function ProjectCard({
                 Deactivate
               </button>
             ))}
+        </div>
+      )}
+
+      {readOnly && isAdmin && onAdminEdit && (
+        <div className="kt-category-actions kt-project-actions">
+          <button type="button" className="kt-category-link-button" onClick={onAdminEdit}>
+            Edit
+          </button>
         </div>
       )}
     </li>

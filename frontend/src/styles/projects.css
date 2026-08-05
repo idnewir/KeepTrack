@@ -160,6 +160,35 @@
   }
 }
 
+/* Admin correction form for a completed (otherwise locked) project */
+
+.kt-project-admin-edit-form {
+  border-color: rgba(168, 50, 50, 0.3);
+  background: rgba(168, 50, 50, 0.04);
+}
+
+.kt-admin-edit-warning {
+  margin: 0;
+  font-size: 13px;
+  color: #a3690a;
+  flex: 1 1 100%;
+}
+
+.kt-admin-edit-actions,
+.kt-admin-edit-confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1 1 100%;
+}
+
+.kt-admin-edit-actions .kt-auth-button,
+.kt-admin-edit-confirm .kt-auth-button {
+  width: auto;
+  margin-top: 0;
+}
+
 /* Planned projects panel on the dashboard reuses the urgency classes/badges
    above, but rows have no border of their own to tint — colour the
    background instead. */

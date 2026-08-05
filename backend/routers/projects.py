@@ -1,4 +1,6 @@
 """Planned project endpoints: log, edit, complete, and deactivate future planned spend."""
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -75,11 +77,42 @@ def update_project(
     project_id: int,
     payload: ProjectUpdate,
     db: Session = Depends(get_db),
-    _user: User = Depends(require_standard),
+    user: User = Depends(require_standard),
 ):
     project = db.get(PlannedProject, project_id)
     if project is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+
+    if project.completed:
+        is_admin = user.role in ("admin", "superadmin")
+        if not (is_admin and payload.admin_override):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "This project is complete and locked. An Admin can unlock it with admin_override.",
+            )
+        if not payload.edit_reason:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "A reason is required when editing a completed project",
+            )
+
+        # Only name, description, and estimated_cost are editable on a
+        # completed project — status and completion cannot change here.
+        if payload.estimated_cost is not None and payload.estimated_cost != project.estimated_cost:
+            project.admin_edit_notes = f"Previous estimated cost: £{project.estimated_cost}"
+            project.estimated_cost = payload.estimated_cost
+        if payload.name is not None:
+            project.name = payload.name
+        if payload.description is not None:
+            project.description = payload.description
+
+        project.edited_by = user.id
+        project.edited_at = datetime.now(timezone.utc)
+        project.edit_reason = payload.edit_reason
+
+        db.commit()
+        db.refresh(project)
+        return project
 
     if payload.financial_year_id is not None:
         fy = db.get(FinancialYear, payload.financial_year_id)
