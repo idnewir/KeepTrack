@@ -5,6 +5,18 @@ export const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
+// Best-effort singular of a configured plural terminology label (e.g.
+// "Invoices" -> "Invoice", "Bills" -> "Bill") for phrases like "Upload
+// invoice". Not linguistically perfect for every possible custom term, but
+// covers plain -s/-ies plurals, which is what the shipped terms (and their
+// likely renames) actually are.
+export function singularize(word) {
+  if (!word) return word
+  if (word.toLowerCase().endsWith('ies')) return word.slice(0, -3) + 'y'
+  if (word.toLowerCase().endsWith('s') && !word.toLowerCase().endsWith('ss')) return word.slice(0, -1)
+  return word
+}
+
 export function formatCurrency(amount) {
   const value = Number(amount) || 0
   return `£${value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`

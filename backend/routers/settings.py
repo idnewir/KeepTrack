@@ -1,11 +1,14 @@
 """Site-wide settings endpoints: view all settings, update one by key (Admin only)."""
+from decimal import Decimal, InvalidOperation
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models.schemas import SettingOut, SettingUpdate
+from models.schemas import SettingOut, SettingUpdate, TerminologyOut, TerminologyUpdate
 from models.setting import Setting
 from models.user import User
+from services.settings_service import get_terminology
 from utils.deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -21,6 +24,34 @@ def list_settings(
     return db.query(Setting).order_by(Setting.key).all()
 
 
+@router.get("/terminology", response_model=TerminologyOut)
+def get_terminology_settings(
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    # Any logged-in user, not just Admin — the frontend needs these to
+    # render navigation and page titles for every role. See docs/decisions-log.md.
+    return get_terminology(db)
+
+
+@router.put("/terminology", response_model=TerminologyOut)
+def update_terminology_settings(
+    payload: TerminologyUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    updates = payload.model_dump(exclude_unset=True, exclude_none=True)
+    for key, value in updates.items():
+        setting = db.query(Setting).filter(Setting.key == key).first()
+        if setting is None:
+            setting = Setting(key=key)
+            db.add(setting)
+        setting.value = value
+        setting.updated_by = admin.id
+    db.commit()
+    return get_terminology(db)
+
+
 @router.put("/{key}", response_model=SettingOut)
 def update_setting(
     key: str,
@@ -34,6 +65,19 @@ def update_setting(
 
     if key == "financial_year_start_month" and payload.value not in _VALID_MONTHS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Financial year start month must be between 1 and 12")
+
+    if key == "reserve_calculation" and payload.value not in ("automatic", "manual"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Reserve calculation must be 'automatic' or 'manual'")
+
+    if key == "reserve_months" and payload.value not in _VALID_MONTHS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Reserve months must be between 1 and 12")
+
+    if key == "reserve_manual_amount":
+        try:
+            if Decimal(payload.value) < 0:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "Reserve manual amount must not be negative")
+        except InvalidOperation:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Reserve manual amount must be a number")
 
     setting.value = payload.value
     setting.updated_by = admin.id

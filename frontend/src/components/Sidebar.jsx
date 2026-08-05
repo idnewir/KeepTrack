@@ -1,30 +1,32 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
-
-const NAV_ITEMS = [
-  { label: 'Dashboard', to: '/' },
-  { label: 'Invoices', to: '/invoices' },
-  { label: 'Contributions', to: '/contributions' },
-  { label: 'Reconciliation', to: '/reconciliation' },
-  { label: 'Projects', to: '/projects' },
-  { label: 'Reports', to: '/reports' },
-  {
-    label: 'Settings',
-    to: '/settings',
-    adminOnly: true,
-    children: [{ label: 'Categories', to: '/settings/categories', adminOnly: true }],
-  },
-]
+import { useTerminology } from '../context/TerminologyContext.jsx'
 
 export default function Sidebar({ open, onNavigate }) {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
+  const terminology = useTerminology()
+
+  const navItems = [
+    { label: 'Dashboard', to: '/' },
+    { label: terminology.term_expenses, to: '/invoices' },
+    { label: terminology.term_income, to: '/contributions' },
+    { label: terminology.term_reconciliation, to: '/reconciliation' },
+    { label: terminology.term_projects, to: '/projects' },
+    { label: 'Reports', to: '/reports' },
+    {
+      label: 'Settings',
+      to: '/settings',
+      adminOnly: true,
+      children: [{ label: 'Categories', to: '/settings/categories', adminOnly: true }],
+    },
+  ]
 
   return (
     <>
       <nav className={`kt-sidebar${open ? ' open' : ''}`}>
         <ul className="kt-nav-list">
-          {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => {
+          {navItems.filter((item) => !item.adminOnly || isAdmin).map((item) => {
             const children = (item.children || []).filter((child) => !child.adminOnly || isAdmin)
             return (
               <li key={item.to}>

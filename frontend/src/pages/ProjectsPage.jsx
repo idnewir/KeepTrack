@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useTerminology } from '../context/TerminologyContext.jsx'
 import { financialYearsApi, projectsApi } from '../utils/api.js'
-import { formatCurrency, formatMonthYear, projectUrgency } from '../utils/format.js'
+import { formatCurrency, formatMonthYear, projectUrgency, singularize } from '../utils/format.js'
 
 const DESCRIPTION_TRUNCATE_LENGTH = 140
 
@@ -12,6 +13,9 @@ export default function ProjectsPage() {
   const token = user?.token
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
   const canManage = user?.role !== 'readonly'
+  const { term_projects: termProjects } = useTerminology()
+  const projectsLower = termProjects.toLowerCase()
+  const projectSingularLower = singularize(projectsLower)
 
   const [fy, setFy] = useState(null)
   const [projects, setProjects] = useState([])
@@ -200,12 +204,12 @@ export default function ProjectsPage() {
   }
 
   if (loading) {
-    return <p className="kt-page-subtitle">Loading projects…</p>
+    return <p className="kt-page-subtitle">Loading {projectsLower}…</p>
   }
 
   return (
     <div>
-      <h1 className="kt-page-title">Projects</h1>
+      <h1 className="kt-page-title">{termProjects}</h1>
       <p className="kt-page-subtitle">
         Log planned expenditure — a project, a purchase, a repair — so it's factored into the forecast.
       </p>
@@ -230,7 +234,7 @@ export default function ProjectsPage() {
             className="kt-auth-button kt-categories-add-button"
             onClick={() => (showForm ? resetForm() : openAddForm())}
           >
-            {showForm ? 'Cancel' : '+ Add project'}
+            {showForm ? 'Cancel' : `+ Add ${projectSingularLower}`}
           </button>
         </div>
       )}
@@ -301,7 +305,7 @@ export default function ProjectsPage() {
 
       {projects.length === 0 ? (
         <div className="kt-categories-empty">
-          No planned projects yet. Log one to see it factored into the dashboard forecast.
+          No planned {projectsLower} yet. Log one to see it factored into the dashboard forecast.
         </div>
       ) : (
         <ul className="kt-project-list">
@@ -327,9 +331,9 @@ export default function ProjectsPage() {
 
       {isAdmin && (
         <details className="kt-project-completed-section">
-          <summary>Completed projects ({completedProjects.length})</summary>
+          <summary>Completed {projectsLower} ({completedProjects.length})</summary>
           {completedProjects.length === 0 ? (
-            <div className="kt-categories-empty">No completed projects yet.</div>
+            <div className="kt-categories-empty">No completed {projectsLower} yet.</div>
           ) : (
             <ul className="kt-project-list">
               {completedProjects.map((project) => (

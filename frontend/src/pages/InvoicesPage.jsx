@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useTerminology } from '../context/TerminologyContext.jsx'
 import { categoriesApi, invoicesApi } from '../utils/api.js'
+import { singularize } from '../utils/format.js'
 
 const REVIEWED_OPTIONS = [
   { value: '', label: 'All' },
@@ -24,6 +26,9 @@ export default function InvoicesPage() {
   const token = user?.token
   const navigate = useNavigate()
   const canUpload = user?.role !== 'readonly'
+  const { term_expenses: termExpenses } = useTerminology()
+  const expensesLower = termExpenses.toLowerCase()
+  const expenseSingularLower = singularize(expensesLower)
 
   // Initial filter values can arrive via the URL (e.g. a dashboard chart or
   // notification linking here already filtered) — read once on mount, same
@@ -91,12 +96,12 @@ export default function InvoicesPage() {
     <div>
       <div className="kt-invoices-header">
         <div>
-          <h1 className="kt-page-title">Invoices</h1>
-          <p className="kt-page-subtitle">Every invoice on file, with its review status.</p>
+          <h1 className="kt-page-title">{termExpenses}</h1>
+          <p className="kt-page-subtitle">Every {expenseSingularLower} on file, with its review status.</p>
         </div>
         {canUpload && (
           <Link to="/upload" className="kt-auth-button kt-invoices-upload-button">
-            + Upload invoice
+            + Upload {expenseSingularLower}
           </Link>
         )}
       </div>
@@ -150,9 +155,9 @@ export default function InvoicesPage() {
       {error && <div className="kt-auth-error">{error}</div>}
 
       {loading ? (
-        <p className="kt-page-subtitle">Loading invoices…</p>
+        <p className="kt-page-subtitle">Loading {expensesLower}…</p>
       ) : visibleInvoices.length === 0 ? (
-        <div className="kt-categories-empty">No invoices match these filters.</div>
+        <div className="kt-categories-empty">No {expensesLower} match these filters.</div>
       ) : (
         <table className="kt-invoices-table">
           <thead>

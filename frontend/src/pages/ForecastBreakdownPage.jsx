@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useTerminology } from '../context/TerminologyContext.jsx'
 import { dashboardApi } from '../utils/api.js'
 import { formatCurrency } from '../utils/format.js'
 
 export default function ForecastBreakdownPage() {
   const { user } = useAuth()
   const token = user?.token
+  const { term_expenses: termExpenses, term_projects: termProjects } = useTerminology()
+  const expensesLower = termExpenses.toLowerCase()
+  const projectsLower = termProjects.toLowerCase()
 
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -49,8 +53,8 @@ export default function ForecastBreakdownPage() {
         <>
           {summary.forecast_by_category.length === 0 ? (
             <div className="kt-categories-empty">
-              Not enough invoice history yet to forecast — this fills in once a few months of confirmed invoices
-              are on file.
+              Not enough {expensesLower} history yet to forecast — this fills in once a few months of confirmed{' '}
+              {expensesLower} are on file.
             </div>
           ) : (
             <table className="kt-invoices-table">
@@ -87,9 +91,9 @@ export default function ForecastBreakdownPage() {
           )}
 
           <div className="kt-dashboard-panel" style={{ marginTop: 24 }}>
-            <h2 className="kt-panel-title">Planned projects included in this forecast</h2>
+            <h2 className="kt-panel-title">Planned {projectsLower} included in this forecast</h2>
             {summary.planned_projects.length === 0 ? (
-              <div className="kt-categories-empty">No planned projects logged yet.</div>
+              <div className="kt-categories-empty">No planned {projectsLower} logged yet.</div>
             ) : (
               <ul className="kt-panel-list">
                 {summary.planned_projects.map((p) => (

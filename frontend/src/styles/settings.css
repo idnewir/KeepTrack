@@ -104,6 +104,130 @@
   min-width: 26px;
 }
 
+/* Terminology */
+
+.kt-field-note {
+  font-size: 12px;
+  color: #8a8a86;
+}
+
+.kt-terminology-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 24px;
+  align-items: start;
+}
+
+.kt-terminology-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.kt-terminology-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.kt-terminology-preview {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kt-terminology-preview-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a8a86;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kt-terminology-preview-sidebar {
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  background: var(--kt-background);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kt-terminology-preview-brand {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 8px 10px;
+  border-bottom: 1px solid var(--kt-border);
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.kt-terminology-preview-link {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--kt-text);
+  background: var(--kt-surface);
+}
+
+@media (max-width: 720px) {
+  .kt-terminology-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .kt-terminology-preview {
+    position: static;
+  }
+}
+
+/* Target reserve */
+
+.kt-reserve-method-toggle {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kt-reserve-method-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  flex: 1;
+  min-width: 200px;
+  padding: 14px 16px;
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+  background: var(--kt-surface);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--kt-text);
+}
+
+.kt-reserve-method-option strong {
+  font-size: 14px;
+}
+
+.kt-reserve-method-option span {
+  font-size: 12px;
+  color: #8a8a86;
+}
+
+.kt-reserve-method-option.selected {
+  border-color: var(--kt-primary);
+  background: rgba(45, 107, 159, 0.06);
+}
+
 /* Signing panel */
 
 .kt-sign-body {

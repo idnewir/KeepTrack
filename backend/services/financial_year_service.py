@@ -7,11 +7,12 @@
   `financial_years` rows: a new start month produces a new FY label, so the
   next lookup lazily creates a fresh row alongside the old one rather than
   altering history. See docs/decisions-log.md.
-- The 3-month "target reserve" and the forecast for remaining months are both
-  driven off the same recent-months category totals: the target reserve is
-  their sum (a rolling average of total monthly spend), and each forecast
-  month reuses the per-category averages plus any planned project cost due
-  that month. See docs/decisions-log.md for the reasoning.
+- The target reserve is configurable (Settings page): "automatic" multiplies
+  a 3-month rolling average of total monthly spend by a configurable number
+  of months (reserve_months, default 3 — the original hardcoded behaviour),
+  or "manual" uses a fixed £ amount. The forecast for remaining months reuses
+  the same recent-months per-category averages regardless of the reserve
+  setting. See docs/decisions-log.md for the reasoning.
 """
 from calendar import monthrange
 from datetime import date, timedelta
@@ -25,7 +26,7 @@ from models.financial_year import FinancialYear
 from models.invoice import Invoice
 from models.planned_project import PlannedProject
 from services.date_service import get_effective_start_date
-from services.settings_service import get_financial_year_start_month
+from services.settings_service import get_financial_year_start_month, get_reserve_settings, get_terminology
 
 MONTH_LABELS = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -148,11 +149,31 @@ def category_monthly_averages(db: Session, months: list[tuple[int, int]]) -> dic
     return averages
 
 
-def target_reserve(db: Session, today: date | None = None) -> Decimal:
-    """3-month rolling average of total monthly spend — see docs/decisions-log.md."""
-    months = recent_actual_months(today or date.today(), 3)
-    totals = recent_totals_by_category(db, months)
-    return sum(totals.values(), Decimal("0")) / Decimal(3)
+def average_monthly_spend(db: Session, today: date | None = None, months: int = 3) -> Decimal:
+    """Rolling average total monthly spend over the most recent `months` calendar months."""
+    recent_months = recent_actual_months(today or date.today(), months)
+    totals = recent_totals_by_category(db, recent_months)
+    return sum(totals.values(), Decimal("0")) / Decimal(months)
+
+
+def target_reserve(db: Session, today: date | None = None) -> tuple[Decimal, dict]:
+    """The configured target reserve amount, plus the reserve settings used to
+    compute it (so callers — the dashboard summary — can also report the
+    calculation method and months multiplier without a second settings read).
+
+    "automatic": a fixed 3-month rolling average of total monthly spend
+    (matching the app's existing forecasting window), multiplied by the
+    configurable reserve_months (1-12, default 3 — reproduces the original
+    hardcoded 3-month-average behaviour when left at its default).
+    "manual": a fixed £ amount (reserve_manual_amount).
+    See docs/decisions-log.md.
+    """
+    reserve_settings = get_reserve_settings(db)
+    if reserve_settings["calculation"] == "manual":
+        amount = reserve_settings["manual_amount"] or Decimal("0")
+    else:
+        amount = average_monthly_spend(db, today, months=3) * Decimal(reserve_settings["months"])
+    return amount, reserve_settings
 
 
 def planned_project_cost_for_month(db: Session, fy: FinancialYear, year: int, month: int) -> Decimal:
@@ -211,7 +232,7 @@ def build_summary(db: Session, today: date | None = None) -> dict:
     total_contributions = sum((c.amount for c in contributions), Decimal("0"))
 
     current_balance = total_contributions - total_spent
-    reserve = target_reserve(db, today)
+    reserve, reserve_settings = target_reserve(db, today)
 
     if reserve <= 0:
         balance_status = "above" if current_balance >= 0 else "below"
@@ -334,6 +355,9 @@ def build_summary(db: Session, today: date | None = None) -> dict:
         "total_contributions": total_contributions,
         "current_balance": current_balance,
         "target_reserve": reserve,
+        "reserve_label": get_terminology(db)["term_reserve"],
+        "reserve_calculation": reserve_settings["calculation"],
+        "reserve_months": reserve_settings["months"] if reserve_settings["calculation"] == "automatic" else None,
         "balance_status": balance_status,
         "monthly_average_cost": monthly_average_cost,
         "monthly_breakdown": breakdown,

@@ -157,6 +157,24 @@ class SettingUpdate(BaseModel):
     value: str = Field(min_length=1, max_length=500)
 
 
+class TerminologyOut(BaseModel):
+    term_expenses: str
+    term_income: str
+    term_projects: str
+    term_reconciliation: str
+    term_reserve: str
+    site_name: str
+
+
+class TerminologyUpdate(BaseModel):
+    term_expenses: str | None = Field(default=None, min_length=1, max_length=100)
+    term_income: str | None = Field(default=None, min_length=1, max_length=100)
+    term_projects: str | None = Field(default=None, min_length=1, max_length=100)
+    term_reconciliation: str | None = Field(default=None, min_length=1, max_length=100)
+    term_reserve: str | None = Field(default=None, min_length=1, max_length=100)
+    site_name: str | None = Field(default=None, min_length=1, max_length=100)
+
+
 class SetupAppStartDateRequest(BaseModel):
     app_start_date: date | None = None
     financial_year_start_month: int | None = Field(default=None, ge=1, le=12)
@@ -225,6 +243,9 @@ class DashboardSummary(BaseModel):
     total_contributions: Decimal
     current_balance: Decimal
     target_reserve: Decimal
+    reserve_label: str
+    reserve_calculation: str  # "automatic" | "manual"
+    reserve_months: int | None = None  # months multiplier; only set when reserve_calculation is "automatic"
     balance_status: str  # "above" | "near" | "below"
     monthly_average_cost: Decimal
     monthly_breakdown: list[DashboardMonthBreakdown]

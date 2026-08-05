@@ -65,6 +65,18 @@
   letter-spacing: -0.01em;
 }
 
+.kt-wordmark-site {
+  font-size: 15px;
+  font-weight: 500;
+  color: #6b6b67;
+}
+
+@media (max-width: 520px) {
+  .kt-wordmark-site {
+    display: none;
+  }
+}
+
 .kt-menu-button {
   display: none;
   flex-direction: column;

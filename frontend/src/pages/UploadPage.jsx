@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ReviewCard from '../components/ReviewCard.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useTerminology } from '../context/TerminologyContext.jsx'
 import { categoriesApi, invoicesApi, settingsApi } from '../utils/api.js'
+import { singularize } from '../utils/format.js'
 
 function isPdf(file) {
   return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
@@ -12,6 +14,10 @@ export default function UploadPage() {
   const { user } = useAuth()
   const token = user?.token
   const canUpload = user?.role !== 'readonly'
+  const { term_expenses: termExpenses } = useTerminology()
+  const expensesLower = termExpenses.toLowerCase()
+  const expenseSingular = singularize(termExpenses)
+  const expenseSingularLower = expenseSingular.toLowerCase()
 
   const [categories, setCategories] = useState([])
   const [signingEnabled, setSigningEnabled] = useState(true)
@@ -84,10 +90,10 @@ export default function UploadPage() {
   if (!canUpload) {
     return (
       <div>
-        <h1 className="kt-page-title">Upload invoice</h1>
+        <h1 className="kt-page-title">Upload {expenseSingularLower}</h1>
         <p className="kt-page-subtitle">
-          Read-only accounts can browse invoices but cannot upload new ones.{' '}
-          <Link to="/invoices">Back to invoices</Link>
+          Read-only accounts can browse {expensesLower} but cannot upload new ones.{' '}
+          <Link to="/invoices">Back to {expensesLower}</Link>
         </p>
       </div>
     )
@@ -95,9 +101,9 @@ export default function UploadPage() {
 
   return (
     <div>
-      <h1 className="kt-page-title">Upload invoice</h1>
+      <h1 className="kt-page-title">Upload {expenseSingularLower}</h1>
       <p className="kt-page-subtitle">
-        Drop one or more PDF invoices below. Claude reads each one automatically —
+        Drop one or more PDF {expensesLower} below. Claude reads each one automatically —
         you'll get a chance to check and correct the details before anything is saved.
       </p>
 
@@ -115,7 +121,7 @@ export default function UploadPage() {
             role="button"
             tabIndex={0}
           >
-            <p className="kt-dropzone-title">Drag and drop PDF invoices here</p>
+            <p className="kt-dropzone-title">Drag and drop PDF {expensesLower} here</p>
             <p className="kt-dropzone-subtitle">or</p>
             <button
               type="button"
@@ -172,8 +178,8 @@ export default function UploadPage() {
                 disabled={uploading}
               >
                 {uploading
-                  ? `Uploading ${pendingFiles.length} invoice${pendingFiles.length === 1 ? '' : 's'}…`
-                  : `Upload ${pendingFiles.length} invoice${pendingFiles.length === 1 ? '' : 's'}`}
+                  ? `Uploading ${pendingFiles.length} ${pendingFiles.length === 1 ? expenseSingularLower : expensesLower}…`
+                  : `Upload ${pendingFiles.length} ${pendingFiles.length === 1 ? expenseSingularLower : expensesLower}`}
               </button>
             </div>
           )}
@@ -184,8 +190,8 @@ export default function UploadPage() {
         <div className="kt-review-list">
           {reviewItems.length === 0 ? (
             <div className="kt-categories-empty">
-              All done — every uploaded invoice has been confirmed or discarded.{' '}
-              <Link to="/invoices">View invoices</Link>
+              All done — every uploaded {expenseSingularLower} has been confirmed or discarded.{' '}
+              <Link to="/invoices">View {expensesLower}</Link>
             </div>
           ) : (
             reviewItems.map((item) => (

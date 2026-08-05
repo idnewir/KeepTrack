@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useTerminology } from '../context/TerminologyContext.jsx'
 import SigningPanel from '../components/SigningPanel.jsx'
 import { categoriesApi, invoicesApi, settingsApi } from '../utils/api.js'
+import { singularize } from '../utils/format.js'
 
 export default function InvoiceDetailPage() {
   const { id } = useParams()
@@ -11,6 +13,10 @@ export default function InvoiceDetailPage() {
   const navigate = useNavigate()
   const canEdit = user?.role !== 'readonly'
   const canDelete = user?.role === 'admin' || user?.role === 'superadmin'
+  const { term_expenses: termExpenses } = useTerminology()
+  const expensesLower = termExpenses.toLowerCase()
+  const expenseSingular = singularize(termExpenses)
+  const expenseSingularLower = expenseSingular.toLowerCase()
 
   const [invoice, setInvoice] = useState(null)
   const [categories, setCategories] = useState([])
@@ -154,12 +160,12 @@ export default function InvoiceDetailPage() {
     }
   }
 
-  if (loading) return <p className="kt-page-subtitle">Loading invoice…</p>
+  if (loading) return <p className="kt-page-subtitle">Loading {expenseSingularLower}…</p>
   if (!invoice) {
     return (
       <div>
-        <div className="kt-auth-error">{error || 'Invoice not found'}</div>
-        <Link to="/invoices">Back to invoices</Link>
+        <div className="kt-auth-error">{error || `${expenseSingular} not found`}</div>
+        <Link to="/invoices">Back to {expensesLower}</Link>
       </div>
     )
   }
@@ -167,9 +173,9 @@ export default function InvoiceDetailPage() {
   return (
     <div>
       <p>
-        <Link to="/invoices">← Back to invoices</Link>
+        <Link to="/invoices">← Back to {expensesLower}</Link>
       </p>
-      <h1 className="kt-page-title">{invoice.supplier || 'Untitled invoice'}</h1>
+      <h1 className="kt-page-title">{invoice.supplier || `Untitled ${expenseSingularLower}`}</h1>
       <p className="kt-page-subtitle">
         Uploaded as {invoice.filename} ·{' '}
         {invoice.reviewed ? 'Reviewed' : 'Not yet reviewed'}

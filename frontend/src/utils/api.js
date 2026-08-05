@@ -72,6 +72,11 @@ export const settingsApi = {
   clear: (key, token) => request(`/settings/${key}`, { method: 'DELETE', token }),
 }
 
+export const terminologyApi = {
+  get: (token) => request('/settings/terminology', { token }),
+  update: (payload, token) => request('/settings/terminology', { method: 'PUT', body: payload, token }),
+}
+
 export const financialYearsApi = {
   current: (token) => request('/financial-years/current', { token }),
   setOpeningBalance: (id, openingBalance, token) =>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useAppStartDate, isMonthVisible } from '../hooks/useAppStartDate.js'
+import { useTerminology } from '../context/TerminologyContext.jsx'
 import { financialYearsApi, reconciliationApi } from '../utils/api.js'
 import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
 
@@ -16,6 +17,7 @@ export default function ReconciliationPage() {
   const token = user?.token
   const canReconcile = user?.role !== 'readonly'
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
+  const { term_reconciliation: termReconciliation, term_income: termIncome } = useTerminology()
 
   const [fy, setFy] = useState(null)
   const [months, setMonths] = useState([])
@@ -185,12 +187,12 @@ export default function ReconciliationPage() {
   }
 
   if (loading) {
-    return <p className="kt-page-subtitle">Loading reconciliation…</p>
+    return <p className="kt-page-subtitle">Loading {termReconciliation.toLowerCase()}…</p>
   }
 
   return (
     <div>
-      <h1 className="kt-page-title">Reconciliation</h1>
+      <h1 className="kt-page-title">{termReconciliation}</h1>
       <p className="kt-page-subtitle">
         Compare the calculated balance against the actual bank balance for each month
         {fy ? ` of financial year ${fy.label}` : ''}.
@@ -208,7 +210,7 @@ export default function ReconciliationPage() {
             <div>
               <strong>No opening balance set for {fy.label}.</strong>
               <p>
-                Set it on the Contributions page before reconciling — calculated balances will be
+                Set it on the {termIncome} page before reconciling — calculated balances will be
                 inaccurate without it.
               </p>
             </div>

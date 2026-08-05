@@ -1,10 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useTerminology } from '../context/TerminologyContext.jsx'
 import Logo from './Logo.jsx'
 
 export default function Header({ onMenuClick }) {
   const { user, logout } = useAuth()
+  const { site_name: siteName } = useTerminology()
   const navigate = useNavigate()
+  const showSiteName = siteName && siteName !== 'Keep Track'
 
   const handleLogout = () => {
     logout()
@@ -28,6 +31,7 @@ export default function Header({ onMenuClick }) {
         <span className="kt-wordmark">
           <span style={{ color: 'var(--kt-primary)' }}>Keep</span>{' '}
           <span style={{ color: 'var(--kt-text)' }}>Track</span>
+          {showSiteName && <span className="kt-wordmark-site"> — {siteName}</span>}
         </span>
       </Link>
 

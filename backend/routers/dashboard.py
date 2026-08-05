@@ -10,10 +10,23 @@ from models.invoice import Invoice
 from models.schemas import DashboardNotification, DashboardSummary
 from models.user import User
 from services import financial_year_service as fy_service
-from services.settings_service import is_signing_enabled
+from services.settings_service import get_terminology, is_signing_enabled
 from utils.deps import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+def _singularize(word: str) -> str:
+    """Best-effort singular of a configured plural term (e.g. "Invoices" ->
+    "Invoice", "Bills" -> "Bill") for count-based notification text. Not
+    linguistically perfect for every possible custom term, but the terms
+    this app actually ships with (and their likely renames) are plain -s/-ies
+    plurals. See docs/decisions-log.md."""
+    if word.lower().endswith("ies"):
+        return word[:-3] + "y"
+    if word.lower().endswith("s") and not word.lower().endswith("ss"):
+        return word[:-1]
+    return word
 
 
 @router.get("/summary", response_model=DashboardSummary)
@@ -33,6 +46,14 @@ def get_notifications(
     summary = fy_service.build_summary(db, today)
     notifications: list[dict] = []
 
+    # Uses the org's own configured terms (e.g. "Rainy Day Fund" instead of
+    # the default "Target Reserve", "Bills" instead of "Invoices") so these
+    # notification banners speak the same vocabulary as the rest of the app.
+    # See docs/decisions-log.md.
+    reserve_label_lower = summary["reserve_label"].lower()
+    expenses_label_lower = get_terminology(db)["term_expenses"].lower()
+    expenses_label_singular_lower = _singularize(expenses_label_lower)
+
     if summary["balance_status"] == "below":
         notifications.append({
             "id": "balance_below_target",
@@ -40,7 +61,7 @@ def get_notifications(
             "severity": "urgent",
             "message": (
                 f"Current balance (£{summary['current_balance']:,.2f}) is below the "
-                f"target reserve (£{summary['target_reserve']:,.2f})."
+                f"{reserve_label_lower} (£{summary['target_reserve']:,.2f})."
             ),
             "link": "/",
         })
@@ -51,7 +72,7 @@ def get_notifications(
             "severity": "warning",
             "message": (
                 f"Current balance (£{summary['current_balance']:,.2f}) is within 10% of the "
-                f"target reserve (£{summary['target_reserve']:,.2f}) — worth keeping an eye on."
+                f"{reserve_label_lower} (£{summary['target_reserve']:,.2f}) — worth keeping an eye on."
             ),
             "link": "/",
         })
@@ -71,13 +92,13 @@ def get_notifications(
         .count()
     )
     if stale_count:
-        plural = "s" if stale_count != 1 else ""
+        noun = expenses_label_singular_lower if stale_count == 1 else expenses_label_lower
         notifications.append({
             "id": "invoices_unreviewed",
             "type": "invoice_unconfirmed",
             "severity": "warning",
             "message": (
-                f"{stale_count} invoice{plural} still waiting for review after more than "
+                f"{stale_count} {noun} still waiting for review after more than "
                 f"{threshold_days} days."
             ),
             "link": "/invoices?reviewed=false",
@@ -94,12 +115,12 @@ def get_notifications(
             .count()
         )
         if unsigned_count:
-            plural = "s" if unsigned_count != 1 else ""
+            noun = expenses_label_singular_lower if unsigned_count == 1 else expenses_label_lower
             notifications.append({
                 "id": "invoices_unsigned",
                 "type": "invoice_unsigned",
                 "severity": "warning",
-                "message": f"{unsigned_count} confirmed invoice{plural} still need signing.",
+                "message": f"{unsigned_count} confirmed {noun} still need signing.",
                 "link": "/invoices?reviewed=true",
             })
 

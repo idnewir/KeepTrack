@@ -51,6 +51,35 @@ Set the network folder path that Keep Track should watch for new invoice files (
 
 Set the start and end dates for the financial year (the default is September to August), and enter the opening balance when a new financial year begins.
 
+### Terminology
+
+Keep Track ships with charity-style names for things — "Invoices," "Contributions," "Projects," "Reconciliation," "Target Reserve" — but not everyone using it is a charity. If you're tracking a personal budget or running a small business, you can rename these labels so the app reads naturally for you.
+
+To get there: **Settings → Terminology**.
+
+- **Expenses label** — what to call money going out. Default: *Invoices*. Try *Bills* or *Expenses*.
+- **Income label** — what to call money coming in. Default: *Contributions*. Try *Income*, *Revenue*, or *Membership Fees*.
+- **Projects label** — what to call planned future spend. Default: *Projects*. Try *Future Expenses* or *Planned Spend*.
+- **Reconciliation label** — what to call matching the calculated balance against the bank. Default: *Reconciliation*. Try *Monthly Check* or *Bank Reconciliation*.
+- **Reserve label** — what to call the target reserve on the dashboard gauge. Default: *Target Reserve*. Try *Rainy Day Fund* or *Savings Goal*.
+- **Site/instance name** — your organisation or personal name, shown in the header next to the Keep Track logo (e.g. "Keep Track — KHOC"). Leave it as "Keep Track" if you don't want anything extra shown.
+
+As you type, a small **live preview** shows how the sidebar will look with your new labels, before you save anything.
+
+- Click **Save all** to apply every field at once. The sidebar, page titles, notifications, and dashboard update immediately for everyone — no page refresh needed.
+- Click **Reset to defaults** to put every label back to its original charity-style wording. You'll be asked to confirm first, since this affects everyone.
+
+### Target Reserve
+
+The target reserve (whatever you've renamed it to, above) is the dashboard gauge that shows how your current balance compares to a healthy amount held in reserve.
+
+To get there: **Settings → Target Reserve**.
+
+- **Automatic** (the default) — Keep Track works out your average monthly spend over the last 3 months and multiplies it by a **months multiplier** you choose (1–12, default 3). For example, a multiplier of 3 targets three months' worth of average spend held in reserve.
+- **Manual** — set a fixed £ amount yourself instead of letting Keep Track calculate one. Useful if your organisation already has an agreed reserve figure.
+
+Whichever method you choose, the dashboard gauge shows the calculation method underneath it in small text, so everyone can see how the target was arrived at.
+
 ## Tips
 
 - Changes to settings apply immediately for all users.

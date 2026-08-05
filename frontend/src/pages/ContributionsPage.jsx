@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useAppStartDate, isMonthVisible } from '../hooks/useAppStartDate.js'
+import { useTerminology } from '../context/TerminologyContext.jsx'
 import { contributionsApi, financialYearsApi } from '../utils/api.js'
 import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
-
-// Full terminology settings (letting an org rename "Contributions" to
-// "Income", "Donations", etc.) come later — this is the one place that
-// label lives for now. See docs/decisions-log.md.
-const INCOME_LABEL = 'Contributions'
 
 export default function ContributionsPage() {
   const { user } = useAuth()
   const token = user?.token
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
   const canRecord = user?.role !== 'readonly'
+  // Full terminology support (letting an org rename "Contributions" to
+  // "Income", "Donations", etc.) — see docs/decisions-log.md.
+  const { term_income: INCOME_LABEL } = useTerminology()
 
   const [fy, setFy] = useState(null)
   const [summary, setSummary] = useState(null)

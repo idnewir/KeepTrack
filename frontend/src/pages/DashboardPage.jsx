@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import FinancialChart from '../components/FinancialChart.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useTerminology } from '../context/TerminologyContext.jsx'
 import { dashboardApi } from '../utils/api.js'
-import { formatCurrency, projectUrgency } from '../utils/format.js'
+import { formatCurrency, projectUrgency, singularize } from '../utils/format.js'
 
 const STATUS_LABEL = { above: 'Above target', near: 'Near target', below: 'Below target' }
 
@@ -31,6 +32,9 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const token = user?.token
   const navigate = useNavigate()
+  const terminology = useTerminology()
+  const expensesLower = terminology.term_expenses.toLowerCase()
+  const projectsLower = terminology.term_projects.toLowerCase()
 
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -167,10 +171,10 @@ export default function DashboardPage() {
       {user?.role !== 'readonly' && (
         <div className="kt-quick-actions">
           <Link to="/upload" className="kt-auth-button kt-quick-action-button">
-            + Upload invoice
+            + Upload {singularize(expensesLower)}
           </Link>
           <Link to="/contributions" className="kt-auth-button kt-quick-action-button kt-quick-action-secondary">
-            + Record contribution
+            + Record {singularize(terminology.term_income).toLowerCase()}
           </Link>
           <Link to="/reports" className="kt-auth-button kt-quick-action-button kt-quick-action-secondary">
             Run report
@@ -207,7 +211,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="kt-dashboard-panel">
-        <h2 className="kt-panel-title">Target reserve</h2>
+        <h2 className="kt-panel-title">{summary.reserve_label}</h2>
         <div className="kt-reserve-gauge">
           <div className="kt-reserve-track">
             <div
@@ -219,12 +223,17 @@ export default function DashboardPage() {
             Balance {formatCurrency(summary.current_balance)} / Target {formatCurrency(summary.target_reserve)}
           </span>
         </div>
+        <p className="kt-panel-subtitle" style={{ marginTop: 8 }}>
+          {summary.reserve_calculation === 'manual'
+            ? 'Manually set target'
+            : `Based on ${summary.reserve_months} month${summary.reserve_months === 1 ? '' : 's'} of average expenses`}
+        </p>
       </div>
 
       <div className="kt-panels-row">
-        <UpcomingInvoicesPanel items={summary.upcoming_expected_invoices} navigate={navigate} />
-        <PlannedProjectsPanel items={summary.planned_projects} />
-        <RecentActivityPanel items={summary.recent_activity} navigate={navigate} />
+        <UpcomingInvoicesPanel items={summary.upcoming_expected_invoices} navigate={navigate} expensesLower={expensesLower} />
+        <PlannedProjectsPanel items={summary.planned_projects} projectsLower={projectsLower} />
+        <RecentActivityPanel items={summary.recent_activity} navigate={navigate} expensesLower={expensesLower} />
       </div>
     </div>
   )
@@ -234,14 +243,14 @@ function PanelEmptyState({ children }) {
   return <div className="kt-panel-empty">{children}</div>
 }
 
-function UpcomingInvoicesPanel({ items, navigate }) {
+function UpcomingInvoicesPanel({ items, navigate, expensesLower }) {
   return (
     <div className="kt-dashboard-panel kt-panel-card">
-      <h2 className="kt-panel-title">Upcoming expected invoices</h2>
+      <h2 className="kt-panel-title">Upcoming expected {expensesLower}</h2>
       <p className="kt-panel-subtitle">Based on suppliers seen in the last 3 months.</p>
       {items.length === 0 ? (
         <PanelEmptyState>
-          No repeat suppliers yet — this fills in once a few months of invoices are on file.
+          No repeat suppliers yet — this fills in once a few months of {expensesLower} are on file.
         </PanelEmptyState>
       ) : (
         <ul className="kt-panel-list">
@@ -269,15 +278,15 @@ function UpcomingInvoicesPanel({ items, navigate }) {
   )
 }
 
-function PlannedProjectsPanel({ items }) {
+function PlannedProjectsPanel({ items, projectsLower }) {
   return (
     <div className="kt-dashboard-panel kt-panel-card">
-      <h2 className="kt-panel-title">Planned projects</h2>
+      <h2 className="kt-panel-title">Planned {projectsLower}</h2>
       <p className="kt-panel-subtitle">
-        <Link to="/projects">Manage projects</Link>
+        <Link to="/projects">Manage {projectsLower}</Link>
       </p>
       {items.length === 0 ? (
-        <PanelEmptyState>No planned projects logged yet.</PanelEmptyState>
+        <PanelEmptyState>No planned {projectsLower} logged yet.</PanelEmptyState>
       ) : (
         <ul className="kt-panel-list">
           {items.map((item) => {
@@ -311,13 +320,13 @@ function PlannedProjectsPanel({ items }) {
   )
 }
 
-function RecentActivityPanel({ items, navigate }) {
+function RecentActivityPanel({ items, navigate, expensesLower }) {
   return (
     <div className="kt-dashboard-panel kt-panel-card">
       <h2 className="kt-panel-title">Recent activity</h2>
-      <p className="kt-panel-subtitle">The last 5 invoices confirmed.</p>
+      <p className="kt-panel-subtitle">The last 5 {expensesLower} confirmed.</p>
       {items.length === 0 ? (
-        <PanelEmptyState>No confirmed invoices yet.</PanelEmptyState>
+        <PanelEmptyState>No confirmed {expensesLower} yet.</PanelEmptyState>
       ) : (
         <ul className="kt-panel-list">
           {items.map((item) => (
