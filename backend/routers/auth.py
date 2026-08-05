@@ -14,6 +14,7 @@ from models.schemas import (
     LoginRequest,
     LoginResponse,
     MFAVerifyRequest,
+    PaginatedResponse,
     PasswordChangeRequest,
     PasswordResetOut,
     ProfileUpdateRequest,
@@ -42,7 +43,9 @@ from services.auth_service import (
 from services.date_service import APP_START_DATE_KEY
 from services.settings_service import FINANCIAL_YEAR_START_MONTH_KEY
 from utils.crypto import decrypt_secret, encrypt_secret
+from utils.csv_export import csv_response
 from utils.deps import get_current_user, require_admin
+from utils.pagination import paginate
 from utils.security import (
     DUMMY_PASSWORD_HASH,
     SCOPE_ACCESS,
@@ -264,9 +267,50 @@ def approve_user(
     return user
 
 
-@router.get("/users", response_model=list[UserOut])
-def list_users(db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
-    return db.query(User).order_by(User.username).all()
+def _filtered_users_query(db: Session, approved: bool | None):
+    query = db.query(User)
+    if approved is not None:
+        query = query.filter(User.approved.is_(approved))
+    return query.order_by(User.username)
+
+
+@router.get("/users", response_model=PaginatedResponse[UserOut])
+def list_users(
+    approved: bool | None = None,
+    page: int = 1,
+    per_page: int = 25,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    query = _filtered_users_query(db, approved)
+    items, pagination = paginate(query, page, per_page)
+    return {"data": items, "pagination": pagination}
+
+
+@router.get("/users/export/csv")
+def export_users_csv(
+    approved: bool | None = None,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    users = _filtered_users_query(db, approved).all()
+    rows = [
+        [
+            u.username,
+            u.display_name or "",
+            u.email,
+            u.role,
+            "Active" if u.is_active else "Inactive",
+            u.created_at.strftime("%Y-%m-%d %H:%M"),
+            u.last_login.strftime("%Y-%m-%d %H:%M") if u.last_login else "Never",
+        ]
+        for u in users
+    ]
+    return csv_response(
+        "users_export.csv",
+        ["Username", "Display Name", "Email", "Role", "Status", "Created", "Last Login"],
+        rows,
+    )
 
 
 def _reject_action_on_self_or_superadmin(target: User, admin: User, action: str) -> None:

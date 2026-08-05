@@ -48,7 +48,20 @@ export const authApi = {
   approveUser: (id, role, token) =>
     request(`/auth/approve-user/${id}`, { method: 'POST', body: { role }, token }),
   rejectUser: (id, token) => request(`/auth/reject-user/${id}`, { method: 'DELETE', token }),
-  listUsers: (token) => request('/auth/users', { token }),
+  listUsers: (params = {}, token) => {
+    const query = new URLSearchParams()
+    if (params.approved !== undefined) query.set('approved', params.approved)
+    if (params.page) query.set('page', params.page)
+    if (params.perPage !== undefined) query.set('per_page', params.perPage)
+    const qs = query.toString()
+    return request(`/auth/users${qs ? `?${qs}` : ''}`, { token })
+  },
+  exportUsersCsv: (params = {}, token) => {
+    const query = new URLSearchParams()
+    if (params.approved !== undefined) query.set('approved', params.approved)
+    const qs = query.toString()
+    return requestBlob(`/auth/users/export/csv${qs ? `?${qs}` : ''}`, { token })
+  },
   updateUserRole: (id, role, token) =>
     request(`/auth/users/${id}/role`, { method: 'PUT', body: { role }, token }),
   deactivateUser: (id, token) => request(`/auth/users/${id}/deactivate`, { method: 'PUT', token }),
@@ -105,13 +118,28 @@ export const financialYearsApi = {
     }),
 }
 
+function contributionsQuery(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.financialYearId) params.set('financial_year_id', filters.financialYearId)
+  if (filters.month) params.set('month', filters.month)
+  return params
+}
+
 export const contributionsApi = {
   list: (filters = {}, token) => {
-    const params = new URLSearchParams()
-    if (filters.financialYearId) params.set('financial_year_id', filters.financialYearId)
-    if (filters.month) params.set('month', filters.month)
+    const params = contributionsQuery(filters)
+    if (filters.page) params.set('page', filters.page)
+    if (filters.perPage !== undefined) params.set('per_page', filters.perPage)
     const qs = params.toString()
     return request(`/contributions${qs ? `?${qs}` : ''}`, { token })
+  },
+  exportCsv: (filters = {}, token) => {
+    const qs = contributionsQuery(filters).toString()
+    return requestBlob(`/contributions/export/csv${qs ? `?${qs}` : ''}`, { token })
+  },
+  exportPdf: (filters = {}, token) => {
+    const qs = contributionsQuery(filters).toString()
+    return requestBlob(`/contributions/export/pdf${qs ? `?${qs}` : ''}`, { token })
   },
   monthlySummary: (financialYearId, token) => {
     const qs = financialYearId ? `?financial_year_id=${financialYearId}` : ''
@@ -133,13 +161,25 @@ export const projectsApi = {
 }
 
 export const reconciliationApi = {
-  list: (financialYearId, token) => {
-    const qs = financialYearId ? `?financial_year_id=${financialYearId}` : ''
-    return request(`/reconciliation${qs}`, { token })
+  list: (filters = {}, token) => {
+    const params = new URLSearchParams()
+    if (filters.financialYearId) params.set('financial_year_id', filters.financialYearId)
+    if (filters.page) params.set('page', filters.page)
+    if (filters.perPage !== undefined) params.set('per_page', filters.perPage)
+    const qs = params.toString()
+    return request(`/reconciliation${qs ? `?${qs}` : ''}`, { token })
   },
   getMonth: (year, month, token) => request(`/reconciliation/${year}/${month}`, { token }),
   create: (payload, token) => request('/reconciliation', { method: 'POST', body: payload, token }),
   update: (id, payload, token) => request(`/reconciliation/${id}`, { method: 'PUT', body: payload, token }),
+  exportCsv: (financialYearId, token) => {
+    const qs = financialYearId ? `?financial_year_id=${financialYearId}` : ''
+    return requestBlob(`/reconciliation/export/csv${qs}`, { token })
+  },
+  exportPdf: (financialYearId, token) => {
+    const qs = financialYearId ? `?financial_year_id=${financialYearId}` : ''
+    return requestBlob(`/reconciliation/export/pdf${qs}`, { token })
+  },
 }
 
 // Plain fetch returning a Blob, for authenticated file downloads (the browser
@@ -158,6 +198,19 @@ async function requestBlob(path, { token } = {}) {
     throw new ApiError(data?.detail || `Request failed (${res.status})`, res.status, data)
   }
   return res.blob()
+}
+
+// Saves a Blob (an export download, or a report PDF) to the user's device
+// via a throwaway, immediately-revoked object URL.
+export function triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 // XHR (not fetch) so upload progress is observable via xhr.upload.onprogress.
@@ -194,6 +247,18 @@ function requestForm(path, { method = 'POST', formData, token, onProgress } = {}
   })
 }
 
+function invoicesQuery(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.categoryId) params.set('category_id', filters.categoryId)
+  if (filters.dateFrom) params.set('date_from', filters.dateFrom)
+  if (filters.dateTo) params.set('date_to', filters.dateTo)
+  if (filters.reviewed !== undefined && filters.reviewed !== '') {
+    params.set('reviewed', filters.reviewed)
+  }
+  if (filters.signed) params.set('signed', filters.signed)
+  return params
+}
+
 export const invoicesApi = {
   upload: (files, token, onProgress) => {
     const formData = new FormData()
@@ -201,15 +266,19 @@ export const invoicesApi = {
     return requestForm('/invoices/upload', { formData, token, onProgress })
   },
   list: (filters = {}, token) => {
-    const params = new URLSearchParams()
-    if (filters.categoryId) params.set('category_id', filters.categoryId)
-    if (filters.dateFrom) params.set('date_from', filters.dateFrom)
-    if (filters.dateTo) params.set('date_to', filters.dateTo)
-    if (filters.reviewed !== undefined && filters.reviewed !== '') {
-      params.set('reviewed', filters.reviewed)
-    }
+    const params = invoicesQuery(filters)
+    if (filters.page) params.set('page', filters.page)
+    if (filters.perPage !== undefined) params.set('per_page', filters.perPage)
     const qs = params.toString()
     return request(`/invoices${qs ? `?${qs}` : ''}`, { token })
+  },
+  exportCsv: (filters = {}, token) => {
+    const qs = invoicesQuery(filters).toString()
+    return requestBlob(`/invoices/export/csv${qs ? `?${qs}` : ''}`, { token })
+  },
+  exportPdf: (filters = {}, token) => {
+    const qs = invoicesQuery(filters).toString()
+    return requestBlob(`/invoices/export/pdf${qs ? `?${qs}` : ''}`, { token })
   },
   get: (id, token) => request(`/invoices/${id}`, { token }),
   update: (id, payload, token) => request(`/invoices/${id}`, { method: 'PUT', body: payload, token }),
@@ -222,9 +291,16 @@ export const invoicesApi = {
 }
 
 export const reportsApi = {
-  list: (token) => request('/reports', { token }),
+  list: (params = {}, token) => {
+    const query = new URLSearchParams()
+    if (params.page) query.set('page', params.page)
+    if (params.perPage !== undefined) query.set('per_page', params.perPage)
+    const qs = query.toString()
+    return request(`/reports${qs ? `?${qs}` : ''}`, { token })
+  },
   get: (id, token) => request(`/reports/${id}`, { token }),
   generate: (payload, token) => request('/reports/generate', { method: 'POST', body: payload, token }),
   remove: (id, token) => request(`/reports/${id}`, { method: 'DELETE', token }),
   downloadPdf: (id, token) => requestBlob(`/reports/${id}/download`, { token }),
+  exportCsv: (token) => requestBlob('/reports/export/csv', { token }),
 }

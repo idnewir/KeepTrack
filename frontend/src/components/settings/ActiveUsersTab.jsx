@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/AuthContext.jsx'
-import { authApi } from '../../utils/api.js'
+import { usePaginationState, perPageParam } from '../../hooks/usePaginationState.js'
+import { authApi, triggerBlobDownload } from '../../utils/api.js'
 import { formatDate, formatRelativeTime } from '../../utils/format.js'
 import Modal from '../Modal.jsx'
+import PaginationBar from '../PaginationBar.jsx'
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Admin' },
@@ -21,10 +23,13 @@ export default function ActiveUsersTab({ token }) {
   const { user: me } = useAuth()
 
   const [users, setUsers] = useState([])
+  const [pagination, setPagination] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
   const [confirmingDeactivateId, setConfirmingDeactivateId] = useState(null)
+
+  const { page, perPage, setPage, setPerPage } = usePaginationState('active-users')
 
   // Reset-password modal state: { user, stage: 'confirm' | 'result', tempPassword }
   const [resetModal, setResetModal] = useState(null)
@@ -35,8 +40,11 @@ export default function ActiveUsersTab({ token }) {
     setLoading(true)
     setError('')
     return authApi
-      .listUsers(token)
-      .then((data) => setUsers(data.filter((u) => u.approved)))
+      .listUsers({ approved: true, page, perPage: perPageParam(perPage) }, token)
+      .then((res) => {
+        setUsers(res.data)
+        setPagination(res.pagination)
+      })
       .catch((err) => setError(err.message || 'Failed to load users'))
       .finally(() => setLoading(false))
   }
@@ -44,7 +52,12 @@ export default function ActiveUsersTab({ token }) {
   useEffect(() => {
     loadUsers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+  }, [page, perPage, token])
+
+  const handleExportCsv = async () => {
+    const blob = await authApi.exportUsersCsv({ approved: true }, token)
+    triggerBlobDownload(blob, 'users_export.csv')
+  }
 
   const isLocked = (u) => u.id === me?.id || u.role === 'superadmin'
 
@@ -248,6 +261,15 @@ export default function ActiveUsersTab({ token }) {
           </table>
         </div>
       )}
+
+      <PaginationBar
+        pagination={pagination}
+        perPage={perPage}
+        onPageChange={setPage}
+        onPerPageChange={setPerPage}
+        onExportCsv={handleExportCsv}
+        disabled={loading}
+      />
 
       {resetModal && (
         <Modal

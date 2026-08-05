@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useAppStartDate, isMonthVisible } from '../hooks/useAppStartDate.js'
+import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js'
 import { useTerminology } from '../context/TerminologyContext.jsx'
-import { contributionsApi, financialYearsApi } from '../utils/api.js'
+import { contributionsApi, financialYearsApi, triggerBlobDownload } from '../utils/api.js'
 import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
+import PaginationBar from '../components/PaginationBar.jsx'
 
 export default function ContributionsPage() {
   const { user } = useAuth()
@@ -17,8 +19,12 @@ export default function ContributionsPage() {
   const [fy, setFy] = useState(null)
   const [summary, setSummary] = useState(null)
   const [contributions, setContributions] = useState([])
+  const [pagination, setPagination] = useState(null)
+  const [entriesLoading, setEntriesLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const { page, perPage, setPage, setPerPage } = usePaginationState('contributions')
 
   const [editingBalance, setEditingBalance] = useState(false)
   const [balanceInput, setBalanceInput] = useState('')
@@ -61,12 +67,8 @@ export default function ContributionsPage() {
     try {
       const currentFy = await financialYearsApi.current(token)
       setFy(currentFy)
-      const [summaryData, contributionsData] = await Promise.all([
-        contributionsApi.monthlySummary(currentFy.id, token),
-        contributionsApi.list({ financialYearId: currentFy.id }, token),
-      ])
+      const summaryData = await contributionsApi.monthlySummary(currentFy.id, token)
       setSummary(summaryData)
-      setContributions(contributionsData)
     } catch (err) {
       setError(err.message || `Failed to load ${INCOME_LABEL.toLowerCase()}`)
     } finally {
@@ -78,6 +80,48 @@ export default function ContributionsPage() {
     loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
+
+  const loadEntries = async () => {
+    if (!fy) return
+    setEntriesLoading(true)
+    try {
+      const res = await contributionsApi.list(
+        { financialYearId: fy.id, page, perPage: perPageParam(perPage) },
+        token
+      )
+      setContributions(res.data)
+      setPagination(res.pagination)
+    } catch (err) {
+      setError(err.message || `Failed to load ${INCOME_LABEL.toLowerCase()} entries`)
+    } finally {
+      setEntriesLoading(false)
+    }
+  }
+
+  const isFirstEntriesRender = useRef(true)
+  useEffect(() => {
+    if (isFirstEntriesRender.current) {
+      isFirstEntriesRender.current = false
+      return
+    }
+    setPage(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fy?.id])
+
+  useEffect(() => {
+    loadEntries()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fy?.id, page, perPage, token])
+
+  const handleExportCsv = async () => {
+    const blob = await contributionsApi.exportCsv({ financialYearId: fy?.id }, token)
+    triggerBlobDownload(blob, 'contributions_export.csv')
+  }
+
+  const handleExportPdf = async () => {
+    const blob = await contributionsApi.exportPdf({ financialYearId: fy?.id }, token)
+    triggerBlobDownload(blob, 'contributions_export.pdf')
+  }
 
   const monthOptions = summary?.rows || []
   const groupNames = useMemo(
@@ -128,7 +172,7 @@ export default function ContributionsPage() {
       )
       resetAddForm()
       setShowAddForm(false)
-      await loadAll()
+      await Promise.all([loadAll(), loadEntries()])
     } catch (err) {
       setError(err.message || `Failed to record ${INCOME_LABEL.toLowerCase()}`)
     } finally {
@@ -154,7 +198,7 @@ export default function ContributionsPage() {
         token
       )
       setEditingId(null)
-      await loadAll()
+      await Promise.all([loadAll(), loadEntries()])
     } catch (err) {
       setError(err.message || `Failed to update ${INCOME_LABEL.toLowerCase()}`)
     } finally {
@@ -168,7 +212,7 @@ export default function ContributionsPage() {
     try {
       await contributionsApi.remove(id, token)
       setConfirmingId(null)
-      await loadAll()
+      await Promise.all([loadAll(), loadEntries()])
     } catch (err) {
       setError(err.message || `Failed to delete ${INCOME_LABEL.toLowerCase()}`)
     } finally {
@@ -376,7 +420,9 @@ export default function ContributionsPage() {
       <h2 className="kt-panel-title" style={{ marginTop: 32 }}>
         All entries
       </h2>
-      {visibleContributions.length === 0 ? (
+      {entriesLoading ? (
+        <p className="kt-page-subtitle">Loading entries…</p>
+      ) : visibleContributions.length === 0 ? (
         <div className="kt-categories-empty">
           No {INCOME_LABEL.toLowerCase()} entries yet.
         </div>
@@ -479,6 +525,16 @@ export default function ContributionsPage() {
           ))}
         </ul>
       )}
+
+      <PaginationBar
+        pagination={pagination}
+        perPage={perPage}
+        onPageChange={setPage}
+        onPerPageChange={setPerPage}
+        onExportCsv={handleExportCsv}
+        onExportPdf={handleExportPdf}
+        disabled={entriesLoading}
+      />
     </div>
   )
 }

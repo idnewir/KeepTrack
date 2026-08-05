@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
-import { categoriesApi, reportsApi } from '../utils/api.js'
+import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js'
+import { categoriesApi, reportsApi, triggerBlobDownload } from '../utils/api.js'
+import PaginationBar from '../components/PaginationBar.jsx'
 
 const REPORT_TYPES = [
   { value: 'historical', label: 'Historical' },
@@ -28,17 +30,6 @@ function formatDateTime(isoStr) {
   })
 }
 
-function triggerBlobDownload(blob, filename) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
-}
-
 const emptyForm = {
   title: '',
   reportType: 'historical',
@@ -55,9 +46,12 @@ export default function ReportsPage() {
 
   const [categories, setCategories] = useState([])
   const [reports, setReports] = useState([])
+  const [pagination, setPagination] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const { page, perPage, setPage, setPerPage } = usePaginationState('reports')
 
   const [form, setForm] = useState(emptyForm)
   const [selectedCategoryIds, setSelectedCategoryIds] = useState(() => new Set())
@@ -71,10 +65,14 @@ export default function ReportsPage() {
     setLoading(true)
     setError('')
     try {
-      const [cats, reportList] = await Promise.all([categoriesApi.list(token), reportsApi.list(token)])
+      const [cats, reportList] = await Promise.all([
+        categoriesApi.list(token),
+        reportsApi.list({ page, perPage: perPageParam(perPage) }, token),
+      ])
       setCategories(cats)
       setSelectedCategoryIds((prev) => (prev.size === 0 ? new Set(cats.map((c) => c.id)) : prev))
-      setReports(reportList)
+      setReports(reportList.data)
+      setPagination(reportList.pagination)
     } catch (err) {
       setError(err.message || 'Failed to load reports')
     } finally {
@@ -85,7 +83,12 @@ export default function ReportsPage() {
   useEffect(() => {
     loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+  }, [page, perPage, token])
+
+  const handleExportCsv = async () => {
+    const blob = await reportsApi.exportCsv(token)
+    triggerBlobDownload(blob, 'reports_export.csv')
+  }
 
   const categoryById = new Map(categories.map((c) => [c.id, c]))
   const allSelected = categories.length > 0 && selectedCategoryIds.size === categories.length
@@ -377,6 +380,15 @@ export default function ReportsPage() {
             </tbody>
           </table>
         )}
+
+        <PaginationBar
+          pagination={pagination}
+          perPage={perPage}
+          onPageChange={setPage}
+          onPerPageChange={setPerPage}
+          onExportCsv={handleExportCsv}
+          disabled={loading}
+        />
       </section>
     </div>
   )

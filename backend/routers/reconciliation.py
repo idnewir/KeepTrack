@@ -2,19 +2,39 @@
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from database import get_db
 from models.financial_year import FinancialYear
 from models.monthly_reconciliation import MonthlyReconciliation
-from models.schemas import ReconciliationCreate, ReconciliationOut, ReconciliationMonthOut, ReconciliationUpdate
+from models.schemas import (
+    PaginatedResponse,
+    ReconciliationCreate,
+    ReconciliationOut,
+    ReconciliationMonthOut,
+    ReconciliationUpdate,
+)
 from models.user import User
 from services import financial_year_service as fy_service
 from services.date_service import get_effective_start_date
+from services.export_pdf_service import generate_table_export_pdf
 from services.reconciliation_service import calculated_balance_for_month, suggest_reason
+from services.settings_service import get_site_name
+from utils.csv_export import csv_response
 from utils.deps import get_current_user, require_standard
+from utils.pagination import paginate
 
 router = APIRouter(prefix="/reconciliation", tags=["reconciliation"])
+
+
+def _filtered_reconciliations_query(db: Session, financial_year_id: int | None):
+    query = db.query(MonthlyReconciliation).filter(
+        MonthlyReconciliation.month >= get_effective_start_date(db)
+    )
+    if financial_year_id is not None:
+        query = query.filter(MonthlyReconciliation.financial_year_id == financial_year_id)
+    return query.order_by(MonthlyReconciliation.month.desc())
 
 
 def _to_out(db: Session, row: MonthlyReconciliation) -> dict:
@@ -39,20 +59,84 @@ def _to_out(db: Session, row: MonthlyReconciliation) -> dict:
     }
 
 
-@router.get("", response_model=list[ReconciliationOut])
+@router.get("", response_model=PaginatedResponse[ReconciliationOut])
 def list_reconciliations(
+    financial_year_id: int | None = None,
+    page: int = 1,
+    per_page: int = 25,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    query = _filtered_reconciliations_query(db, financial_year_id)
+    items, pagination = paginate(query, page, per_page)
+    return {"data": [_to_out(db, row) for row in items], "pagination": pagination}
+
+
+@router.get("/export/csv")
+def export_reconciliations_csv(
     financial_year_id: int | None = None,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    query = db.query(MonthlyReconciliation).filter(
-        MonthlyReconciliation.month >= get_effective_start_date(db)
+    rows_data = [_to_out(db, row) for row in _filtered_reconciliations_query(db, financial_year_id).all()]
+    rows = [
+        [
+            r["month"].strftime("%B %Y"),
+            f"{r['calculated_balance']:.2f}",
+            f"{r['actual_balance']:.2f}",
+            f"{r['discrepancy']:.2f}",
+            r["suggested_reason"] or "",
+            r["discrepancy_notes"] or "",
+            r["reconciled_by_username"] or "",
+        ]
+        for r in rows_data
+    ]
+    return csv_response(
+        "reconciliation_export.csv",
+        ["Month", "Calculated Balance", "Actual Balance", "Discrepancy", "Suggested Reason", "Notes", "Reconciled By"],
+        rows,
     )
-    if financial_year_id is not None:
-        query = query.filter(MonthlyReconciliation.financial_year_id == financial_year_id)
 
-    rows = query.order_by(MonthlyReconciliation.month).all()
-    return [_to_out(db, row) for row in rows]
+
+@router.get("/export/pdf")
+def export_reconciliations_pdf(
+    financial_year_id: int | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    rows_data = [_to_out(db, row) for row in _filtered_reconciliations_query(db, financial_year_id).all()]
+    rows = [
+        [
+            r["month"].strftime("%B %Y"),
+            f"£{r['calculated_balance']:,.2f}",
+            f"£{r['actual_balance']:,.2f}",
+            f"£{r['discrepancy']:,.2f}",
+            r["suggested_reason"] or "",
+            r["reconciled_by_username"] or "",
+        ]
+        for r in rows_data
+    ]
+
+    subtitle = None
+    if financial_year_id is not None:
+        fy = db.get(FinancialYear, financial_year_id)
+        if fy is not None:
+            subtitle = f"Financial year: {fy.label}"
+
+    pdf_bytes = generate_table_export_pdf(
+        title="Reconciliation Export",
+        subtitle=subtitle,
+        site_name=get_site_name(db),
+        columns=["Month", "Calculated Balance", "Actual Balance", "Discrepancy", "Suggested Reason", "Reconciled By"],
+        rows=rows,
+        generated_by_username=user.username,
+        generated_at=datetime.now(timezone.utc),
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="reconciliation_export.pdf"'},
+    )
 
 
 @router.get("/{year}/{month}", response_model=ReconciliationMonthOut)

@@ -1,6 +1,7 @@
 """Pydantic request/response schemas for the auth API."""
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -8,6 +9,22 @@ from models.report import REPORT_TYPES
 from models.user import ROLES
 
 ASSIGNABLE_ROLES = tuple(r for r in ROLES if r != "superadmin")
+
+T = TypeVar("T")
+
+
+class PaginationMeta(BaseModel):
+    page: int
+    per_page: int
+    total_records: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    data: list[T]
+    pagination: PaginationMeta
 
 
 class UserOut(BaseModel):

@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js'
 import { useTerminology } from '../context/TerminologyContext.jsx'
-import { categoriesApi, invoicesApi } from '../utils/api.js'
+import { categoriesApi, invoicesApi, triggerBlobDownload } from '../utils/api.js'
 import { singularize } from '../utils/format.js'
+import PaginationBar from '../components/PaginationBar.jsx'
 
 const REVIEWED_OPTIONS = [
   { value: '', label: 'All' },
@@ -37,8 +39,11 @@ export default function InvoicesPage() {
 
   const [categories, setCategories] = useState([])
   const [invoices, setInvoices] = useState([])
+  const [pagination, setPagination] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const { page, perPage, setPage, setPerPage } = usePaginationState('invoices')
 
   // A dashboard notification can also arrive with a shorthand `filter`
   // param (unreviewed/unsigned) instead of spelling out `reviewed`/`signed`
@@ -56,18 +61,35 @@ export default function InvoicesPage() {
     quickFilter === 'unsigned' ? 'unsigned' : searchParams.get('signed') || ''
   )
 
+  const filters = { categoryId, dateFrom, dateTo, reviewed, signed: signedFilter }
+
   useEffect(() => {
     categoriesApi.list(token).then(setCategories).catch(() => setCategories([]))
   }, [token])
+
+  // Filters (not page/per-page) changing resets back to page 1, per the
+  // "changing filters resets to page 1" requirement — skipped on the very
+  // first render so the URL's own initial ?page=N isn't clobbered.
+  const isFirstRender = useRef(true)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setPage(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryId, dateFrom, dateTo, reviewed, signedFilter])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError('')
     invoicesApi
-      .list({ categoryId, dateFrom, dateTo, reviewed }, token)
-      .then((data) => {
-        if (!cancelled) setInvoices(data)
+      .list({ ...filters, page, perPage: perPageParam(perPage) }, token)
+      .then((res) => {
+        if (cancelled) return
+        setInvoices(res.data)
+        setPagination(res.pagination)
       })
       .catch((err) => {
         if (!cancelled) setError(err.message || 'Failed to load invoices')
@@ -78,19 +100,20 @@ export default function InvoicesPage() {
     return () => {
       cancelled = true
     }
-  }, [categoryId, dateFrom, dateTo, reviewed, token])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryId, dateFrom, dateTo, reviewed, signedFilter, page, perPage, token])
 
   const categoryById = new Map(categories.map((c) => [c.id, c]))
 
-  // Signed status has no backend query param yet, so it's applied client-side
-  // over the already-fetched, already-filtered invoice list. "Unsigned"
-  // matches the badge's own definition — signing only applies once an
-  // invoice has been reviewed, so an unreviewed invoice is neither.
-  const visibleInvoices = invoices.filter((invoice) => {
-    if (signedFilter === 'unsigned') return invoice.reviewed && !invoice.signed
-    if (signedFilter === 'signed') return invoice.signed
-    return true
-  })
+  const handleExportCsv = async () => {
+    const blob = await invoicesApi.exportCsv(filters, token)
+    triggerBlobDownload(blob, 'invoices_export.csv')
+  }
+
+  const handleExportPdf = async () => {
+    const blob = await invoicesApi.exportPdf(filters, token)
+    triggerBlobDownload(blob, 'invoices_export.pdf')
+  }
 
   return (
     <div>
@@ -156,7 +179,7 @@ export default function InvoicesPage() {
 
       {loading ? (
         <p className="kt-page-subtitle">Loading {expensesLower}…</p>
-      ) : visibleInvoices.length === 0 ? (
+      ) : invoices.length === 0 ? (
         <div className="kt-categories-empty">No {expensesLower} match these filters.</div>
       ) : (
         <table className="kt-invoices-table">
@@ -171,7 +194,7 @@ export default function InvoicesPage() {
             </tr>
           </thead>
           <tbody>
-            {visibleInvoices.map((invoice) => {
+            {invoices.map((invoice) => {
               const category = invoice.category_id != null ? categoryById.get(invoice.category_id) : null
               return (
                 <tr
@@ -221,6 +244,16 @@ export default function InvoicesPage() {
           </tbody>
         </table>
       )}
+
+      <PaginationBar
+        pagination={pagination}
+        perPage={perPage}
+        onPageChange={setPage}
+        onPerPageChange={setPerPage}
+        onExportCsv={handleExportCsv}
+        onExportPdf={handleExportPdf}
+        disabled={loading}
+      />
     </div>
   )
 }

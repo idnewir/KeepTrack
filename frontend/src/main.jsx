@@ -17,6 +17,7 @@ import './styles/contributions.css'
 import './styles/projects.css'
 import './styles/reports.css'
 import './styles/signing.css'
+import './styles/pagination.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

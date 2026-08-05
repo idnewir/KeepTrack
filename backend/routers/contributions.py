@@ -1,8 +1,9 @@
 """Contribution endpoints: record, list, edit, and soft-delete monthly contributions."""
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -13,23 +14,22 @@ from models.schemas import (
     ContributionOut,
     ContributionsMonthlySummaryOut,
     ContributionUpdate,
+    PaginatedResponse,
 )
 from models.user import User
 from services import financial_year_service as fy_service
 from services.date_service import get_effective_start_date
+from services.export_pdf_service import generate_table_export_pdf
 from services.reconciliation_service import calculated_balance_for_month
+from services.settings_service import get_site_name
+from utils.csv_export import csv_response
 from utils.deps import get_current_user, require_admin, require_standard
+from utils.pagination import paginate
 
 router = APIRouter(prefix="/contributions", tags=["contributions"])
 
 
-@router.get("", response_model=list[ContributionOut])
-def list_contributions(
-    financial_year_id: int | None = None,
-    month: int | None = None,
-    db: Session = Depends(get_db),
-    _user: User = Depends(get_current_user),
-):
+def _filtered_contributions_query(db: Session, financial_year_id: int | None, month: int | None):
     query = db.query(Contribution).filter(Contribution.deleted.is_(False))
 
     if financial_year_id is not None:
@@ -37,7 +37,108 @@ def list_contributions(
     if month is not None:
         query = query.filter(Contribution.month == month)
 
-    return query.order_by(Contribution.month, Contribution.group_name).all()
+    return query.order_by(Contribution.recorded_at.desc(), Contribution.id.desc())
+
+
+def _month_label_lookup(db: Session, contributions: list[Contribution]) -> dict[tuple[int, int], str]:
+    """Maps (financial_year_id, month) -> "September 2025"-style label, for
+    every distinct financial year appearing in the given contributions —
+    a plain contribution row only carries a month number (1-12), not a
+    calendar year, so the year has to be derived from its financial year's
+    own month sequence (see services/financial_year_service.month_sequence)."""
+    fy_ids = {c.financial_year_id for c in contributions}
+    labels: dict[tuple[int, int], str] = {}
+    for fy_id in fy_ids:
+        fy = db.get(FinancialYear, fy_id)
+        if fy is None:
+            continue
+        for (year, month) in fy_service.month_sequence(fy):
+            labels[(fy_id, month)] = f"{fy_service.MONTH_LABELS[month - 1]} {year}"
+    return labels
+
+
+@router.get("", response_model=PaginatedResponse[ContributionOut])
+def list_contributions(
+    financial_year_id: int | None = None,
+    month: int | None = None,
+    page: int = 1,
+    per_page: int = 25,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    query = _filtered_contributions_query(db, financial_year_id, month)
+    items, pagination = paginate(query, page, per_page)
+    return {"data": items, "pagination": pagination}
+
+
+@router.get("/export/csv")
+def export_contributions_csv(
+    financial_year_id: int | None = None,
+    month: int | None = None,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    contributions = _filtered_contributions_query(db, financial_year_id, month).all()
+    month_labels = _month_label_lookup(db, contributions)
+    users = {u.id: u for u in db.query(User).all()}
+
+    rows = [
+        [
+            month_labels.get((c.financial_year_id, c.month), str(c.month)),
+            c.group_name,
+            f"{c.amount:.2f}",
+            (users.get(c.recorded_by).display_name or users.get(c.recorded_by).username) if users.get(c.recorded_by) else "",
+        ]
+        for c in contributions
+    ]
+    return csv_response(
+        "contributions_export.csv",
+        ["Month", "Group / Source", "Amount", "Recorded By"],
+        rows,
+    )
+
+
+@router.get("/export/pdf")
+def export_contributions_pdf(
+    financial_year_id: int | None = None,
+    month: int | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    contributions = _filtered_contributions_query(db, financial_year_id, month).all()
+    month_labels = _month_label_lookup(db, contributions)
+    users = {u.id: u for u in db.query(User).all()}
+
+    rows = [
+        [
+            month_labels.get((c.financial_year_id, c.month), str(c.month)),
+            c.group_name,
+            f"£{c.amount:,.2f}",
+            (users.get(c.recorded_by).display_name or users.get(c.recorded_by).username) if users.get(c.recorded_by) else "",
+        ]
+        for c in contributions
+    ]
+
+    subtitle = None
+    if financial_year_id is not None:
+        fy = db.get(FinancialYear, financial_year_id)
+        if fy is not None:
+            subtitle = f"Financial year: {fy.label}"
+
+    pdf_bytes = generate_table_export_pdf(
+        title="Contributions Export",
+        subtitle=subtitle,
+        site_name=get_site_name(db),
+        columns=["Month", "Group / Source", "Amount", "Recorded By"],
+        rows=rows,
+        generated_by_username=user.username,
+        generated_at=datetime.now(timezone.utc),
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="contributions_export.pdf"'},
+    )
 
 
 @router.get("/monthly-summary", response_model=ContributionsMonthlySummaryOut)

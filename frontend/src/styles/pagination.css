@@ -1,0 +1,149 @@
+/* Reusable pagination + export bar (PaginationBar.jsx), used below every
+   paginated list view. */
+
+.kt-pagination-bar {
+  margin-top: 16px;
+}
+
+.kt-pagination-error {
+  color: var(--kt-danger);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.kt-pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.kt-pagination-summary {
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+  white-space: nowrap;
+}
+
+.kt-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kt-pagination-arrow,
+.kt-pagination-page {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.kt-pagination-arrow:hover:not(:disabled),
+.kt-pagination-page:hover:not(:disabled) {
+  border-color: var(--kt-primary);
+}
+
+.kt-pagination-arrow:disabled,
+.kt-pagination-page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.kt-pagination-page.active {
+  background: var(--kt-primary);
+  border-color: var(--kt-primary);
+  color: #fff;
+}
+
+.kt-pagination-ellipsis {
+  padding: 0 4px;
+  color: var(--kt-text-muted);
+  font-size: 13px;
+}
+
+.kt-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kt-pagination-per-page {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+}
+
+.kt-pagination-per-page select {
+  padding: 5px 8px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+  font-size: 13px;
+}
+
+.kt-pagination-export-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.kt-pagination-export-button:hover:not(:disabled) {
+  border-color: var(--kt-primary);
+  color: var(--kt-primary);
+}
+
+.kt-pagination-export-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.kt-pagination-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(var(--kt-text-muted-rgb), 0.4);
+  border-top-color: var(--kt-primary);
+  border-radius: 50%;
+  animation: kt-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@media (max-width: 720px) {
+  .kt-pagination-row {
+    justify-content: flex-start;
+  }
+
+  .kt-pagination-pages {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+}

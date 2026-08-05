@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useAppStartDate, isMonthVisible } from '../hooks/useAppStartDate.js'
+import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js'
 import { useTerminology } from '../context/TerminologyContext.jsx'
-import { financialYearsApi, reconciliationApi } from '../utils/api.js'
+import { financialYearsApi, reconciliationApi, triggerBlobDownload } from '../utils/api.js'
 import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
+import PaginationBar from '../components/PaginationBar.jsx'
 
 function discrepancyTone(reason) {
   if (!reason) return ''
@@ -32,6 +34,16 @@ export default function ReconciliationPage() {
 
   const [adminEdit, setAdminEdit] = useState(null) // { actualBalance, notes, reason, step: 'form' | 'confirm' }
   const [editSubmitting, setEditSubmitting] = useState(false)
+
+  // "Reconciliation history" is a separate paginated table below the
+  // existing month-tile picker (which only ever shows the current
+  // financial year's 12 months) — it lists every reconciled month across
+  // all financial years, most recent first, and is what the pagination
+  // bar and CSV/PDF export operate on.
+  const [history, setHistory] = useState([])
+  const [historyPagination, setHistoryPagination] = useState(null)
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const { page, perPage, setPage, setPerPage } = usePaginationState('reconciliation')
 
   const appStartDate = useAppStartDate(token)
   // Phantom months before app_start_date are filtered for display here
@@ -70,6 +82,34 @@ export default function ReconciliationPage() {
     loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
+
+  const loadHistory = async () => {
+    setHistoryLoading(true)
+    try {
+      const res = await reconciliationApi.list({ page, perPage: perPageParam(perPage) }, token)
+      setHistory(res.data)
+      setHistoryPagination(res.pagination)
+    } catch (err) {
+      setError(err.message || 'Failed to load reconciliation history')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadHistory()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, perPage, token])
+
+  const handleHistoryExportCsv = async () => {
+    const blob = await reconciliationApi.exportCsv(null, token)
+    triggerBlobDownload(blob, 'reconciliation_export.csv')
+  }
+
+  const handleHistoryExportPdf = async () => {
+    const blob = await reconciliationApi.exportPdf(null, token)
+    triggerBlobDownload(blob, 'reconciliation_export.pdf')
+  }
 
   // Picks (or re-validates) the selected month once the visible list is
   // known — separated from loadAll so it re-runs once appStartDate resolves
@@ -118,6 +158,7 @@ export default function ReconciliationPage() {
       const results = await loadMonths(fy)
       const updated = results.find((m) => m.year === selected.year && m.month === selected.month)
       setSelected(updated || null)
+      await loadHistory()
     } catch (err) {
       setError(err.message || 'Failed to submit reconciliation')
     } finally {
@@ -135,6 +176,7 @@ export default function ReconciliationPage() {
       const results = await loadMonths(fy)
       const updated = results.find((m) => m.year === selected.year && m.month === selected.month)
       setSelected(updated || null)
+      await loadHistory()
     } catch (err) {
       setError(err.message || 'Failed to save notes')
     } finally {
@@ -169,6 +211,7 @@ export default function ReconciliationPage() {
       const results = await loadMonths(fy)
       const updated = results.find((m) => m.year === selected.year && m.month === selected.month)
       setSelected(updated || null)
+      await loadHistory()
     } catch (err) {
       setError(err.message || 'Failed to save the correction')
     } finally {
@@ -405,6 +448,54 @@ export default function ReconciliationPage() {
           )}
         </div>
       )}
+
+      <h2 className="kt-panel-title" style={{ marginTop: 32 }}>
+        Reconciliation history
+      </h2>
+      {historyLoading ? (
+        <p className="kt-page-subtitle">Loading history…</p>
+      ) : history.length === 0 ? (
+        <div className="kt-categories-empty">No reconciliations recorded yet.</div>
+      ) : (
+        <div className="kt-table-scroll">
+          <table className="kt-invoices-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Calculated Balance</th>
+                <th>Actual Balance</th>
+                <th>Discrepancy</th>
+                <th>Reconciled By</th>
+                <th>Reconciled At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((r) => (
+                <tr key={r.id}>
+                  <td>{new Date(`${r.month}T00:00:00`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</td>
+                  <td>{formatCurrency(r.calculated_balance)}</td>
+                  <td>{formatCurrency(r.actual_balance)}</td>
+                  <td className={`kt-tone-${discrepancyTone(r.suggested_reason)}`}>
+                    {formatCurrency(r.discrepancy)}
+                  </td>
+                  <td>{r.reconciled_by_username || 'someone'}</td>
+                  <td>{new Date(r.reconciled_at).toLocaleString('en-GB')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <PaginationBar
+        pagination={historyPagination}
+        perPage={perPage}
+        onPageChange={setPage}
+        onPerPageChange={setPerPage}
+        onExportCsv={handleHistoryExportCsv}
+        onExportPdf={handleHistoryExportPdf}
+        disabled={historyLoading}
+      />
     </div>
   )
 }
