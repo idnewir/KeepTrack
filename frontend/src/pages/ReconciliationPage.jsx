@@ -1,20 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useAppStartDate, isMonthVisible } from '../hooks/useAppStartDate.js'
 import { financialYearsApi, reconciliationApi } from '../utils/api.js'
-import { formatCurrency } from '../utils/format.js'
-
-function monthsInFinancialYear(fy) {
-  if (!fy) return []
-  const start = new Date(fy.start_date)
-  const months = []
-  for (let i = 0; i < 12; i++) {
-    const year = start.getFullYear()
-    const month = start.getMonth() + 1
-    months.push({ year, month })
-    start.setMonth(start.getMonth() + 1)
-  }
-  return months
-}
+import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
 
 function discrepancyTone(reason) {
   if (!reason) return ''
@@ -39,6 +27,16 @@ export default function ReconciliationPage() {
   const [submitting, setSubmitting] = useState(false)
   const [savingNotes, setSavingNotes] = useState(false)
 
+  const appStartDate = useAppStartDate(token)
+  // Phantom months before app_start_date are filtered for display here
+  // rather than skipped at fetch time — the setting can still be loading
+  // (null) when the initial fetch fires, and re-filtering the already-loaded
+  // months on every render is simpler than re-fetching once it resolves.
+  const visibleMonths = useMemo(
+    () => months.filter((m) => isMonthVisible(m.year, m.month, appStartDate)),
+    [months, appStartDate]
+  )
+
   const loadMonths = async (currentFy) => {
     const targets = monthsInFinancialYear(currentFy)
     const results = await Promise.all(
@@ -54,17 +52,7 @@ export default function ReconciliationPage() {
     try {
       const currentFy = await financialYearsApi.current(token)
       setFy(currentFy)
-      const results = await loadMonths(currentFy)
-      setSelected((prev) => {
-        if (prev) {
-          const stillThere = results.find((m) => m.year === prev.year && m.month === prev.month)
-          if (stillThere) return stillThere
-        }
-        const today = new Date()
-        const currentKey = today.getFullYear() * 100 + (today.getMonth() + 1)
-        const firstUnreconciled = results.find((m) => !m.reconciled && m.year * 100 + m.month <= currentKey)
-        return firstUnreconciled || results[0] || null
-      })
+      await loadMonths(currentFy)
     } catch (err) {
       setError(err.message || 'Failed to load reconciliation data')
     } finally {
@@ -77,6 +65,23 @@ export default function ReconciliationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
+  // Picks (or re-validates) the selected month once the visible list is
+  // known — separated from loadAll so it re-runs once appStartDate resolves
+  // after the initial fetch, not just after a fresh load.
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev) {
+        const stillVisible = visibleMonths.find((m) => m.year === prev.year && m.month === prev.month)
+        if (stillVisible) return stillVisible
+      }
+      const today = new Date()
+      const currentKey = today.getFullYear() * 100 + (today.getMonth() + 1)
+      const firstUnreconciled = visibleMonths.find((m) => !m.reconciled && m.year * 100 + m.month <= currentKey)
+      return firstUnreconciled || visibleMonths[0] || null
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleMonths])
+
   useEffect(() => {
     setActualBalanceInput(selected?.reconciliation ? String(selected.reconciliation.actual_balance) : '')
     setNotesInput(selected?.reconciliation?.discrepancy_notes || '')
@@ -87,7 +92,7 @@ export default function ReconciliationPage() {
     return today.getFullYear() * 100 + (today.getMonth() + 1)
   }, [])
 
-  const overdue = months.filter((m) => !m.reconciled && m.year * 100 + m.month < todayKey)
+  const overdue = visibleMonths.filter((m) => !m.reconciled && m.year * 100 + m.month < todayKey)
 
   const handleReconcile = async (e) => {
     e.preventDefault()
@@ -172,7 +177,7 @@ export default function ReconciliationPage() {
       )}
 
       <div className="kt-month-tiles">
-        {months.map((m) => {
+        {visibleMonths.map((m) => {
           const tone = discrepancyTone(m.reconciliation?.suggested_reason)
           const isSelected = selected && m.year === selected.year && m.month === selected.month
           const isOverdue = !m.reconciled && m.year * 100 + m.month < todayKey

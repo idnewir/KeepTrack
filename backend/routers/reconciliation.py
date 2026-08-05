@@ -10,6 +10,7 @@ from models.monthly_reconciliation import MonthlyReconciliation
 from models.schemas import ReconciliationCreate, ReconciliationOut, ReconciliationMonthOut, ReconciliationUpdate
 from models.user import User
 from services import financial_year_service as fy_service
+from services.date_service import get_effective_start_date
 from services.reconciliation_service import calculated_balance_for_month, suggest_reason
 from utils.deps import get_current_user, require_standard
 
@@ -39,7 +40,9 @@ def list_reconciliations(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    query = db.query(MonthlyReconciliation)
+    query = db.query(MonthlyReconciliation).filter(
+        MonthlyReconciliation.month >= get_effective_start_date(db)
+    )
     if financial_year_id is not None:
         query = query.filter(MonthlyReconciliation.financial_year_id == financial_year_id)
 

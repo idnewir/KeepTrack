@@ -105,6 +105,9 @@ def get_notifications(
 
     # Reconciliation overdue: intentionally not generated yet — the
     # monthly_reconciliations table/feature hasn't been built (see
-    # docs/decisions-log.md). This is the placeholder for it.
+    # docs/decisions-log.md). This is the placeholder for it. Whoever builds
+    # it should scope the overdue check to months >= date_service
+    # .get_effective_start_date(db), the same way ReconciliationPage's own
+    # client-side overdue list already only considers visible months.
 
     return notifications

@@ -43,6 +43,8 @@ export const authApi = {
   pendingUsers: (token) => request('/auth/pending-users', { token }),
   approveUser: (id, role, token) =>
     request(`/auth/approve-user/${id}`, { method: 'POST', body: { role }, token }),
+  setupAppStartDate: (appStartDate) =>
+    request('/auth/setup/app-start-date', { method: 'PUT', body: { app_start_date: appStartDate } }),
 }
 
 export const categoriesApi = {
@@ -64,6 +66,7 @@ export const settingsApi = {
   list: (token) => request('/settings', { token }),
   update: (key, value, token) =>
     request(`/settings/${key}`, { method: 'PUT', body: { value }, token }),
+  clear: (key, token) => request(`/settings/${key}`, { method: 'DELETE', token }),
 }
 
 export const financialYearsApi = {

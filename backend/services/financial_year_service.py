@@ -21,6 +21,7 @@ from models.contribution import Contribution
 from models.financial_year import FinancialYear
 from models.invoice import Invoice
 from models.planned_project import PlannedProject
+from services.date_service import get_effective_start_date
 
 MONTH_LABELS = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -217,9 +218,19 @@ def build_summary(db: Session, today: date | None = None) -> dict:
     monthly_forecast_base = sum(category_averages.values(), Decimal("0"))
 
     current_month_key = (today.year, today.month)
+    # Months before app_start_date (or, if unset, before the FY start — a
+    # no-op) are dropped entirely from the chart rather than shown as empty
+    # rows. See docs/decisions-log.md.
+    effective_start = get_effective_start_date(db, today)
+    effective_start_key = (effective_start.year, effective_start.month)
+
     breakdown = []
     elapsed_months = 0
+    visible_elapsed_spend = Decimal("0")
     for (y, m) in months:
+        if (y, m) < effective_start_key:
+            continue
+
         is_elapsed = (y, m) <= current_month_key
         actual_spend = invoice_month_totals.get((y, m), Decimal("0"))
         actual_income = contribution_month_totals.get(m, Decimal("0"))
@@ -227,6 +238,7 @@ def build_summary(db: Session, today: date | None = None) -> dict:
 
         if is_elapsed:
             elapsed_months += 1
+            visible_elapsed_spend += actual_spend
             forecast_spend = actual_spend
         else:
             forecast_spend = monthly_forecast_base + planned_cost
@@ -242,7 +254,12 @@ def build_summary(db: Session, today: date | None = None) -> dict:
             "is_elapsed": is_elapsed,
         })
 
-    monthly_average_cost = (total_spent / Decimal(elapsed_months)) if elapsed_months else Decimal("0")
+    # Matches the visible breakdown above (elapsed months from app_start_date
+    # onwards), not the whole financial year, so it reads as "average since
+    # you started tracking" rather than being diluted by hidden months.
+    monthly_average_cost = (
+        (visible_elapsed_spend / Decimal(elapsed_months)) if elapsed_months else Decimal("0")
+    )
 
     projects = active_planned_projects(db, fy)
     planned_projects = [

@@ -146,7 +146,7 @@ class InvoiceSignRequest(BaseModel):
 class SettingOut(BaseModel):
     id: int
     key: str
-    value: str
+    value: str | None
     updated_by: int | None
     updated_at: datetime
 
@@ -155,6 +155,10 @@ class SettingOut(BaseModel):
 
 class SettingUpdate(BaseModel):
     value: str = Field(min_length=1, max_length=500)
+
+
+class SetupAppStartDateRequest(BaseModel):
+    app_start_date: date | None = None
 
 
 class DashboardFinancialYear(BaseModel):

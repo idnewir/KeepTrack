@@ -35,3 +35,22 @@ def update_setting(
     db.commit()
     db.refresh(setting)
     return setting
+
+
+@router.delete("/{key}", response_model=SettingOut)
+def clear_setting(
+    key: str,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Clear a setting back to "not set" (NULL) rather than deleting the row —
+    e.g. app_start_date's "Clear" button, which should show all months again."""
+    setting = db.query(Setting).filter(Setting.key == key).first()
+    if setting is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Setting not found")
+
+    setting.value = None
+    setting.updated_by = admin.id
+    db.commit()
+    db.refresh(setting)
+    return setting

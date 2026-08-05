@@ -11,6 +11,8 @@ from models.schemas import (
     MFAVerifyRequest,
     RegisterRequest,
     RegisterResponse,
+    SettingOut,
+    SetupAppStartDateRequest,
     SetupRequest,
     SetupResponse,
     SetupStatusResponse,
@@ -18,14 +20,17 @@ from models.schemas import (
     UserOut,
     ASSIGNABLE_ROLES,
 )
+from models.setting import Setting
 from models.user import User
 from services.auth_service import (
     build_otpauth_uri,
     generate_mfa_secret,
     generate_qr_code_base64,
     no_setup_users_exist,
+    sole_setup_admin,
     verify_totp_code,
 )
+from services.date_service import APP_START_DATE_KEY
 from utils.crypto import decrypt_secret, encrypt_secret
 from utils.deps import get_current_user, require_admin
 from utils.security import (
@@ -77,6 +82,28 @@ def setup(payload: SetupRequest, db: Session = Depends(get_db)):
         otpauth_uri=otpauth_uri,
         qr_code_png_base64=generate_qr_code_base64(otpauth_uri),
     )
+
+
+@router.put("/setup/app-start-date", response_model=SettingOut)
+def set_setup_app_start_date(payload: SetupAppStartDateRequest, db: Session = Depends(get_db)):
+    """Setup wizard step 3 ("When did you start using Keep Track?"). Unauthenticated
+    like /auth/setup itself, but only usable in the same narrow window — see
+    services.auth_service.sole_setup_admin and docs/decisions-log.md. The
+    Settings page's own app_start_date control (PUT /settings/app_start_date)
+    is the one to use for every later change."""
+    admin = sole_setup_admin(db)
+    if admin is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Setup has already been completed")
+
+    setting = db.query(Setting).filter(Setting.key == APP_START_DATE_KEY).first()
+    if setting is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Setting not found")
+
+    setting.value = payload.app_start_date.isoformat() if payload.app_start_date else None
+    setting.updated_by = admin.id
+    db.commit()
+    db.refresh(setting)
+    return setting
 
 
 @router.post("/login", response_model=LoginResponse)

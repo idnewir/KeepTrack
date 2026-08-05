@@ -9,7 +9,10 @@ class Setting(Base):
 
     id = Column(Integer, primary_key=True)
     key = Column(String(100), unique=True, nullable=False)
-    value = Column(String(500), nullable=False)
+    # Nullable: a setting can be "not set" (e.g. app_start_date before an
+    # Admin configures it) rather than only ever holding a sentinel string.
+    # See docs/decisions-log.md.
+    value = Column(String(500), nullable=True)
     # Nullable: the seeded default row (migration 0007) isn't created by any
     # user. See docs/decisions-log.md.
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)

@@ -45,6 +45,19 @@ def no_setup_users_exist(db: Session) -> bool:
     return count == 0
 
 
+def sole_setup_admin(db: Session) -> User | None:
+    """The Admin just created by the setup wizard, if it's still the only
+    non-Superadmin account — the narrow window the wizard's optional
+    app-start-date step (SetupPage) writes in, before any access token
+    exists (POST /auth/setup never logs the new Admin in — MFA hasn't been
+    verified yet). Returns None once a second user exists, closing the
+    window for good. See docs/decisions-log.md."""
+    non_superadmins = db.query(User).filter(User.role != "superadmin").all()
+    if len(non_superadmins) == 1 and non_superadmins[0].role == "admin":
+        return non_superadmins[0]
+    return None
+
+
 def ensure_superadmin(db: Session) -> None:
     """Create the Superadmin account from env vars if it doesn't exist yet.
 

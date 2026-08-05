@@ -13,6 +13,19 @@ export function formatMonthYear(dateStr) {
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
 }
 
+// The 12 (year, month) pairs of a financial year, in order — shared by any
+// page that needs to walk every month of the FY (Contributions, Reconciliation).
+export function monthsInFinancialYear(fy) {
+  if (!fy) return []
+  const start = new Date(fy.start_date)
+  const months = []
+  for (let i = 0; i < 12; i++) {
+    months.push({ year: start.getFullYear(), month: start.getMonth() + 1 })
+    start.setMonth(start.getMonth() + 1)
+  }
+  return months
+}
+
 // Urgency of a planned project's expected_month relative to today — used to
 // amber/red-highlight projects on both the Projects page and the dashboard
 // panel, per docs/features.md#5 ("within 60 days" / "expected month has

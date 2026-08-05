@@ -16,6 +16,7 @@ from models.schemas import (
 )
 from models.user import User
 from services import financial_year_service as fy_service
+from services.date_service import get_effective_start_date
 from services.reconciliation_service import calculated_balance_for_month
 from utils.deps import get_current_user, require_admin, require_standard
 
@@ -66,8 +67,13 @@ def monthly_summary(
         by_month.setdefault(c.month, {})
         by_month[c.month][c.group_name] = by_month[c.month].get(c.group_name, Decimal("0")) + c.amount
 
+    effective_start = get_effective_start_date(db)
+    effective_start_key = (effective_start.year, effective_start.month)
+
     rows = []
     for (year, month) in fy_service.month_sequence(fy):
+        if (year, month) < effective_start_key:
+            continue
         month_contributions = by_month.get(month, {})
         breakdown = {group: month_contributions.get(group, Decimal("0")) for group in groups}
         total = sum(breakdown.values(), Decimal("0"))

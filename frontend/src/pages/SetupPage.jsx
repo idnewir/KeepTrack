@@ -2,11 +2,17 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthCard from '../components/AuthCard.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { authApi } from '../utils/api.js'
+
+function currentMonthValue() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
 
 export default function SetupPage() {
   const { completeSetup, markSetupComplete } = useAuth()
   const navigate = useNavigate()
-  const [step, setStep] = useState('form') // 'form' | 'qr' | 'done'
+  const [step, setStep] = useState('form') // 'form' | 'qr' | 'start-date' | 'done'
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -14,6 +20,10 @@ export default function SetupPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [setupData, setSetupData] = useState(null)
+
+  const [startMonth, setStartMonth] = useState(currentMonthValue)
+  const [savingStartDate, setSavingStartDate] = useState(false)
+  const [startDateError, setStartDateError] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -50,9 +60,62 @@ export default function SetupPage() {
           Can't scan? Enter this code manually:
         </p>
         <div className="kt-auth-secret">{setupData.mfa_secret}</div>
-        <button className="kt-auth-button" type="button" onClick={() => setStep('done')}>
+        <button className="kt-auth-button" type="button" onClick={() => setStep('start-date')}>
           I've scanned it — continue
         </button>
+      </AuthCard>
+    )
+  }
+
+  if (step === 'start-date') {
+    const saveStartDate = async (appStartDate) => {
+      setStartDateError('')
+      setSavingStartDate(true)
+      try {
+        await authApi.setupAppStartDate(appStartDate)
+        setStep('done')
+      } catch (err) {
+        setStartDateError(err.message || 'Failed to save')
+      } finally {
+        setSavingStartDate(false)
+      }
+    }
+
+    return (
+      <AuthCard
+        title="When did you start using Keep Track?"
+        subtitle="We will only show data from this date onwards. You can change this later in Settings."
+      >
+        {startDateError && <div className="kt-auth-error">{startDateError}</div>}
+        <form
+          className="kt-auth-form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            saveStartDate(`${startMonth}-01`)
+          }}
+        >
+          <div className="kt-field">
+            <label htmlFor="app-start-month">Start month</label>
+            <input
+              id="app-start-month"
+              type="month"
+              value={startMonth}
+              onChange={(e) => setStartMonth(e.target.value)}
+              required
+            />
+          </div>
+          <button className="kt-auth-button" type="submit" disabled={savingStartDate}>
+            {savingStartDate ? 'Saving…' : 'Confirm'}
+          </button>
+          <button
+            className="kt-auth-button kt-auth-button-secondary"
+            type="button"
+            disabled={savingStartDate}
+            onClick={() => saveStartDate(null)}
+          >
+            Skip for now
+          </button>
+        </form>
       </AuthCard>
     )
   }

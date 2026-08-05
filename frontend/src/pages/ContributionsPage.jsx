@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useAppStartDate, isMonthVisible } from '../hooks/useAppStartDate.js'
 import { contributionsApi, financialYearsApi } from '../utils/api.js'
-import { formatCurrency } from '../utils/format.js'
+import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
 
 // Full terminology settings (letting an org rename "Contributions" to
 // "Income", "Donations", etc.) come later — this is the one place that
@@ -38,6 +39,22 @@ export default function ContributionsPage() {
 
   const [confirmingId, setConfirmingId] = useState(null)
   const [busyId, setBusyId] = useState(null)
+
+  const appStartDate = useAppStartDate(token)
+  // The monthly-summary table's rows already come pre-filtered from
+  // GET /contributions/monthly-summary (backend/routers/contributions.py),
+  // but "All entries" reads from the separate, unfiltered GET /contributions
+  // list — so it needs its own client-side filter, using the FY's own
+  // month->year mapping since a bare contribution only carries a month number.
+  const monthYearByNumber = useMemo(() => {
+    const map = {}
+    for (const { year, month } of monthsInFinancialYear(fy)) map[month] = year
+    return map
+  }, [fy])
+  const visibleContributions = useMemo(
+    () => contributions.filter((c) => isMonthVisible(monthYearByNumber[c.month], c.month, appStartDate)),
+    [contributions, monthYearByNumber, appStartDate]
+  )
 
   const loadAll = async () => {
     setLoading(true)
@@ -360,13 +377,13 @@ export default function ContributionsPage() {
       <h2 className="kt-panel-title" style={{ marginTop: 32 }}>
         All entries
       </h2>
-      {contributions.length === 0 ? (
+      {visibleContributions.length === 0 ? (
         <div className="kt-categories-empty">
           No {INCOME_LABEL.toLowerCase()} entries yet.
         </div>
       ) : (
         <ul className="kt-categories-list">
-          {contributions.map((c) => (
+          {visibleContributions.map((c) => (
             <li key={c.id} className="kt-category-row">
               {editingId === c.id ? (
                 <>

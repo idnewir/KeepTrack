@@ -109,6 +109,12 @@
   cursor: not-allowed;
 }
 
+.kt-auth-button-secondary {
+  background: none;
+  color: var(--kt-text);
+  border: 1px solid var(--kt-border);
+}
+
 .kt-auth-error {
   background: #fdecec;
   color: #a83232;
