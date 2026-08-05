@@ -9,8 +9,8 @@ const COLOURS = {
 }
 
 const WIDTH = 720
-const HEIGHT = 320
-const MARGIN = { top: 16, right: 16, bottom: 32, left: 64 }
+const HEIGHT = 196
+const MARGIN = { top: 10, right: 16, bottom: 24, left: 64 }
 const INNER_WIDTH = WIDTH - MARGIN.left - MARGIN.right
 const INNER_HEIGHT = HEIGHT - MARGIN.top - MARGIN.bottom
 

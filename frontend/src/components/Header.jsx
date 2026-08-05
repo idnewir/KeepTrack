@@ -43,12 +43,19 @@ export default function Header({ onMenuClick }) {
       </button>
 
       <Link to="/" className="kt-brand" aria-label="Keep Track home">
-        <Logo size={28} />
-        <span className="kt-wordmark">
-          <span style={{ color: 'var(--kt-primary)' }}>Keep</span>{' '}
-          <span style={{ color: 'var(--kt-text)' }}>Track</span>
-          {showSiteName && <span className="kt-wordmark-site"> — {siteName}</span>}
+        <span className="kt-brand-logo-group">
+          <Logo size={28} />
+          <span className="kt-wordmark">
+            <span className="kt-wordmark-keep">Keep</span>{' '}
+            <span className="kt-wordmark-track">Track</span>
+          </span>
         </span>
+        {showSiteName && (
+          <span className="kt-brand-instance">
+            <span className="kt-brand-divider" aria-hidden="true" />
+            <span className="kt-instance-name">{siteName}</span>
+          </span>
+        )}
       </Link>
 
       {user && (

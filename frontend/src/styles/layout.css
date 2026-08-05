@@ -45,13 +45,18 @@
 .kt-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
   text-decoration: none;
   transition: opacity 0.15s ease;
 }
 
 .kt-brand:hover {
   opacity: 0.75;
+}
+
+.kt-brand-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .kt-header-user {
@@ -136,16 +141,40 @@
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  line-height: 1;
 }
 
-.kt-wordmark-site {
-  font-size: 15px;
+.kt-wordmark-keep {
+  color: var(--kt-primary);
+}
+
+.kt-wordmark-track {
+  color: var(--kt-text);
+}
+
+.kt-brand-instance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 12px;
+}
+
+.kt-brand-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--kt-border);
+  flex-shrink: 0;
+}
+
+.kt-instance-name {
+  font-size: 14px;
   font-weight: 500;
-  color: #6b6b67;
+  color: #5F5E5A;
+  white-space: nowrap;
 }
 
 @media (max-width: 520px) {
-  .kt-wordmark-site {
+  .kt-brand-instance {
     display: none;
   }
 }
@@ -219,18 +248,18 @@
 
 .kt-main {
   flex: 1;
-  padding: 32px;
+  padding: 24px 32px 32px;
   overflow-y: auto;
 }
 
 .kt-page-title {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   font-size: 26px;
   font-weight: 600;
 }
 
 .kt-page-subtitle {
-  margin: 0 0 28px;
+  margin: 0 0 16px;
   color: #6b6b67;
   font-size: 15px;
 }

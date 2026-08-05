@@ -87,7 +87,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .kt-metric-card {
@@ -150,8 +150,8 @@
   background: var(--kt-surface);
   border: 1px solid var(--kt-border);
   border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
+  padding: 16px 24px;
+  margin-bottom: 14px;
 }
 
 .kt-panel-title {
@@ -161,7 +161,7 @@
 }
 
 .kt-panel-subtitle {
-  margin: 0 0 16px;
+  margin: 0 0 10px;
   font-size: 13px;
   color: #6b6b67;
 }
@@ -304,7 +304,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .kt-chart-legend-item {
