@@ -86,6 +86,12 @@ export function AuthProvider({ children }) {
   }
 
   const logout = () => {
+    // Best-effort audit hook — JWTs are stateless, so logging out is really
+    // just discarding the local token; the request just records the event
+    // and is never allowed to block or fail the actual client-side logout.
+    if (user?.token) {
+      authApi.logout(user.token).catch(() => {})
+    }
     localStorage.removeItem(TOKEN_KEY)
     setUser(null)
     setTempToken(null)

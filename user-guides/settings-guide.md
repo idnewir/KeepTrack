@@ -59,6 +59,33 @@ Anyone who self-registers shows up here first, with their username, email, and r
 - **Approve** — pick their role from the dropdown (Admin, Standard, or Read only) and click **Approve**. They can log in from that point on.
 - **Reject** — click **Reject** and confirm to turn away a registration you don't recognise or don't want. This removes the registration entirely; they'd need to register again if that was a mistake.
 
+### Logs
+
+Keep Track automatically manages your logs to keep the app fast and your data clean. Audit logs are archived every 90 days — archived entries are kept permanently and can be exported at any time. Error logs are automatically deleted after 90 days. These settings cannot be changed to ensure data integrity.
+
+To get there: **Settings → Logs** (only Admins and the Superadmin see this sub-item). There are two tabs — **Audit log** and **Error log**.
+
+#### Audit log
+
+A record of who did what and when — logins, uploads, edits, deletions, approvals, settings changes, and more. The status bar at the top shows how many entries are currently active (the last 90 days), how many have been permanently archived, and when the log was last archived.
+
+- **Filter** by user, action type, or a date range.
+- **Click a row** to expand it and see full detail — before/after values for an edit, the IP address for a login, or which record was affected.
+- Rows are colour-coded down the left edge: green for things being created, blue for edits and updates, amber for settings changes, and red for deletions and security events (failed logins, deactivations, a system reset).
+- **Include archive** — tick this to switch the table over to the permanent archive instead of the last 90 days. A banner makes it clear you're looking at archived, read-only history.
+- **Archive now** — normally archiving happens automatically every 90 days, but an Admin can trigger it immediately from here if needed.
+- **Export CSV** — exports whatever's currently filtered (and switches to exporting the archive too, if that toggle is on).
+
+#### Error log
+
+A rolling record of things that went wrong in the background — a failed AI extraction, a PDF that couldn't be signed, a failed login, or an unexpected error — kept for 90 days and then automatically deleted. The status bar shows the total in the last 90 days, a breakdown by severity, and when the log was last cleaned up.
+
+- **Filter** by severity, source, or a date range.
+- **Click a row** to see the full technical detail (stack trace), useful if you need to pass it on for troubleshooting.
+- Severity is shown as a coloured badge: blue for Info, amber for Warning, red for Error, and a pulsing dark red for Critical — critical entries are worth checking promptly.
+- If any critical errors appear in the last 7 days, Admins and the Superadmin see a banner on the Dashboard linking straight here.
+- **Export CSV** — exports whatever's currently filtered.
+
 ### Watched folder
 
 Set the network folder path that Keep Track should watch for new invoice files (if your organisation uses this feature).

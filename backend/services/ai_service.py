@@ -13,6 +13,7 @@ import base64
 import logging
 import json
 import re
+import traceback
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
@@ -22,6 +23,7 @@ from sqlalchemy.orm import Session
 from config import settings
 from models.category import Category
 from models.invoice import Invoice
+from services import error_service
 
 logger = logging.getLogger("keep_track.ai")
 
@@ -69,10 +71,20 @@ def _build_system_prompt(categories: list[Category]) -> str:
     )
 
 
-def extract_invoice_data(pdf_bytes: bytes, categories: list[Category]) -> dict:
-    """Extract invoice_date, supplier, amount, category_id, and notes from a PDF."""
+def extract_invoice_data(pdf_bytes: bytes, categories: list[Category], db: Session | None = None) -> dict:
+    """Extract invoice_date, supplier, amount, category_id, and notes from a PDF.
+
+    `db`, if given, lets failures be recorded to error_log (source
+    'ai_extraction') as well as the existing logger — optional so this
+    function stays callable without a DB session wherever that's convenient.
+    """
     if not settings.anthropic_api_key:
         logger.warning("ANTHROPIC_API_KEY not set; skipping AI extraction")
+        if db is not None:
+            error_service.log_error(
+                db, "warning", "ai_extraction",
+                "ANTHROPIC_API_KEY not set — AI extraction skipped, fields left empty",
+            )
         return dict(EMPTY_EXTRACTION)
 
     try:
@@ -101,21 +113,30 @@ def extract_invoice_data(pdf_bytes: bytes, categories: list[Category]) -> dict:
                 }
             ],
         )
-    except Exception:
+    except Exception as exc:
         logger.exception("Anthropic API call failed during invoice extraction")
+        if db is not None:
+            error_service.log_error(
+                db, "error", "ai_extraction", f"Anthropic API call failed during invoice extraction: {exc}",
+                stack_trace=traceback.format_exc(),
+            )
         return dict(EMPTY_EXTRACTION)
 
     text = "".join(block.text for block in response.content if block.type == "text")
-    return _parse_extraction_response(text)
+    return _parse_extraction_response(text, db)
 
 
-def _parse_extraction_response(text: str) -> dict:
+def _parse_extraction_response(text: str, db: Session | None = None) -> dict:
     cleaned = _JSON_FENCE_RE.sub("", text.strip()).strip()
 
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError:
         logger.warning("Could not parse AI extraction response as JSON: %r", text[:500])
+        if db is not None:
+            error_service.log_error(
+                db, "warning", "ai_extraction", "Could not parse AI extraction response as JSON",
+            )
         return dict(EMPTY_EXTRACTION)
 
     if not isinstance(data, dict):
@@ -261,16 +282,22 @@ _REPORT_SYSTEM_PROMPT = (
 )
 
 
-def generate_report_summary(report_data: dict, site_name: str) -> dict:
+def generate_report_summary(report_data: dict, site_name: str, db: Session | None = None) -> dict:
     """Ask Claude to narrate a report's pre-calculated figures for a general audience.
 
     Any failure (no API key, API error, unparsable response) degrades to
     EMPTY_REPORT_SUMMARY rather than raising, so a report can still be generated
     (with the AI sections simply left blank) if the AI call doesn't succeed —
     matching the same graceful-degradation rule invoice extraction follows.
+    `db`, if given, also records failures to error_log (source 'ai_report_summary').
     """
     if not settings.anthropic_api_key:
         logger.warning("ANTHROPIC_API_KEY not set; skipping AI report summary")
+        if db is not None:
+            error_service.log_error(
+                db, "warning", "ai_report_summary",
+                "ANTHROPIC_API_KEY not set — AI report summary skipped",
+            )
         return dict(EMPTY_REPORT_SUMMARY)
 
     context = _build_report_context(report_data, site_name)
@@ -293,21 +320,30 @@ def generate_report_summary(report_data: dict, site_name: str) -> dict:
                 }
             ],
         )
-    except Exception:
+    except Exception as exc:
         logger.exception("Anthropic API call failed during report summary generation")
+        if db is not None:
+            error_service.log_error(
+                db, "error", "ai_report_summary", f"Anthropic API call failed during report summary generation: {exc}",
+                stack_trace=traceback.format_exc(),
+            )
         return dict(EMPTY_REPORT_SUMMARY)
 
     text = "".join(block.text for block in response.content if block.type == "text")
-    return _parse_report_summary_response(text)
+    return _parse_report_summary_response(text, db)
 
 
-def _parse_report_summary_response(text: str) -> dict:
+def _parse_report_summary_response(text: str, db: Session | None = None) -> dict:
     cleaned = _JSON_FENCE_RE.sub("", text.strip()).strip()
 
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError:
         logger.warning("Could not parse AI report summary response as JSON: %r", text[:500])
+        if db is not None:
+            error_service.log_error(
+                db, "warning", "ai_report_summary", "Could not parse AI report summary response as JSON",
+            )
         return dict(EMPTY_REPORT_SUMMARY)
 
     if not isinstance(data, dict):

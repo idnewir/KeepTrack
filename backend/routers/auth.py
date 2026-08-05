@@ -3,7 +3,7 @@ import secrets
 import string
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from config import settings
@@ -32,6 +32,7 @@ from models.schemas import (
 )
 from models.setting import Setting
 from models.user import User
+from services import audit_service, error_service
 from services.auth_service import (
     build_otpauth_uri,
     generate_mfa_secret,
@@ -58,6 +59,10 @@ from utils.security import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _client_ip(request: Request) -> str | None:
+    return request.client.host if request.client else None
 
 
 @router.get("/setup-status", response_model=SetupStatusResponse)
@@ -87,6 +92,11 @@ def setup(payload: SetupRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    audit_service.log_action(
+        db, "user.created", f"First Admin account '{user.username}' created via setup wizard",
+        user_id=user.id, affected_table="users", affected_record_id=user.id,
+    )
 
     otpauth_uri = build_otpauth_uri(secret, user.email)
     return SetupResponse(
@@ -128,17 +138,35 @@ def set_setup_app_start_date(payload: SetupAppStartDateRequest, db: Session = De
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    ip_address = _client_ip(request)
     user = db.query(User).filter(User.username == payload.username).first()
     # Always run the bcrypt comparison, even for an unknown username, so the
     # response time doesn't reveal whether the username exists.
     password_hash = user.password_hash if user else DUMMY_PASSWORD_HASH
     password_ok = verify_password(payload.password, password_hash)
     if user is None or not password_ok:
+        audit_service.log_action(
+            db, "user.login_failed", f"Failed login attempt for username '{payload.username}'",
+            user_id=user.id if user else None, ip_address=ip_address,
+            metadata={"reason": "invalid_credentials"},
+        )
+        error_service.log_error(
+            db, "warning", "auth", f"Failed login attempt for username '{payload.username}'",
+            request_path=str(request.url.path),
+        )
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid username or password")
     if not user.approved:
+        audit_service.log_action(
+            db, "user.login_failed", f"Login attempt for unapproved account '{user.username}'",
+            user_id=user.id, ip_address=ip_address, metadata={"reason": "pending_approval"},
+        )
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account pending approval")
     if not user.is_active:
+        audit_service.log_action(
+            db, "user.login_failed", f"Login attempt for deactivated account '{user.username}'",
+            user_id=user.id, ip_address=ip_address, metadata={"reason": "deactivated"},
+        )
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
             "Your account has been deactivated. Please contact an Administrator.",
@@ -151,6 +179,10 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     if user.role == "superadmin":
         user.last_login = datetime.now(timezone.utc)
         db.commit()
+        audit_service.log_action(
+            db, "user.login", f"Successful login for '{user.username}'",
+            user_id=user.id, ip_address=ip_address,
+        )
 
         access_token = create_token(
             subject=user.id,
@@ -175,7 +207,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/verify-mfa", response_model=TokenResponse)
-def verify_mfa(payload: MFAVerifyRequest, db: Session = Depends(get_db)):
+def verify_mfa(payload: MFAVerifyRequest, request: Request, db: Session = Depends(get_db)):
+    ip_address = _client_ip(request)
     try:
         claims = decode_token(payload.temp_token, expected_scope=SCOPE_MFA)
     except TokenError as exc:
@@ -191,10 +224,22 @@ def verify_mfa(payload: MFAVerifyRequest, db: Session = Depends(get_db)):
         )
 
     if not verify_totp_code(decrypt_secret(user.mfa_secret), payload.code):
+        audit_service.log_action(
+            db, "user.mfa_failed", f"Failed MFA attempt for '{user.username}'",
+            user_id=user.id, ip_address=ip_address,
+        )
+        error_service.log_error(
+            db, "warning", "auth", f"Failed MFA attempt for '{user.username}'",
+            request_path=str(request.url.path), user_id=user.id,
+        )
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid authentication code")
 
     user.last_login = datetime.now(timezone.utc)
     db.commit()
+    audit_service.log_action(
+        db, "user.login", f"Successful login for '{user.username}'",
+        user_id=user.id, ip_address=ip_address,
+    )
 
     access_token = create_token(
         subject=user.id,
@@ -203,6 +248,19 @@ def verify_mfa(payload: MFAVerifyRequest, db: Session = Depends(get_db)):
         extra_claims={"role": user.role},
     )
     return TokenResponse(access_token=access_token, expires_in_minutes=settings.jwt_expiry_minutes)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Purely an audit hook — JWTs are stateless, so there is no server-side
+    session to actually invalidate; the frontend just discards its token.
+    See docs/decisions-log.md."""
+    audit_service.log_action(
+        db, "user.logout", f"'{user.username}' logged out", user_id=user.id,
+    )
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
@@ -224,6 +282,11 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    audit_service.log_action(
+        db, "user.created", f"'{user.username}' self-registered (pending approval)",
+        user_id=user.id, affected_table="users", affected_record_id=user.id,
+    )
 
     # Shown once, now, since there is no other point in the registration flow
     # where the user will see it — they need it set up before an Admin
@@ -248,7 +311,7 @@ def approve_user(
     user_id: int,
     payload: ApproveUserRequest,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     if payload.role not in ASSIGNABLE_ROLES:
         raise HTTPException(
@@ -264,6 +327,12 @@ def approve_user(
     user.approved = True
     db.commit()
     db.refresh(user)
+
+    audit_service.log_action(
+        db, "user.approved", f"'{user.username}' approved as {payload.role}",
+        user_id=admin.id, affected_table="users", affected_record_id=user.id,
+        metadata={"role": payload.role},
+    )
     return user
 
 
@@ -339,9 +408,16 @@ def update_user_role(
 
     _reject_action_on_self_or_superadmin(user, admin, "change the role of")
 
+    previous_role = user.role
     user.role = payload.role
     db.commit()
     db.refresh(user)
+
+    audit_service.log_action(
+        db, "user.role_changed", f"Role for '{user.username}' changed from {previous_role} to {payload.role}",
+        user_id=admin.id, affected_table="users", affected_record_id=user.id,
+        metadata={"before": previous_role, "after": payload.role},
+    )
     return user
 
 
@@ -360,6 +436,11 @@ def deactivate_user(
     user.is_active = False
     db.commit()
     db.refresh(user)
+
+    audit_service.log_action(
+        db, "user.deactivated", f"'{user.username}' deactivated",
+        user_id=admin.id, affected_table="users", affected_record_id=user.id,
+    )
     return user
 
 
@@ -367,7 +448,7 @@ def deactivate_user(
 def reactivate_user(
     user_id: int,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     user = db.get(User, user_id)
     if user is None:
@@ -376,6 +457,11 @@ def reactivate_user(
     user.is_active = True
     db.commit()
     db.refresh(user)
+
+    audit_service.log_action(
+        db, "user.reactivated", f"'{user.username}' reactivated",
+        user_id=admin.id, affected_table="users", affected_record_id=user.id,
+    )
     return user
 
 
@@ -398,6 +484,11 @@ def reset_user_password(
     user.must_change_password = True
     db.commit()
 
+    audit_service.log_action(
+        db, "user.password_reset", f"Password reset by Admin for '{user.username}'",
+        user_id=admin.id, affected_table="users", affected_record_id=user.id,
+    )
+
     return PasswordResetOut(temporary_password=temporary_password, must_change_password=True)
 
 
@@ -405,7 +496,7 @@ def reset_user_password(
 def reject_user(
     user_id: int,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     user = db.get(User, user_id)
     if user is None:
@@ -413,8 +504,13 @@ def reject_user(
     if user.approved:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cannot reject an already-approved user")
 
+    username = user.username
     db.delete(user)
     db.commit()
+
+    audit_service.log_action(
+        db, "user.rejected", f"Registration for '{username}' rejected", user_id=admin.id,
+    )
 
 
 @router.get("/me", response_model=UserOut)
@@ -452,6 +548,11 @@ def change_my_password(
     user.must_change_password = False
     db.commit()
     db.refresh(user)
+
+    audit_service.log_action(
+        db, "user.password_changed", f"'{user.username}' changed their own password",
+        user_id=user.id, affected_table="users", affected_record_id=user.id,
+    )
     return user
 
 
@@ -469,4 +570,10 @@ def force_change_my_password(
     user.must_change_password = False
     db.commit()
     db.refresh(user)
+
+    audit_service.log_action(
+        db, "user.password_changed", f"'{user.username}' set a new password (forced change)",
+        user_id=user.id, affected_table="users", affected_record_id=user.id,
+        metadata={"forced": True},
+    )
     return user

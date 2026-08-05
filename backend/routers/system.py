@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.schemas import SystemResetRequest, SystemResetResponse
 from models.user import User
+from services import audit_service
 from services.system_reset_service import (
     RATE_LIMIT_MAX_ATTEMPTS,
     RESET_CONFIRMATION_PHRASE,
@@ -64,7 +65,14 @@ def system_reset(
 
     # Logged and committed before anything is deleted, per the security
     # requirement — this row survives even if the reset below fails partway.
+    # Two separate logs, deliberately: system_events (rate-limiting, already
+    # exempt from the reset itself) and audit_log (the new, user-facing Logs
+    # viewer) — see docs/decisions-log.md.
     log_reset_event(db, "system_reset_success", user.id, {"wipe_files": payload.wipe_files})
+    audit_service.log_action(
+        db, "system.reset", f"System reset performed by '{user.username}' (wipe_files={payload.wipe_files})",
+        user_id=user.id,
+    )
 
     perform_reset(db, wipe_files=payload.wipe_files)
 

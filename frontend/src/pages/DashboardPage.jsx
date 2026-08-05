@@ -23,6 +23,9 @@ function notificationLink(notification) {
       return '/reconciliation'
     case 'planned_project_overdue':
       return '/projects'
+    case 'critical_errors_detected':
+    case 'audit_log_archived':
+      return notification.link || '/settings?section=logs'
     default:
       return notification.link || '/'
   }

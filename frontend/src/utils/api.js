@@ -40,6 +40,7 @@ export const authApi = {
   verifyMfa: (payload) => request('/auth/verify-mfa', { method: 'POST', body: payload }),
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   me: (token) => request('/auth/me', { token }),
+  logout: (token) => request('/auth/logout', { method: 'POST', token }),
   updateProfile: (payload, token) =>
     request('/auth/me/profile', { method: 'PUT', body: payload, token }),
   changePassword: (payload, token) =>
@@ -101,6 +102,54 @@ export const settingsApi = {
 
 export const systemApi = {
   reset: (payload, token) => request('/system/reset', { method: 'POST', body: payload, token }),
+}
+
+function auditLogQuery(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.userId) params.set('user_id', filters.userId)
+  if (filters.actionType) params.set('action_type', filters.actionType)
+  if (filters.dateFrom) params.set('date_from', filters.dateFrom)
+  if (filters.dateTo) params.set('date_to', filters.dateTo)
+  return params
+}
+
+function errorLogQuery(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.severity) params.set('severity', filters.severity)
+  if (filters.source) params.set('source', filters.source)
+  if (filters.dateFrom) params.set('date_from', filters.dateFrom)
+  if (filters.dateTo) params.set('date_to', filters.dateTo)
+  return params
+}
+
+export const logsApi = {
+  auditList: (filters = {}, token) => {
+    const params = auditLogQuery(filters)
+    if (filters.page) params.set('page', filters.page)
+    if (filters.perPage !== undefined) params.set('per_page', filters.perPage)
+    const qs = params.toString()
+    const path = filters.archive ? '/logs/audit/archive' : '/logs/audit'
+    return request(`${path}${qs ? `?${qs}` : ''}`, { token })
+  },
+  auditExportCsv: (filters = {}, token) => {
+    const params = auditLogQuery(filters)
+    if (filters.archive) params.set('include_archive', 'true')
+    const qs = params.toString()
+    return requestBlob(`/logs/audit/export/csv${qs ? `?${qs}` : ''}`, { token })
+  },
+  archiveNow: (token) => request('/logs/audit/archive', { method: 'POST', token }),
+  errorsList: (filters = {}, token) => {
+    const params = errorLogQuery(filters)
+    if (filters.page) params.set('page', filters.page)
+    if (filters.perPage !== undefined) params.set('per_page', filters.perPage)
+    const qs = params.toString()
+    return request(`/logs/errors${qs ? `?${qs}` : ''}`, { token })
+  },
+  errorsExportCsv: (filters = {}, token) => {
+    const qs = errorLogQuery(filters).toString()
+    return requestBlob(`/logs/errors/export/csv${qs ? `?${qs}` : ''}`, { token })
+  },
+  status: (token) => request('/logs/status', { token }),
 }
 
 export const terminologyApi = {

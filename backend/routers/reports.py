@@ -18,7 +18,7 @@ from models.category import Category
 from models.report import REPORT_TYPES, Report
 from models.schemas import PaginatedResponse, ReportGenerateRequest, ReportOut
 from models.user import User
-from services import report_service
+from services import audit_service, report_service
 from services.ai_service import generate_report_summary
 from services.pdf_report_service import generate_report_pdf
 from services.settings_service import get_site_name
@@ -125,7 +125,7 @@ def download_report(
 def delete_report(
     report_id: int,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     report = db.get(Report, report_id)
     if report is None or report.deleted:
@@ -134,6 +134,11 @@ def delete_report(
     report.deleted = True
     db.commit()
     db.refresh(report)
+
+    audit_service.log_action(
+        db, "report.deleted", f"Deleted report '{report.title}'",
+        user_id=admin.id, affected_table="reports", affected_record_id=report.id,
+    )
     return _to_out(db, report)
 
 
@@ -170,7 +175,7 @@ def generate_report(
 
     ai_summary = {"executive_summary": None, "key_insights": [], "trends_and_anomalies": None, "forward_looking_paragraph": None}
     if payload.include_ai_summary:
-        ai_summary = generate_report_summary(data, site_name)
+        ai_summary = generate_report_summary(data, site_name, db)
 
     generated_at = datetime.now(timezone.utc)
     pdf_bytes = generate_report_pdf(
@@ -206,4 +211,9 @@ def generate_report(
     db.add(report)
     db.commit()
     db.refresh(report)
+
+    audit_service.log_action(
+        db, "report.generated", f"Generated report '{report.title}'",
+        user_id=user.id, affected_table="reports", affected_record_id=report.id,
+    )
     return _to_out(db, report)

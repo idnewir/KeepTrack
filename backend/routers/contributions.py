@@ -17,7 +17,7 @@ from models.schemas import (
     PaginatedResponse,
 )
 from models.user import User
-from services import financial_year_service as fy_service
+from services import audit_service, financial_year_service as fy_service
 from services.date_service import get_effective_start_date
 from services.export_pdf_service import generate_table_export_pdf
 from services.reconciliation_service import calculated_balance_for_month
@@ -217,6 +217,11 @@ def create_contribution(
     db.add(contribution)
     db.commit()
     db.refresh(contribution)
+
+    audit_service.log_action(
+        db, "contribution.created", f"Recorded contribution of £{contribution.amount} from '{contribution.group_name}'",
+        user_id=user.id, affected_table="contributions", affected_record_id=contribution.id,
+    )
     return contribution
 
 
@@ -225,21 +230,32 @@ def update_contribution(
     contribution_id: int,
     payload: ContributionUpdate,
     db: Session = Depends(get_db),
-    _user: User = Depends(require_standard),
+    user: User = Depends(require_standard),
 ):
     contribution = db.get(Contribution, contribution_id)
     if contribution is None or contribution.deleted:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Contribution not found")
 
-    if payload.month is not None:
+    changed_fields: dict = {}
+    if payload.month is not None and payload.month != contribution.month:
+        changed_fields["month"] = {"before": contribution.month, "after": payload.month}
         contribution.month = payload.month
-    if payload.group_name is not None:
+    if payload.group_name is not None and payload.group_name != contribution.group_name:
+        changed_fields["group_name"] = {"before": contribution.group_name, "after": payload.group_name}
         contribution.group_name = payload.group_name
-    if payload.amount is not None:
+    if payload.amount is not None and payload.amount != contribution.amount:
+        changed_fields["amount"] = {"before": str(contribution.amount), "after": str(payload.amount)}
         contribution.amount = payload.amount
 
     db.commit()
     db.refresh(contribution)
+
+    if changed_fields:
+        audit_service.log_action(
+            db, "contribution.edited", f"Edited contribution from '{contribution.group_name}' ({', '.join(changed_fields)})",
+            user_id=user.id, affected_table="contributions", affected_record_id=contribution.id,
+            metadata={"changed_fields": changed_fields},
+        )
     return contribution
 
 
@@ -247,7 +263,7 @@ def update_contribution(
 def delete_contribution(
     contribution_id: int,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     contribution = db.get(Contribution, contribution_id)
     if contribution is None or contribution.deleted:
@@ -256,4 +272,9 @@ def delete_contribution(
     contribution.deleted = True
     db.commit()
     db.refresh(contribution)
+
+    audit_service.log_action(
+        db, "contribution.deleted", f"Deleted contribution from '{contribution.group_name}'",
+        user_id=admin.id, affected_table="contributions", affected_record_id=contribution.id,
+    )
     return contribution

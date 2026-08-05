@@ -1,8 +1,11 @@
 """Keep Track backend entrypoint."""
+import logging
 import os
+import traceback
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from config import settings
 from database import SessionLocal
@@ -12,12 +15,16 @@ from routers.contributions import router as contributions_router
 from routers.dashboard import router as dashboard_router
 from routers.financial_years import router as financial_years_router
 from routers.invoices import router as invoices_router
+from routers.logs import router as logs_router
 from routers.projects import router as projects_router
 from routers.reconciliation import router as reconciliation_router
 from routers.reports import router as reports_router
 from routers.settings import router as settings_router
 from routers.system import router as system_router
+from services import error_service, maintenance_service
 from services.auth_service import ensure_superadmin
+
+logger = logging.getLogger("keep_track.main")
 
 app = FastAPI(title="Keep Track API", version="0.1.0")
 
@@ -35,11 +42,38 @@ app.include_router(contributions_router)
 app.include_router(dashboard_router)
 app.include_router(financial_years_router)
 app.include_router(invoices_router)
+app.include_router(logs_router)
 app.include_router(projects_router)
 app.include_router(reconciliation_router)
 app.include_router(reports_router)
 app.include_router(settings_router)
 app.include_router(system_router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Catches anything that escapes every router's own error handling and
+    records it to error_log (source='unhandled') before returning a generic
+    500 — so a bug that nobody explicitly logged still shows up in
+    Settings → Logs rather than only in container stdout. See
+    docs/decisions-log.md."""
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    db = SessionLocal()
+    try:
+        error_service.log_error(
+            db, "critical", "unhandled", f"{type(exc).__name__}: {exc}",
+            stack_trace=traceback.format_exc(),
+            request_path=request.url.path,
+        )
+    except Exception:
+        logger.exception("Failed to record unhandled exception to error_log")
+    finally:
+        db.close()
+
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "An unexpected error occurred."},
+    )
 
 
 @app.on_event("startup")
@@ -53,6 +87,11 @@ def on_startup():
         ensure_superadmin(db)
     finally:
         db.close()
+
+    # Retention maintenance: runs once now, then a background thread fires
+    # it again every 90 days. See services/maintenance_service.py.
+    maintenance_service.run_maintenance_once()
+    maintenance_service.start_scheduler()
 
 
 @app.get("/health")

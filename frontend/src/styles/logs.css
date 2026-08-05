@@ -1,0 +1,233 @@
+/* Settings → Logs */
+
+.kt-logs-info-box {
+  border: 1px solid var(--kt-border);
+  background: var(--kt-background);
+  color: var(--kt-text-secondary);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.kt-logs-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.kt-logs-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.kt-logs-status-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--kt-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kt-logs-status-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--kt-text);
+}
+
+.kt-logs-status-value-small {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.kt-logs-status-sub {
+  font-size: 12px;
+  color: var(--kt-text-muted);
+}
+
+.kt-logs-status-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kt-logs-archive-message {
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+}
+
+.kt-logs-severity-breakdown {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kt-logs-filters {
+  margin-bottom: 16px;
+}
+
+.kt-logs-archive-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kt-text);
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.kt-logs-archive-banner {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kt-text-secondary);
+  background: var(--kt-background);
+  border: 1px dashed var(--kt-border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+}
+
+.kt-logs-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.kt-logs-table th,
+.kt-logs-table td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--kt-border);
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.kt-logs-table th {
+  font-weight: 600;
+  color: var(--kt-text-secondary);
+  background: var(--kt-background);
+}
+
+.kt-logs-table tr:last-child td {
+  border-bottom: none;
+}
+
+.kt-logs-row {
+  border-left: 3px solid transparent;
+}
+
+.kt-logs-row-green {
+  border-left-color: var(--kt-accent);
+}
+
+.kt-logs-row-blue {
+  border-left-color: var(--kt-primary);
+}
+
+.kt-logs-row-amber {
+  border-left-color: var(--kt-amber);
+}
+
+.kt-logs-row-red {
+  border-left-color: var(--kt-danger);
+}
+
+.kt-logs-row-clickable {
+  cursor: pointer;
+}
+
+.kt-logs-row-clickable:hover {
+  background: var(--kt-background);
+}
+
+.kt-logs-row-critical {
+  border-left-color: var(--kt-danger);
+  background: rgba(var(--kt-danger-rgb), 0.05);
+}
+
+.kt-logs-action-code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  color: var(--kt-text-secondary);
+}
+
+.kt-logs-detail-row td {
+  background: var(--kt-background);
+}
+
+.kt-logs-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.kt-logs-metadata {
+  margin: 4px 0 0;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.kt-severity-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.kt-severity-info {
+  color: var(--kt-primary);
+  background: rgba(var(--kt-primary-rgb), 0.12);
+}
+
+.kt-severity-warning {
+  color: var(--kt-amber-strong);
+  background: rgba(var(--kt-amber-rgb), 0.15);
+}
+
+.kt-severity-error {
+  color: var(--kt-danger);
+  background: rgba(var(--kt-danger-rgb), 0.12);
+}
+
+.kt-severity-critical {
+  color: #fff;
+  background: var(--kt-danger);
+  animation: kt-severity-critical-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes kt-severity-critical-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--kt-danger-rgb), 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(var(--kt-danger-rgb), 0);
+  }
+}

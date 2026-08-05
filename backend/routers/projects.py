@@ -9,6 +9,7 @@ from models.financial_year import FinancialYear
 from models.planned_project import PlannedProject
 from models.schemas import ProjectCreate, ProjectOut, ProjectUpdate
 from models.user import User
+from services import audit_service
 from utils.deps import get_current_user, require_admin, require_standard
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -69,6 +70,11 @@ def create_project(
     db.add(project)
     db.commit()
     db.refresh(project)
+
+    audit_service.log_action(
+        db, "project.created", f"Created planned project '{project.name}'",
+        user_id=user.id, affected_table="planned_projects", affected_record_id=project.id,
+    )
     return project
 
 
@@ -112,6 +118,11 @@ def update_project(
 
         db.commit()
         db.refresh(project)
+
+        audit_service.log_action(
+            db, "project.edited", f"Edited completed project '{project.name}' (admin override): {payload.edit_reason}",
+            user_id=user.id, affected_table="planned_projects", affected_record_id=project.id,
+        )
         return project
 
     if payload.financial_year_id is not None:
@@ -131,6 +142,11 @@ def update_project(
 
     db.commit()
     db.refresh(project)
+
+    audit_service.log_action(
+        db, "project.edited", f"Edited planned project '{project.name}'",
+        user_id=user.id, affected_table="planned_projects", affected_record_id=project.id,
+    )
     return project
 
 
@@ -138,7 +154,7 @@ def update_project(
 def deactivate_project(
     project_id: int,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     project = db.get(PlannedProject, project_id)
     if project is None:
@@ -147,6 +163,11 @@ def deactivate_project(
     project.active = False
     db.commit()
     db.refresh(project)
+
+    audit_service.log_action(
+        db, "project.deactivated", f"Deactivated planned project '{project.name}'",
+        user_id=admin.id, affected_table="planned_projects", affected_record_id=project.id,
+    )
     return project
 
 
@@ -154,7 +175,7 @@ def deactivate_project(
 def complete_project(
     project_id: int,
     db: Session = Depends(get_db),
-    _user: User = Depends(require_standard),
+    user: User = Depends(require_standard),
 ):
     project = db.get(PlannedProject, project_id)
     if project is None:
@@ -164,4 +185,9 @@ def complete_project(
     project.active = False
     db.commit()
     db.refresh(project)
+
+    audit_service.log_action(
+        db, "project.completed", f"Marked planned project '{project.name}' as complete",
+        user_id=user.id, affected_table="planned_projects", affected_record_id=project.id,
+    )
     return project

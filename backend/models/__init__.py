@@ -1,5 +1,7 @@
+from models.audit_log import AuditLog, AuditLogArchive
 from models.category import Category
 from models.contribution import Contribution
+from models.error_log import ErrorLog
 from models.financial_year import FinancialYear
 from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
@@ -11,8 +13,11 @@ from models.system_event import SystemEvent
 from models.user import User
 
 __all__ = [
+    "AuditLog",
+    "AuditLogArchive",
     "Category",
     "Contribution",
+    "ErrorLog",
     "FinancialYear",
     "Invoice",
     "InvoiceFile",

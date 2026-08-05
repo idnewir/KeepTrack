@@ -1,5 +1,6 @@
 """Invoice endpoints: upload with AI extraction, review, list, update, sign, and delete."""
 import os
+import traceback
 from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
@@ -12,6 +13,7 @@ from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
 from models.schemas import InvoiceOut, InvoiceSignRequest, InvoiceUpdate, PaginatedResponse
 from models.user import User
+from services import audit_service, error_service
 from services.ai_service import check_duplicate, extract_invoice_data
 from services.export_pdf_service import generate_table_export_pdf
 from services.preview_service import render_pdf_first_page_png
@@ -86,7 +88,7 @@ def upload_invoices(
         content = upload.file.read()
         stored_path = save_invoice_pdf(upload.filename or "invoice.pdf", content)
 
-        extracted = extract_invoice_data(content, categories)
+        extracted = extract_invoice_data(content, categories, db)
         category_id = extracted["category_id"] if extracted["category_id"] in category_ids else None
         duplicate_flag = check_duplicate(db, extracted["supplier"], extracted["amount"], extracted["invoice_date"])
 
@@ -110,6 +112,10 @@ def upload_invoices(
     db.commit()
     for invoice in created:
         db.refresh(invoice)
+        audit_service.log_action(
+            db, "invoice.uploaded", f"Uploaded invoice '{invoice.filename}'",
+            user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
+        )
 
     return created
 
@@ -223,25 +229,39 @@ def update_invoice(
     invoice_id: int,
     payload: InvoiceUpdate,
     db: Session = Depends(get_db),
-    _user: User = Depends(require_standard),
+    user: User = Depends(require_standard),
 ):
     invoice = db.get(Invoice, invoice_id)
     if invoice is None or invoice.deleted:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
 
-    if payload.invoice_date is not None:
+    changed_fields: dict = {}
+
+    if payload.invoice_date is not None and payload.invoice_date != invoice.invoice_date:
+        changed_fields["invoice_date"] = {"before": invoice.invoice_date.isoformat(), "after": payload.invoice_date.isoformat()}
         invoice.invoice_date = payload.invoice_date
-    if payload.supplier is not None:
+    if payload.supplier is not None and payload.supplier != invoice.supplier:
+        changed_fields["supplier"] = {"before": invoice.supplier, "after": payload.supplier}
         invoice.supplier = payload.supplier
-    if payload.amount is not None:
+    if payload.amount is not None and payload.amount != invoice.amount:
+        changed_fields["amount"] = {"before": str(invoice.amount), "after": str(payload.amount)}
         invoice.amount = payload.amount
-    if payload.category_id is not None:
+    if payload.category_id is not None and payload.category_id != invoice.category_id:
+        changed_fields["category_id"] = {"before": invoice.category_id, "after": payload.category_id}
         invoice.category_id = payload.category_id
-    if payload.notes is not None:
+    if payload.notes is not None and payload.notes != invoice.notes:
+        changed_fields["notes"] = {"before": invoice.notes, "after": payload.notes}
         invoice.notes = payload.notes
 
     db.commit()
     db.refresh(invoice)
+
+    if changed_fields:
+        audit_service.log_action(
+            db, "invoice.edited", f"Edited invoice '{invoice.filename}' ({', '.join(changed_fields)})",
+            user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
+            metadata={"changed_fields": changed_fields},
+        )
     return invoice
 
 
@@ -249,7 +269,7 @@ def update_invoice(
 def confirm_invoice(
     invoice_id: int,
     db: Session = Depends(get_db),
-    _user: User = Depends(require_standard),
+    user: User = Depends(require_standard),
 ):
     invoice = db.get(Invoice, invoice_id)
     if invoice is None or invoice.deleted:
@@ -258,6 +278,16 @@ def confirm_invoice(
     invoice.reviewed = True
     db.commit()
     db.refresh(invoice)
+
+    # This app has a single review/confirm step (there is no separate
+    # "reviewed" vs. "confirmed" state in the data model — both describe the
+    # same POST /invoices/{id}/confirm action), so this logs invoice.reviewed
+    # only, rather than emitting two audit entries for one action. See
+    # docs/decisions-log.md.
+    audit_service.log_action(
+        db, "invoice.reviewed", f"Reviewed and confirmed invoice '{invoice.filename}'",
+        user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
+    )
     return invoice
 
 
@@ -266,7 +296,7 @@ def sign_invoice(
     invoice_id: int,
     payload: InvoiceSignRequest,
     db: Session = Depends(get_db),
-    _user: User = Depends(require_standard),
+    user: User = Depends(require_standard),
 ):
     if not is_signing_enabled(db):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Signing is currently turned off in Settings")
@@ -284,6 +314,8 @@ def sign_invoice(
     if invoice_file is None or not os.path.exists(invoice_file.original_path):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Original PDF not found for this invoice")
 
+    was_already_signed = invoice.signed
+
     try:
         signed_path = sign_invoice_pdf(
             original_path=invoice_file.original_path,
@@ -297,8 +329,16 @@ def sign_invoice(
             additional_text=payload.additional_text,
         )
     except ValueError as exc:
+        error_service.log_error(
+            db, "warning", "pdf_signing", f"Could not sign invoice '{invoice.filename}': {exc}",
+            user_id=user.id,
+        )
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
     except RuntimeError as exc:
+        error_service.log_error(
+            db, "error", "pdf_signing", f"Could not sign invoice '{invoice.filename}': {exc}",
+            stack_trace=traceback.format_exc(), user_id=user.id,
+        )
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Could not sign PDF: {exc}") from exc
 
     # The original file (referenced by invoice_file.original_path) is never
@@ -307,6 +347,17 @@ def sign_invoice(
     invoice.signed_pdf_path = signed_path
     db.commit()
     db.refresh(invoice)
+
+    if was_already_signed:
+        audit_service.log_action(
+            db, "invoice.resigned", f"Re-signed invoice '{invoice.filename}'",
+            user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
+        )
+    else:
+        audit_service.log_action(
+            db, "invoice.signed", f"Signed invoice '{invoice.filename}'",
+            user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
+        )
     return invoice
 
 
@@ -340,7 +391,7 @@ def get_original_pdf(
 def get_invoice_preview(
     invoice_id: int,
     db: Session = Depends(get_db),
-    _user: User = Depends(require_standard),
+    user: User = Depends(require_standard),
 ):
     invoice = db.get(Invoice, invoice_id)
     if invoice is None or invoice.deleted:
@@ -358,6 +409,10 @@ def get_invoice_preview(
     try:
         png_bytes = render_pdf_first_page_png(invoice_file.original_path)
     except Exception as exc:
+        error_service.log_error(
+            db, "error", "pdf_processing", f"Could not render a preview of invoice '{invoice.filename}': {exc}",
+            stack_trace=traceback.format_exc(), user_id=user.id,
+        )
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not render a preview of this PDF") from exc
 
     return Response(content=png_bytes, media_type="image/png")
@@ -404,4 +459,9 @@ def delete_invoice(
     invoice.deleted = True
     db.commit()
     db.refresh(invoice)
+
+    audit_service.log_action(
+        db, "invoice.deleted", f"Deleted invoice '{invoice.filename}'",
+        user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
+    )
     return invoice

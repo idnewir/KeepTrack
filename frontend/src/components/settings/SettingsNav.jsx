@@ -6,6 +6,7 @@ export const SETTINGS_CATEGORIES = [
   { key: 'storage', label: 'Storage & Backup' },
   { key: 'users', label: 'Users', badge: 'Admin' },
   { key: 'notifications', label: 'Notifications' },
+  { key: 'logs', label: 'Logs', badge: 'Admin' },
   { key: 'danger', label: 'Danger Zone', danger: true },
 ]
 

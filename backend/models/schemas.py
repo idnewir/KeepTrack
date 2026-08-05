@@ -470,6 +470,45 @@ class SystemResetResponse(BaseModel):
     reset_at: datetime
 
 
+class AuditLogOut(BaseModel):
+    id: int
+    user_id: int | None
+    user_display_name: str | None
+    action_type: str
+    description: str
+    affected_table: str | None
+    affected_record_id: int | None
+    metadata: dict | None = None
+    ip_address: str | None
+    created_at: datetime
+
+
+class ErrorLogOut(BaseModel):
+    id: int
+    severity: str
+    source: str
+    message: str
+    stack_trace: str | None
+    request_path: str | None
+    user_id: int | None
+    user_display_name: str | None
+    created_at: datetime
+
+
+class LogsStatusOut(BaseModel):
+    audit_log_count: int
+    audit_log_archive_count: int
+    error_log_count: int
+    last_archive_run: datetime | None
+    next_archive_run: datetime | None
+    last_error_cleanup_run: datetime | None
+    next_error_cleanup_run: datetime | None
+
+
+class ArchiveNowOut(LogsStatusOut):
+    archived_count: int
+
+
 class ReconciliationMonthOut(BaseModel):
     financial_year_id: int
     year: int

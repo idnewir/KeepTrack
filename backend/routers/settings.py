@@ -8,6 +8,7 @@ from database import get_db
 from models.schemas import SettingOut, SettingUpdate, TerminologyOut, TerminologyUpdate
 from models.setting import Setting
 from models.user import User
+from services import audit_service
 from services.settings_service import get_terminology
 from utils.deps import get_current_user, require_admin
 
@@ -43,12 +44,18 @@ def update_terminology_settings(
     updates = payload.model_dump(exclude_unset=True, exclude_none=True)
     for key, value in updates.items():
         setting = db.query(Setting).filter(Setting.key == key).first()
+        before = setting.value if setting is not None else None
         if setting is None:
             setting = Setting(key=key)
             db.add(setting)
         setting.value = value
         setting.updated_by = admin.id
-    db.commit()
+        db.commit()
+        audit_service.log_action(
+            db, "settings.changed", f"Setting '{key}' changed",
+            user_id=admin.id, affected_table="settings", affected_record_id=setting.id,
+            metadata={"key": key, "before": before, "after": value},
+        )
     return get_terminology(db)
 
 
@@ -79,10 +86,17 @@ def update_setting(
         except InvalidOperation:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Reserve manual amount must be a number")
 
+    before = setting.value
     setting.value = payload.value
     setting.updated_by = admin.id
     db.commit()
     db.refresh(setting)
+
+    audit_service.log_action(
+        db, "settings.changed", f"Setting '{key}' changed",
+        user_id=admin.id, affected_table="settings", affected_record_id=setting.id,
+        metadata={"key": key, "before": before, "after": payload.value},
+    )
     return setting
 
 
@@ -98,8 +112,15 @@ def clear_setting(
     if setting is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Setting not found")
 
+    before = setting.value
     setting.value = None
     setting.updated_by = admin.id
     db.commit()
     db.refresh(setting)
+
+    audit_service.log_action(
+        db, "settings.changed", f"Setting '{key}' cleared",
+        user_id=admin.id, affected_table="settings", affected_record_id=setting.id,
+        metadata={"key": key, "before": before, "after": None},
+    )
     return setting

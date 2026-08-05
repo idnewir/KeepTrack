@@ -49,6 +49,49 @@ export function formatRelativeTime(dateStr) {
   return formatDate(dateStr)
 }
 
+// Full absolute date + time for log tables, where "3 days ago" is less
+// useful than knowing exactly when something happened.
+export function formatDateTime(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
+// Colour-codes an audit log row by its action_type, per the Logs page spec:
+// green = create, blue = edit/update, amber = settings changes, red =
+// delete/security events. Matched by suffix/substring against this app's
+// own action_type vocabulary (see docs/decisions-log.md) rather than an
+// exhaustive lookup table, so a new action type still falls into a
+// reasonable bucket by its name alone.
+export function auditActionColor(actionType) {
+  if (!actionType) return 'blue'
+  if (actionType.startsWith('settings.')) return 'amber'
+  if (
+    actionType.includes('deleted') ||
+    actionType.includes('rejected') ||
+    actionType.includes('deactivated') ||
+    actionType.includes('failed') ||
+    actionType === 'system.reset'
+  ) {
+    return 'red'
+  }
+  if (
+    actionType.includes('created') ||
+    actionType.includes('uploaded') ||
+    actionType.includes('submitted') ||
+    actionType.includes('approved') ||
+    actionType.includes('reactivated') ||
+    actionType.includes('generated') ||
+    actionType.includes('login') ||
+    actionType.includes('logout') ||
+    actionType.includes('archived')
+  ) {
+    return 'green'
+  }
+  return 'blue'
+}
+
 export function formatMonthYear(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`)
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })

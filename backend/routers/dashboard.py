@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from config import settings
 from database import get_db
+from models.audit_log import AuditLogArchive
+from models.error_log import ErrorLog
 from models.invoice import Invoice
 from models.schemas import DashboardNotification, DashboardSummary
 from models.user import User
@@ -40,7 +42,7 @@ def get_summary(
 @router.get("/notifications", response_model=list[DashboardNotification])
 def get_notifications(
     db: Session = Depends(get_db),
-    _user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
 ):
     today = date.today()
     summary = fy_service.build_summary(db, today)
@@ -130,5 +132,52 @@ def get_notifications(
     # it should scope the overdue check to months >= date_service
     # .get_effective_start_date(db), the same way ReconciliationPage's own
     # client-side overdue list already only considers visible months.
+
+    # The two notifications below are Admin/Superadmin-only — Standard and
+    # Read Only users can't reach Settings → Logs (the whole /settings route
+    # is RequireAdmin-gated), so surfacing these to them would just be a
+    # dead-end banner. See docs/decisions-log.md.
+    if user.role in ("admin", "superadmin"):
+        critical_cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+        critical_count = (
+            db.query(ErrorLog)
+            .filter(ErrorLog.severity == "critical", ErrorLog.created_at >= critical_cutoff)
+            .count()
+        )
+        if critical_count:
+            notifications.append({
+                "id": "critical_errors_detected",
+                "type": "critical_errors_detected",
+                "severity": "urgent",
+                "message": "Critical errors detected — please review the error log in Settings.",
+                "link": "/settings?section=logs&tab=errors",
+            })
+
+        # "Send an Admin notification after completion" (quarterly archive) —
+        # implemented as a live dashboard notification shown for 24 hours
+        # after the last archive run, following this app's existing pattern
+        # of computing dashboard notifications live rather than storing them
+        # (see the 2026-08-04 main dashboard build entry). Reuses the archive
+        # event's own description (already has the entry count and date)
+        # rather than recomputing it here.
+        last_archive_event = (
+            db.query(AuditLogArchive)
+            .filter(AuditLogArchive.action_type == "audit_log.archived")
+            .order_by(AuditLogArchive.created_at.desc())
+            .first()
+        )
+        if last_archive_event is not None:
+            archive_cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+            event_created_at = last_archive_event.created_at
+            if event_created_at.tzinfo is None:
+                event_created_at = event_created_at.replace(tzinfo=timezone.utc)
+            if event_created_at >= archive_cutoff:
+                notifications.append({
+                    "id": "audit_log_archived",
+                    "type": "audit_log_archived",
+                    "severity": "warning",
+                    "message": last_archive_event.description,
+                    "link": "/settings?section=logs",
+                })
 
     return notifications

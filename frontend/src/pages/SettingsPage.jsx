@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import SettingsNav from '../components/settings/SettingsNav.jsx'
 import GeneralSettings from '../components/settings/GeneralSettings.jsx'
@@ -6,14 +7,20 @@ import TerminologySettings from '../components/settings/TerminologySettings.jsx'
 import SigningExportSettings from '../components/settings/SigningExportSettings.jsx'
 import UsersSettings from '../components/settings/UsersSettings.jsx'
 import ComingSoonSettings from '../components/settings/ComingSoonSettings.jsx'
+import LogsSettings from '../components/settings/LogsSettings.jsx'
 import DangerZoneSettings from '../components/settings/DangerZoneSettings.jsx'
 
 export default function SettingsPage() {
   const { user } = useAuth()
   const token = user?.token
 
-  const [activeCategory, setActiveCategory] = useState('general')
-  const [mobileShowContent, setMobileShowContent] = useState(false)
+  // A dashboard notification (e.g. critical errors detected) can link
+  // straight into a specific settings category — and, for Logs, a specific
+  // sub-tab — via ?section=logs&tab=errors. Read once on mount, same as
+  // every other page's initial-filter-from-URL pattern (see InvoicesPage).
+  const [searchParams] = useSearchParams()
+  const [activeCategory, setActiveCategory] = useState(searchParams.get('section') || 'general')
+  const [mobileShowContent, setMobileShowContent] = useState(searchParams.get('section') != null)
 
   const handleSelectCategory = (key) => {
     setActiveCategory(key)
@@ -59,6 +66,7 @@ export default function SettingsPage() {
                   description="Choose which alerts you and your team receive, and when."
                 />
               )}
+              {activeCategory === 'logs' && <LogsSettings token={token} initialTab={searchParams.get('tab')} />}
               {activeCategory === 'danger' && <DangerZoneSettings />}
             </div>
           </div>

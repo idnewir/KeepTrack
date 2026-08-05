@@ -16,7 +16,7 @@ from models.schemas import (
     ReconciliationUpdate,
 )
 from models.user import User
-from services import financial_year_service as fy_service
+from services import audit_service, financial_year_service as fy_service
 from services.date_service import get_effective_start_date
 from services.export_pdf_service import generate_table_export_pdf
 from services.reconciliation_service import calculated_balance_for_month, suggest_reason
@@ -212,6 +212,11 @@ def create_reconciliation(
     db.add(reconciliation)
     db.commit()
     db.refresh(reconciliation)
+
+    audit_service.log_action(
+        db, "reconciliation.submitted", f"Submitted reconciliation for {month_date.strftime('%B %Y')}",
+        user_id=user.id, affected_table="monthly_reconciliations", affected_record_id=reconciliation.id,
+    )
     return _to_out(db, reconciliation)
 
 
@@ -255,4 +260,9 @@ def update_reconciliation(
 
     db.commit()
     db.refresh(reconciliation)
+
+    audit_service.log_action(
+        db, "reconciliation.edited", f"Edited reconciliation for {reconciliation.month.strftime('%B %Y')}",
+        user_id=user.id, affected_table="monthly_reconciliations", affected_record_id=reconciliation.id,
+    )
     return _to_out(db, reconciliation)
