@@ -2,11 +2,23 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { financialYearsApi, projectsApi } from '../utils/api.js'
-import { formatCurrency, formatMonthYear, projectUrgency, singularize } from '../utils/format.js'
+import { MONTH_NAMES, formatCurrency, formatMonthYear, projectUrgency, singularize } from '../utils/format.js'
 
 const DESCRIPTION_TRUNCATE_LENGTH = 140
 
-const emptyForm = { name: '', description: '', estimatedCost: '', expectedMonth: '', financialYearId: '' }
+const YEAR_OPTIONS_AHEAD = 5
+
+const emptyForm = { name: '', description: '', estimatedCost: '', expectedMonth: '', expectedYear: '', financialYearId: '' }
+
+function currentMonthYear() {
+  const now = new Date()
+  return { expectedMonth: String(now.getMonth() + 1), expectedYear: String(now.getFullYear()) }
+}
+
+function yearOptions() {
+  const currentYear = new Date().getFullYear()
+  return Array.from({ length: YEAR_OPTIONS_AHEAD + 1 }, (_, i) => currentYear + i)
+}
 
 export default function ProjectsPage() {
   const { user } = useAuth()
@@ -78,17 +90,19 @@ export default function ProjectsPage() {
   }
 
   const openAddForm = () => {
-    setForm(emptyForm)
+    setForm({ ...emptyForm, ...currentMonthYear() })
     setEditingId(null)
     setShowForm(true)
   }
 
   const openEditForm = (project) => {
+    const [year, month] = project.expected_month.slice(0, 7).split('-')
     setForm({
       name: project.name,
       description: project.description || '',
       estimatedCost: String(project.estimated_cost),
-      expectedMonth: project.expected_month.slice(0, 7),
+      expectedMonth: String(Number(month)),
+      expectedYear: year,
       financialYearId: project.financial_year_id != null ? String(project.financial_year_id) : '',
     })
     setEditingId(project.id)
@@ -104,7 +118,7 @@ export default function ProjectsPage() {
         name: form.name.trim(),
         description: form.description.trim() || null,
         estimated_cost: Number(form.estimatedCost),
-        expected_month: `${form.expectedMonth}-01`,
+        expected_month: `${form.expectedYear}-${String(form.expectedMonth).padStart(2, '0')}-01`,
         financial_year_id: form.financialYearId ? Number(form.financialYearId) : null,
       }
       if (editingId) {
@@ -278,13 +292,44 @@ export default function ProjectsPage() {
           </div>
           <div className="kt-field">
             <label htmlFor="project-month">Expected month</label>
-            <input
-              id="project-month"
-              type="month"
-              value={form.expectedMonth}
-              onChange={(e) => setForm((f) => ({ ...f, expectedMonth: e.target.value }))}
-              required
-            />
+            <div className="kt-month-year-picker">
+              <select
+                id="project-month"
+                value={form.expectedMonth}
+                onChange={(e) => setForm((f) => ({ ...f, expectedMonth: e.target.value }))}
+                required
+              >
+                <option value="" disabled>
+                  Month
+                </option>
+                {MONTH_NAMES.map((name, idx) => (
+                  <option key={name} value={idx + 1}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <select
+                id="project-year"
+                aria-label="Expected year"
+                value={form.expectedYear}
+                onChange={(e) => setForm((f) => ({ ...f, expectedYear: e.target.value }))}
+                required
+              >
+                <option value="" disabled>
+                  Year
+                </option>
+                {yearOptions().map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {form.expectedMonth && form.expectedYear && (
+              <span className="kt-month-year-preview">
+                {MONTH_NAMES[Number(form.expectedMonth) - 1]} {form.expectedYear}
+              </span>
+            )}
           </div>
           <div className="kt-field">
             <label htmlFor="project-fy">Financial year</label>

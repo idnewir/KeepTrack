@@ -26,6 +26,7 @@ from models.invoice import Invoice
 from models.planned_project import PlannedProject
 from services.financial_year_service import (
     MONTH_LABELS,
+    MONTH_LABELS_FULL,
     category_monthly_averages,
     fy_bounds_for,
     month_sequence,
@@ -372,7 +373,7 @@ def build_report_data(
                 "name": p.name,
                 "estimated_cost": p.estimated_cost,
                 "expected_month": p.expected_month,
-                "expected_month_label": f"{MONTH_LABELS[p.expected_month.month - 1]} {p.expected_month.year}",
+                "expected_month_label": f"{MONTH_LABELS_FULL[p.expected_month.month - 1]} {p.expected_month.year}",
             }
             for p in projects
         ],

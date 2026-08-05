@@ -33,6 +33,16 @@ MONTH_LABELS = [
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ]
 
+# Full month names — used for a planned project's expected_month_label
+# (e.g. "June 2026"), which is displayed to match the "Month YYYY" format
+# used everywhere else expected_month is shown (Projects page, dashboard
+# planned-projects panel). MONTH_LABELS itself stays abbreviated for FY
+# range labels and chart month_labels, which are intentionally short.
+MONTH_LABELS_FULL = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+]
+
 
 def fy_bounds_for(db: Session, for_date: date) -> tuple[date, date, str]:
     """Start/end dates and label (e.g. "FY2025/26 (Apr-Mar)") of the FY containing for_date."""
@@ -310,7 +320,7 @@ def build_summary(db: Session, today: date | None = None) -> dict:
             "description": p.description,
             "estimated_cost": p.estimated_cost,
             "expected_month": p.expected_month,
-            "expected_month_label": f"{MONTH_LABELS[p.expected_month.month - 1]} {p.expected_month.year}",
+            "expected_month_label": f"{MONTH_LABELS_FULL[p.expected_month.month - 1]} {p.expected_month.year}",
         }
         for p in projects
     ]

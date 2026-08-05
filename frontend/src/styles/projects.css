@@ -29,8 +29,7 @@
   resize: vertical;
 }
 
-.kt-project-form select,
-.kt-project-form input[type='month'] {
+.kt-project-form select {
   font-family: inherit;
   font-size: 15px;
   padding: 8px 10px;
@@ -38,6 +37,23 @@
   border-radius: 8px;
   background: var(--kt-surface);
   color: var(--kt-text);
+}
+
+.kt-month-year-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.kt-month-year-picker select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.kt-month-year-preview {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #6b6b67;
 }
 
 .kt-project-form .kt-auth-button {
