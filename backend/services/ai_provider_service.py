@@ -45,6 +45,7 @@ from decimal import Decimal, InvalidOperation
 import fitz
 from sqlalchemy.orm import Session
 
+from config import settings as app_config
 from models.category import Category
 from models.setting import Setting
 from models.system_event import SystemEvent
@@ -96,7 +97,10 @@ PROVIDER_ENV_KEYS = {
 DEFAULT_MODEL_FOR_PROVIDER = {p: models[0] for p, models in PROVIDER_MODELS.items()}
 
 AI_TEST_EVENT_TYPE = "ai_test_connection"
-AI_TEST_RATE_LIMIT_MAX = 10
+# The actual limit is app_config.ai_test_rate_limit (env var
+# AI_TEST_RATE_LIMIT, default 60) — see recent_test_count below. The window
+# itself (as opposed to the count) isn't exposed as a separate env var; the
+# task this was built for only asked for the count to be configurable.
 AI_TEST_RATE_LIMIT_WINDOW_HOURS = 1
 
 
@@ -699,12 +703,12 @@ def list_all_provider_models(db: Session, ollama_endpoint_url: str | None = None
 
 
 # ---------------------------------------------------------------------------
-# Test-connection rate limiting (10/hour/user) — reuses the system_events
-# table (see models/system_event.py), the same "lightweight, permanent,
-# DB-backed attempt counter" mechanism services/system_reset_service.py
-# already established for POST /system/reset's own rate limit. Not written
-# to audit_log — the task brief calls that "too noisy" for a routine
-# connectivity check.
+# Test-connection rate limiting (app_config.ai_test_rate_limit per hour per
+# user) — reuses the system_events table (see models/system_event.py), the
+# same "lightweight, permanent, DB-backed attempt counter" mechanism
+# services/system_reset_service.py already established for POST
+# /system/reset's own rate limit. Not written to audit_log — the task brief
+# calls that "too noisy" for a routine connectivity check.
 # ---------------------------------------------------------------------------
 
 def recent_test_count(db: Session, user_id: int) -> int:
@@ -715,6 +719,15 @@ def recent_test_count(db: Session, user_id: int) -> int:
         db.query(SystemEvent)
         .filter(
             SystemEvent.event_type == AI_TEST_EVENT_TYPE,
+            # Scoped to one real, authenticated user (never NULL) — the only
+            # caller of log_test_event is POST /ai/test, gated by
+            # require_admin, so this count only ever reflects a human clicking
+            # "Test connection." Nothing at app startup or in a background
+            # task logs this event type; performed_by.isnot(None) makes that
+            # exclusion explicit and structural rather than incidental, so a
+            # future system-triggered caller (if one is ever added, logging
+            # with performed_by=None) can't inflate a user's own count.
+            SystemEvent.performed_by.isnot(None),
             SystemEvent.performed_by == user_id,
             SystemEvent.created_at >= window_start,
         )

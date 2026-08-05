@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     anthropic_model: str = "claude-sonnet-4-6"
 
+    # Max POST /ai/test calls per user per hour (services/ai_provider_service.py
+    # .recent_test_count). Deployment-level, not an Admin-editable Setting, so
+    # it can be raised for a busy build/test session without a code change.
+    ai_test_rate_limit: int = 60
+
     # Original/signed invoice PDFs and generated reports all live under a
     # single configurable root, the DB-backed storage_path setting (see
     # services/storage_service.py) — not env vars, so an Admin can change it

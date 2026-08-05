@@ -9,13 +9,13 @@ calls it with a trivial prompt, GET /ai/models lists what's available).
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from config import settings as app_config
 from database import get_db
 from models.schemas import AIConfigOut, AIConfigUpdate, AIProviderModelsOut, AIStatusOut, AITestResultOut
 from models.setting import Setting
 from models.user import User
 from services import ai_provider_service, audit_service
 from services.ai_provider_service import (
-    AI_TEST_RATE_LIMIT_MAX,
     SUPPORTED_PROVIDERS,
     DEFAULT_MODEL_FOR_PROVIDER,
 )
@@ -136,7 +136,7 @@ def test_ai_connection(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    if ai_provider_service.recent_test_count(db, admin.id) >= AI_TEST_RATE_LIMIT_MAX:
+    if ai_provider_service.recent_test_count(db, admin.id) >= app_config.ai_test_rate_limit:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             "Too many connection tests. Please wait before trying again.",
