@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { settingsApi } from '../../utils/api.js'
 import { useTerminology } from '../../context/TerminologyContext.jsx'
+import { useSiteName } from '../../context/SiteNameContext.jsx'
 import { formatMonthYear, MONTH_NAMES } from '../../utils/format.js'
 
 function currentMonthValue() {
@@ -13,6 +14,12 @@ const RESERVE_MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1)
 
 export default function GeneralSettings({ token }) {
   const terminology = useTerminology()
+  const siteName = useSiteName()
+
+  const [instanceName, setInstanceName] = useState('')
+  const [instanceNameInput, setInstanceNameInput] = useState('')
+  const [savingInstanceName, setSavingInstanceName] = useState(false)
+  const [instanceNameError, setInstanceNameError] = useState('')
 
   const [appStartDate, setAppStartDate] = useState(null) // 'YYYY-MM-DD' or null
   const [appStartMonthInput, setAppStartMonthInput] = useState(currentMonthValue)
@@ -39,6 +46,13 @@ export default function GeneralSettings({ token }) {
     return settingsApi
       .list(token)
       .then((rows) => {
+        const siteNameRow = rows.find((row) => row.key === 'site_name')
+        // "Keep Track" is the unset sentinel (see handleSaveInstanceName) —
+        // show the field blank rather than literally "Keep Track".
+        const siteNameValue = siteNameRow?.value && siteNameRow.value !== 'Keep Track' ? siteNameRow.value : ''
+        setInstanceName(siteNameValue)
+        setInstanceNameInput(siteNameValue)
+
         const startDate = rows.find((row) => row.key === 'app_start_date')
         setAppStartDate(startDate?.value || null)
         setAppStartMonthInput(startDate?.value ? startDate.value.slice(0, 7) : currentMonthValue())
@@ -70,6 +84,26 @@ export default function GeneralSettings({ token }) {
     loadSettings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
+
+  const handleSaveInstanceName = async () => {
+    setInstanceNameError('')
+    setSavingInstanceName(true)
+    try {
+      // Empty means "no instance name" — stored as the literal "Keep Track"
+      // default (same as Terminology's old "Reset to defaults"), since
+      // PUT /settings/{key} requires a non-empty value and site_name is also
+      // read server-side (report covers) where a NULL value isn't handled.
+      const trimmed = instanceNameInput.trim()
+      await settingsApi.update('site_name', trimmed || 'Keep Track', token)
+      setInstanceName(trimmed)
+      setInstanceNameInput(trimmed)
+      await siteName.refresh()
+    } catch (err) {
+      setInstanceNameError(err.message || 'Failed to save instance name')
+    } finally {
+      setSavingInstanceName(false)
+    }
+  }
 
   const handleSaveAppStartDate = async () => {
     if (!appStartMonthInput) return
@@ -154,7 +188,7 @@ export default function GeneralSettings({ token }) {
   return (
     <div>
       <h2 className="kt-panel-title">General</h2>
-      <p className="kt-panel-subtitle">Financial year, app start date, and target reserve.</p>
+      <p className="kt-panel-subtitle">Instance name, financial year, app start date, and target reserve.</p>
 
       {error && (
         <div className="kt-auth-error" style={{ marginBottom: 20 }}>
@@ -163,6 +197,42 @@ export default function GeneralSettings({ token }) {
       )}
 
       <div className="kt-settings-list" style={{ marginBottom: 32 }}>
+        <div className="kt-settings-row">
+          <div className="kt-settings-row-text">
+            <span className="kt-settings-row-title">Instance name</span>
+            <p className="kt-settings-row-description">
+              Shown in the header alongside Keep Track branding. e.g. KHOC, Personal, My Business
+            </p>
+            {instanceNameError && (
+              <div className="kt-auth-error" style={{ marginTop: 8 }}>
+                {instanceNameError}
+              </div>
+            )}
+          </div>
+          {loading ? (
+            <span className="kt-settings-row-status">Loading…</span>
+          ) : (
+            <div className="kt-settings-row-control" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                maxLength={100}
+                placeholder="Keep Track"
+                value={instanceNameInput}
+                onChange={(e) => setInstanceNameInput(e.target.value)}
+                disabled={savingInstanceName}
+              />
+              <button
+                type="button"
+                className="kt-category-link-button"
+                onClick={handleSaveInstanceName}
+                disabled={savingInstanceName || instanceNameInput.trim() === instanceName}
+              >
+                {savingInstanceName ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="kt-settings-row">
           <div className="kt-settings-row-text">
             <span className="kt-settings-row-title">App start date</span>

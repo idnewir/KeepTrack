@@ -4,14 +4,14 @@ import { useAuth } from '../hooks/AuthContext.jsx'
 
 // Matches backend/services/settings_service.py's TERMINOLOGY_DEFAULTS — used
 // before the fetch resolves (or if it fails) so every label-consuming
-// component always has a sane string to render, never undefined.
+// component always has a sane string to render, never undefined. site_name
+// is a General setting, not a term_* label — see SiteNameContext.jsx.
 export const TERMINOLOGY_DEFAULTS = {
   term_expenses: 'Invoices',
   term_income: 'Contributions',
   term_projects: 'Projects',
   term_reconciliation: 'Reconciliation',
   term_reserve: 'Target Reserve',
-  site_name: 'Keep Track',
 }
 
 const TerminologyContext = createContext(null)
@@ -52,8 +52,8 @@ export function TerminologyProvider({ children }) {
 }
 
 // Returns { term_expenses, term_income, term_projects, term_reconciliation,
-// term_reserve, site_name, refresh }. Call refresh() after saving changes on
-// the Settings page so the rest of the app (Sidebar, Header, Dashboard, etc.)
+// term_reserve, refresh }. Call refresh() after saving changes on the
+// Settings page so the rest of the app (Sidebar, Header, Dashboard, etc.)
 // picks up the new labels immediately, without a page reload.
 export function useTerminology() {
   const ctx = useContext(TerminologyContext)

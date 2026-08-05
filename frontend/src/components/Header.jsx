@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
-import { useTerminology } from '../context/TerminologyContext.jsx'
+import { useSiteName } from '../context/SiteNameContext.jsx'
 import Logo from './Logo.jsx'
 
 export default function Header({ onMenuClick }) {
   const { user, logout } = useAuth()
-  const { site_name: siteName } = useTerminology()
+  const { siteName } = useSiteName()
   const navigate = useNavigate()
   const showSiteName = siteName && siteName !== 'Keep Track'
 

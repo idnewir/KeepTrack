@@ -161,14 +161,16 @@
 
 .kt-brand-divider {
   width: 1px;
-  height: 20px;
+  height: 28px;
   background: var(--kt-border);
   flex-shrink: 0;
 }
 
 .kt-instance-name {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
   color: #5F5E5A;
   white-space: nowrap;
 }

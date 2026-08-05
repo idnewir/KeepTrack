@@ -10,13 +10,14 @@ FINANCIAL_YEAR_START_MONTH_KEY = "financial_year_start_month"
 
 # Defaults match the seeded values in migration 0019 — used as the fallback
 # when a row is somehow missing/unset, same pattern as is_signing_enabled.
+# site_name is a General setting (see get_site_name below), not a term_*
+# label, so it's kept out of this dict.
 TERMINOLOGY_DEFAULTS = {
     "term_expenses": "Invoices",
     "term_income": "Contributions",
     "term_projects": "Projects",
     "term_reconciliation": "Reconciliation",
     "term_reserve": "Target Reserve",
-    "site_name": "Keep Track",
 }
 
 RESERVE_CALCULATION_DEFAULT = "automatic"
@@ -57,12 +58,13 @@ def get_site_name(db: Session) -> str:
 
 
 def get_terminology(db: Session) -> dict[str, str]:
-    """The current value of every term_* label plus site_name, defaulting
-    per-key when a row is missing or cleared. Powers GET /settings/terminology
-    (any logged-in user — the frontend needs these to render navigation and
-    page titles) and is also used server-side wherever a generated string
-    (e.g. a dashboard notification) needs to speak the organisation's own
-    vocabulary rather than the KHOC-derived defaults."""
+    """The current value of every term_* label, defaulting per-key when a
+    row is missing or cleared. Powers GET /settings/terminology (any
+    logged-in user — the frontend needs these to render navigation and page
+    titles) and is also used server-side wherever a generated string (e.g. a
+    dashboard notification) needs to speak the organisation's own vocabulary
+    rather than the KHOC-derived defaults. site_name lives under General
+    settings, not here — see get_site_name below."""
     return {key: _setting_value(db, key, default) for key, default in TERMINOLOGY_DEFAULTS.items()}
 
 

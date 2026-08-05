@@ -12,7 +12,6 @@ const TERM_FIELDS = [
     hint: 'e.g. Reconciliation, Monthly Check, Bank Reconciliation',
   },
   { key: 'term_reserve', label: 'Reserve label', hint: 'e.g. Target Reserve, Rainy Day Fund, Savings Goal' },
-  { key: 'site_name', label: 'Site/instance name', hint: 'e.g. KHOC, Personal, My Business — shown in the header' },
 ]
 
 export default function TerminologySettings({ token }) {
@@ -33,7 +32,6 @@ export default function TerminologySettings({ token }) {
         term_projects: terminology.term_projects,
         term_reconciliation: terminology.term_reconciliation,
         term_reserve: terminology.term_reserve,
-        site_name: terminology.site_name,
       })
       setTermFormSeeded(true)
     }
@@ -141,10 +139,7 @@ export default function TerminologySettings({ token }) {
         <div className="kt-terminology-preview">
           <span className="kt-terminology-preview-label">Live preview</span>
           <div className="kt-terminology-preview-sidebar">
-            <div className="kt-terminology-preview-brand">
-              Keep Track
-              {termForm.site_name && termForm.site_name !== 'Keep Track' && ` — ${termForm.site_name}`}
-            </div>
+            <div className="kt-terminology-preview-brand">Keep Track</div>
             <div className="kt-terminology-preview-link">Dashboard</div>
             <div className="kt-terminology-preview-link">{termForm.term_expenses || 'Invoices'}</div>
             <div className="kt-terminology-preview-link">{termForm.term_income || 'Contributions'}</div>

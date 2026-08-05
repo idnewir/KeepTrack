@@ -174,7 +174,6 @@ class TerminologyOut(BaseModel):
     term_projects: str
     term_reconciliation: str
     term_reserve: str
-    site_name: str
 
 
 class TerminologyUpdate(BaseModel):
@@ -183,7 +182,6 @@ class TerminologyUpdate(BaseModel):
     term_projects: str | None = Field(default=None, min_length=1, max_length=100)
     term_reconciliation: str | None = Field(default=None, min_length=1, max_length=100)
     term_reserve: str | None = Field(default=None, min_length=1, max_length=100)
-    site_name: str | None = Field(default=None, min_length=1, max_length=100)
 
 
 class SetupAppStartDateRequest(BaseModel):

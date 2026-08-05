@@ -15,7 +15,7 @@ The logo icon and wordmark sit together as one tightly-spaced, vertically-centre
 
 ### Instance name
 
-Each deployment can set its own instance name (e.g. "Stayton Road KHOC") via Settings → terminology. When set, it appears to the right of the wordmark, separated by a thin vertical divider line in the border colour, in a smaller (14px), medium-weight, mid-grey (`#5F5E5A`) typeface — clearly secondary to the "Keep Track" wordmark itself, never competing with it. If no instance name is configured, the header shows just "Keep Track" with no divider. On narrow (mobile) viewports the instance name is hidden to keep the header uncluttered; the logo and wordmark are unaffected.
+Each deployment can set its own instance name (e.g. "Stayton Road KHOC") via Settings → General. When set, it appears to the right of the wordmark, separated by a thin vertical divider line in the border colour, in the same size (20px) as the "Keep Track" wordmark but lighter weight (400 vs. the wordmark's 600) and mid-grey (`#5F5E5A`) — clearly secondary to the wordmark itself, never competing with it. If no instance name is configured, the header shows just "Keep Track" with no divider. On narrow (mobile) viewports the instance name is hidden to keep the header uncluttered; the logo and wordmark are unaffected.
 
 ## Colour Palette
 
