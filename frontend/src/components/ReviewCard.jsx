@@ -129,6 +129,21 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
     }
   }
 
+  // SigningPanel renders itself into a full-screen portal (document.body),
+  // so it doesn't need — and shouldn't sit inside — the rest of this card.
+  if (stage === 'signing') {
+    return (
+      <SigningPanel
+        invoiceId={invoice.id}
+        invoiceFilename={invoice.filename}
+        file={file}
+        token={token}
+        onSigned={handleSigned}
+        onBack={() => setStage('fields')}
+      />
+    )
+  }
+
   return (
     <div className="kt-review-card">
       {invoice.duplicate_flag && (
@@ -138,16 +153,6 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
         </div>
       )}
 
-      {stage === 'signing' ? (
-        <SigningPanel
-          invoiceId={invoice.id}
-          invoiceFilename={invoice.filename}
-          file={file}
-          token={token}
-          onSigned={handleSigned}
-          onBack={() => setStage('fields')}
-        />
-      ) : (
       <div className="kt-review-body">
         <div className="kt-review-preview">
           {previewLoading ? (
@@ -282,7 +287,6 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
           </div>
         </form>
       </div>
-      )}
     </div>
   )
 }

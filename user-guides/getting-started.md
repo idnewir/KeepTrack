@@ -22,7 +22,7 @@ If you don't have an authenticator app yet, download **Google Authenticator** or
 
 ## 3. If you're brand new
 
-If nobody has an account yet (this is a brand-new Keep Track installation), the first person to open the app will be guided through a short **setup wizard** and will automatically become the first Administrator.
+If nobody has an account yet (this is a brand-new Keep Track installation), the login screen shows a banner: **"Welcome to Keep Track. No accounts exist yet."** Click **Set up Keep Track** on that banner to start a short **setup wizard** — whoever completes it becomes the first Administrator. Once the wizard finishes, you're sent back to the login screen to sign in properly with your new account (including the MFA step below).
 
 As the last step of the wizard, you'll be asked **"When did you start using Keep Track?"** — pick the month you're starting to use it, or choose **Skip for now**. This is optional but useful: any month before the date you choose is hidden across the whole app, so you don't see empty rows and zero values for months before you actually started tracking anything (handy if your financial year began earlier than when you set Keep Track up). The same step also asks **"When does your financial year start?"** — pick the month your organisation's (or your own) financial year begins; September is pre-selected since that's common for UK charities, but pick whatever fits. Both settings can be changed at any time afterwards from **Settings**.
 

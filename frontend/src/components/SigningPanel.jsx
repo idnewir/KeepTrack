@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { invoicesApi } from '../utils/api.js'
 import { loadPdfDocument, renderPdfPage } from '../utils/pdf.js'
 
 const PAGE_GAP = 16
-const MIN_BOX_WIDTH = 70
-const MIN_BOX_HEIGHT = 34
+const MIN_BOX_WIDTH = 60
+const MIN_BOX_HEIGHT = 32
+const RESIZE_DEBOUNCE_MS = 120
+const TRANSITION_MS = 220
+const CORNERS = ['nw', 'ne', 'sw', 'se']
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10)
@@ -32,10 +36,18 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   const drawingRef = useRef(false)
   const hasStrokeRef = useRef(false)
   const pdfRef = useRef(null)
+  const resizeTimerRef = useRef(null)
+
+  // Enter/exit transition — `visible` drives the CSS class that fades/scales
+  // the overlay in on mount; `closing` reverses it, and the real onBack/
+  // onSigned callback fires only after the transition has actually finished.
+  const [visible, setVisible] = useState(false)
+  const [closing, setClosing] = useState(false)
 
   const [numPages, setNumPages] = useState(0)
-  const [pageSizes, setPageSizes] = useState([]) // [{width, height}]
+  const [pageSizes, setPageSizes] = useState([]) // [{width, height}] in CSS px
   const [previewError, setPreviewError] = useState('')
+  const [containerWidth, setContainerWidth] = useState(0)
 
   const [box, setBox] = useState(null) // {page, xPct, yPct, wPct, hPct}
   const [hasSignature, setHasSignature] = useState(false)
@@ -43,9 +55,51 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   const [dateValue, setDateValue] = useState(todayIso())
   const [additionalText, setAdditionalText] = useState('')
 
+  const [viewPage, setViewPage] = useState(0) // 0-indexed page currently scrolled into view
+  const [drawerOpen, setDrawerOpen] = useState(true) // mobile bottom-drawer expanded state
+
   const [placing, setPlacing] = useState(false)
   const [placeError, setPlaceError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+
+  // Mount transition + lock the page behind the overlay from scrolling.
+  useEffect(() => {
+    document.body.classList.add('kt-sign-lock-scroll')
+    const raf = requestAnimationFrame(() => setVisible(true))
+    return () => {
+      document.body.classList.remove('kt-sign-lock-scroll')
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  const requestClose = useCallback((after) => {
+    setClosing(true)
+    window.setTimeout(after, TRANSITION_MS)
+  }, [])
+
+  // Track the width actually available for the PDF (the area beside/above
+  // the toolbar), so pages can be rendered at exactly that width instead of
+  // being rendered at a fixed resolution and then CSS-shrunk to fit — that
+  // mismatch between "pixels the PDF was rendered at" and "pixels it's
+  // displayed at" was what threw off the drag/percentage math previously.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return undefined
+    const measure = () => {
+      const width = Math.max(200, Math.floor(el.clientWidth) - 24)
+      setContainerWidth((prev) => (Math.abs(prev - width) > 4 ? width : prev))
+    }
+    measure()
+    const observer = new ResizeObserver(() => {
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
+      resizeTimerRef.current = window.setTimeout(measure, RESIZE_DEBOUNCE_MS)
+    })
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current)
+    }
+  }, [])
 
   // Load the PDF and find out how many pages it has. Rendering happens in a
   // separate effect below, once React has actually mounted a <canvas> for
@@ -79,10 +133,11 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
     }
   }, [file])
 
-  // Once numPages is set, React has rendered one <canvas> per page — now
-  // it's safe to render each page's content and measure it.
+  // Renders every page at the current container width — re-runs whenever
+  // the page count first becomes known, or the available width changes
+  // (e.g. the browser is resized, or the mobile drawer opens/closes).
   useEffect(() => {
-    if (!numPages || !pdfRef.current) return undefined
+    if (!numPages || !pdfRef.current || !containerWidth) return undefined
     let cancelled = false
 
     async function renderAll() {
@@ -91,12 +146,14 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
         const canvas = canvasRefs.current[i - 1]
         if (!canvas) continue
         // eslint-disable-next-line no-await-in-loop
-        const size = await renderPdfPage(pdfRef.current, i, canvas)
+        const size = await renderPdfPage(pdfRef.current, i, canvas, containerWidth)
         sizes.push(size)
       }
       if (cancelled) return
       setPageSizes(sizes)
-      setBox({ page: sizes.length - 1, xPct: 32, yPct: 68, wPct: 34, hPct: 16 })
+      // Keep an existing box's (resolution-independent) percentages as-is on
+      // re-render; only pick a default the first time a box doesn't exist yet.
+      setBox((prev) => prev || { page: sizes.length - 1, xPct: 30, yPct: 68, wPct: 36, hPct: 16 })
     }
 
     renderAll().catch((err) => {
@@ -106,7 +163,7 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
     return () => {
       cancelled = true
     }
-  }, [numPages])
+  }, [numPages, containerWidth])
 
   const cumulativeTop = useMemo(() => {
     const offsets = []
@@ -148,6 +205,30 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
     return { page: pageIdx, xPct, yPct, wPct, hPct }
   }
 
+  // Keeps the "Page X of Y" indicator and the page selector in sync with
+  // whatever page is actually scrolled into view.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !pageSizes.length) return undefined
+    const onScroll = () => {
+      const top = el.scrollTop + 4
+      let idx = 0
+      for (let i = 0; i < cumulativeTop.length; i += 1) {
+        if (top >= cumulativeTop[i]) idx = i
+      }
+      setViewPage(idx)
+    }
+    el.addEventListener('scroll', onScroll)
+    onScroll()
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [pageSizes, cumulativeTop])
+
+  const goToPage = (idx) => {
+    const el = scrollRef.current
+    if (!el || cumulativeTop[idx] === undefined) return
+    el.scrollTo({ top: cumulativeTop[idx], behavior: 'smooth' })
+  }
+
   const startDragBox = (e) => {
     if (!boxPx) return
     e.preventDefault()
@@ -171,30 +252,42 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
     window.addEventListener('pointerup', onUp)
   }
 
-  const startResize = (e) => {
+  // One generic handler for all four corner handles — `corner` (e.g. "se")
+  // says which edges move; the opposite corner stays fixed.
+  const startResize = (corner) => (e) => {
     if (!boxPx || !box) return
     e.preventDefault()
     e.stopPropagation()
     const startClientX = e.clientX
     const startClientY = e.clientY
-    const start = { ...boxPx }
     const pageIdx = box.page
     const { width: pw, height: ph } = pageSizes[pageIdx]
     const pageTop = cumulativeTop[pageIdx]
 
+    const startLeft = boxPx.left
+    const startTop = boxPx.top - pageTop
+    const startRight = startLeft + boxPx.width
+    const startBottom = startTop + boxPx.height
+
     const onMove = (ev) => {
       const dx = ev.clientX - startClientX
       const dy = ev.clientY - startClientY
-      const maxW = pw - start.left
-      const maxH = ph - (start.top - pageTop)
-      const newWidth = clamp(start.width + dx, MIN_BOX_WIDTH, Math.max(MIN_BOX_WIDTH, maxW))
-      const newHeight = clamp(start.height + dy, MIN_BOX_HEIGHT, Math.max(MIN_BOX_HEIGHT, maxH))
+      let left = startLeft
+      let top = startTop
+      let right = startRight
+      let bottom = startBottom
+
+      if (corner.includes('w')) left = clamp(startLeft + dx, 0, right - MIN_BOX_WIDTH)
+      if (corner.includes('e')) right = clamp(startRight + dx, left + MIN_BOX_WIDTH, pw)
+      if (corner.includes('n')) top = clamp(startTop + dy, 0, bottom - MIN_BOX_HEIGHT)
+      if (corner.includes('s')) bottom = clamp(startBottom + dy, top + MIN_BOX_HEIGHT, ph)
+
       setBox({
         page: pageIdx,
-        xPct: (start.left / pw) * 100,
-        yPct: ((start.top - pageTop) / ph) * 100,
-        wPct: (newWidth / pw) * 100,
-        hPct: (newHeight / ph) * 100,
+        xPct: (left / pw) * 100,
+        yPct: (top / ph) * 100,
+        wPct: ((right - left) / pw) * 100,
+        hPct: ((bottom - top) / ph) * 100,
       })
     }
     const onUp = () => {
@@ -283,129 +376,161 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
       )
       const blob = await invoicesApi.downloadSignedPdf(invoiceId, token)
       downloadBlob(blob, `signed_${invoiceFilename}`)
-      setSuccessMessage('Signature applied — the signed PDF has been downloaded. Confirming…')
-      window.setTimeout(() => {
-        onSigned()
-      }, 1100)
+      setSuccessMessage('Signature applied — the signed PDF has been downloaded.')
+      window.setTimeout(() => requestClose(onSigned), 900)
     } catch (err) {
       setPlaceError(err.message || 'Failed to place signature')
       setPlacing(false)
     }
   }
 
-  return (
-    <div className="kt-sign-body">
-      <div className="kt-sign-preview" ref={scrollRef}>
-        {previewError ? (
-          <div className="kt-review-preview-error">{previewError}</div>
-        ) : (
-          <div className="kt-sign-pages" style={{ width: maxWidth || undefined }}>
-            {Array.from({ length: numPages }).map((_, i) => (
-              <div
-                key={i}
-                className="kt-sign-page"
-                style={{ marginBottom: i === numPages - 1 ? 0 : PAGE_GAP }}
-              >
-                <canvas ref={(el) => (canvasRefs.current[i] = el)} className="kt-sign-canvas" />
-                <span className="kt-sign-page-label">
-                  Page {i + 1} of {numPages}
-                </span>
-              </div>
-            ))}
+  const handleCancel = () => requestClose(onBack)
 
-            {boxPx && (
-              <div
-                className="kt-sign-box"
-                style={{ left: boxPx.left, top: boxPx.top, width: boxPx.width, height: boxPx.height }}
-                onPointerDown={startDragBox}
-              >
-                <div className="kt-sign-box-content">
-                  {signatureDataUrl ? (
-                    <img src={signatureDataUrl} alt="Your signature" className="kt-sign-box-image" />
-                  ) : (
-                    <span className="kt-sign-box-placeholder">Signature</span>
-                  )}
-                  <span className="kt-sign-box-date">{dateValue}</span>
-                </div>
+  return createPortal(
+    <div className={`kt-sign-overlay${visible && !closing ? ' kt-sign-visible' : ''}`}>
+      <div className="kt-sign-pdfarea">
+        <div className="kt-sign-page-indicator">
+          Page {numPages ? Math.min(viewPage + 1, numPages) : 1} of {numPages || 1}
+        </div>
+
+        {previewError ? (
+          <div className="kt-sign-preview-error">{previewError}</div>
+        ) : (
+          <div className="kt-sign-scroll" ref={scrollRef}>
+            <div className="kt-sign-pages" style={{ width: maxWidth || undefined }}>
+              {Array.from({ length: numPages }).map((_, i) => (
                 <div
-                  className="kt-sign-box-handle"
-                  onPointerDown={startResize}
-                  title="Drag to resize"
-                />
-              </div>
-            )}
+                  key={i}
+                  className="kt-sign-page"
+                  style={{ marginBottom: i === numPages - 1 ? 0 : PAGE_GAP }}
+                >
+                  <canvas ref={(el) => (canvasRefs.current[i] = el)} className="kt-sign-canvas" />
+                </div>
+              ))}
+
+              {boxPx && (
+                <div
+                  className="kt-sign-box"
+                  style={{ left: boxPx.left, top: boxPx.top, width: boxPx.width, height: boxPx.height }}
+                  onPointerDown={startDragBox}
+                >
+                  <div className="kt-sign-box-content">
+                    {signatureDataUrl ? (
+                      <img src={signatureDataUrl} alt="Your signature" className="kt-sign-box-image" />
+                    ) : (
+                      <span className="kt-sign-box-placeholder">Signature</span>
+                    )}
+                    <span className="kt-sign-box-date">{dateValue}</span>
+                  </div>
+                  {CORNERS.map((corner) => (
+                    <div
+                      key={corner}
+                      className={`kt-sign-box-handle kt-sign-box-handle-${corner}`}
+                      onPointerDown={startResize(corner)}
+                      title="Drag to resize"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="kt-sign-controls">
-        <p className="kt-sign-instructions">
-          Drag the signature box to a blank area of the document. Use the handle in its
-          bottom-right corner to resize it — it can be placed on any page.
-        </p>
+      <div className={`kt-sign-toolbar${drawerOpen ? '' : ' kt-sign-toolbar-collapsed'}`}>
+        <button
+          type="button"
+          className="kt-sign-toolbar-tab"
+          onClick={() => setDrawerOpen((v) => !v)}
+        >
+          <span>Signature tools</span>
+          <span className="kt-sign-toolbar-tab-chevron" aria-hidden="true">
+            {drawerOpen ? '⌄' : '⌃'}
+          </span>
+        </button>
 
-        <div className="kt-field">
-          <label>Your signature</label>
-          <canvas
-            ref={sigCanvasRef}
-            width={420}
-            height={150}
-            className="kt-sign-pad"
-            onPointerDown={startDraw}
-            onPointerMove={draw}
-            onPointerUp={endDraw}
-            onPointerLeave={endDraw}
-          />
-          <button type="button" className="kt-category-link-button" onClick={clearSignature}>
-            Clear signature
-          </button>
-        </div>
+        <div className="kt-sign-toolbar-content">
+          <div className="kt-field">
+            <label>Your signature</label>
+            <canvas
+              ref={sigCanvasRef}
+              width={420}
+              height={150}
+              className="kt-sign-pad"
+              onPointerDown={startDraw}
+              onPointerMove={draw}
+              onPointerUp={endDraw}
+              onPointerLeave={endDraw}
+            />
+            <button type="button" className="kt-category-link-button" onClick={clearSignature}>
+              Clear signature
+            </button>
+          </div>
 
-        <div className="kt-field">
-          <label htmlFor="sign-date">Date</label>
-          <input
-            id="sign-date"
-            type="date"
-            value={dateValue}
-            onChange={(e) => setDateValue(e.target.value)}
-            required
-          />
-        </div>
+          <div className="kt-field">
+            <label htmlFor="sign-date">Date</label>
+            <input
+              id="sign-date"
+              type="date"
+              value={dateValue}
+              onChange={(e) => setDateValue(e.target.value)}
+              required
+            />
+          </div>
 
-        <div className="kt-field">
-          <label htmlFor="sign-additional-text">Additional text (optional)</label>
-          <input
-            id="sign-additional-text"
-            type="text"
-            value={additionalText}
-            onChange={(e) => setAdditionalText(e.target.value)}
-            placeholder="e.g. your name, a note, or reference number"
-            maxLength={500}
-          />
-        </div>
+          <div className="kt-field">
+            <label htmlFor="sign-additional-text">Additional text (optional)</label>
+            <input
+              id="sign-additional-text"
+              type="text"
+              value={additionalText}
+              onChange={(e) => setAdditionalText(e.target.value)}
+              placeholder="e.g. your name, a note, or reference number"
+              maxLength={500}
+            />
+          </div>
 
-        {placeError && <div className="kt-auth-error">{placeError}</div>}
-        {successMessage && <div className="kt-sign-success">{successMessage}</div>}
+          {numPages > 1 && (
+            <div className="kt-field">
+              <label htmlFor="sign-page-select">Place on page:</label>
+              <select
+                id="sign-page-select"
+                value={viewPage}
+                onChange={(e) => goToPage(Number(e.target.value))}
+              >
+                {Array.from({ length: numPages }).map((_, i) => (
+                  <option key={i} value={i}>
+                    Page {i + 1}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-        <div className="kt-review-actions">
-          <button
-            type="button"
-            className="kt-auth-button"
-            onClick={handlePlace}
-            disabled={placing || Boolean(successMessage)}
-          >
-            {placing ? 'Placing signature…' : 'Place signature'}
-          </button>
-          <button
-            type="button"
-            className="kt-review-discard-button"
-            onClick={onBack}
-            disabled={placing || Boolean(successMessage)}
-          >
-            ← Back to details
-          </button>
+          {placeError && <div className="kt-auth-error">{placeError}</div>}
+          {successMessage && <div className="kt-sign-success">{successMessage}</div>}
+
+          <div className="kt-sign-toolbar-actions">
+            <button
+              type="button"
+              className="kt-auth-button kt-sign-place-button"
+              onClick={handlePlace}
+              disabled={placing || Boolean(successMessage)}
+            >
+              {placing ? 'Placing signature…' : 'Place signature'}
+            </button>
+            <button
+              type="button"
+              className="kt-sign-cancel-button"
+              onClick={handleCancel}
+              disabled={placing || Boolean(successMessage)}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

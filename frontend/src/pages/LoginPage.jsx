@@ -4,7 +4,7 @@ import AuthCard from '../components/AuthCard.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, setupRequired } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -27,6 +27,19 @@ export default function LoginPage() {
 
   return (
     <AuthCard title="Log in" subtitle="Enter your username and password to continue.">
+      {setupRequired && (
+        <div className="kt-login-setup-banner">
+          <p>Welcome to Keep Track. No accounts exist yet.</p>
+          <button
+            type="button"
+            className="kt-auth-button"
+            onClick={() => navigate('/setup')}
+          >
+            Set up Keep Track
+          </button>
+        </div>
+      )}
+
       <form className="kt-auth-form" onSubmit={handleSubmit}>
         {error && <div className="kt-auth-error">{error}</div>}
 

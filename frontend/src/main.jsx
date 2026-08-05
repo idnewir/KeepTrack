@@ -14,6 +14,7 @@ import './styles/dashboard.css'
 import './styles/contributions.css'
 import './styles/projects.css'
 import './styles/reports.css'
+import './styles/signing.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

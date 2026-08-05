@@ -130,6 +130,28 @@
   font-size: 13px;
 }
 
+.kt-login-setup-banner {
+  background: rgba(45, 107, 159, 0.08);
+  border: 1px solid rgba(45, 107, 159, 0.25);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.kt-login-setup-banner p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--kt-text);
+}
+
+.kt-login-setup-banner .kt-auth-button {
+  width: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
 .kt-auth-note {
   background: var(--kt-background);
   border: 1px solid var(--kt-border);

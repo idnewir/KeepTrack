@@ -170,6 +170,21 @@ export default function InvoiceDetailPage() {
     )
   }
 
+  // SigningPanel renders itself into a full-screen portal (document.body),
+  // so it doesn't need — and shouldn't sit inside — the rest of this page.
+  if (signingStage) {
+    return (
+      <SigningPanel
+        invoiceId={invoice.id}
+        invoiceFilename={invoice.filename}
+        file={signFile}
+        token={token}
+        onSigned={handleSigned}
+        onBack={handleBackFromSigning}
+      />
+    )
+  }
+
   return (
     <div>
       <p>
@@ -183,162 +198,147 @@ export default function InvoiceDetailPage() {
         {invoice.signed ? ' · Signed' : ''}
       </p>
 
-      {signingStage ? (
-        <div className="kt-review-card">
-          <SigningPanel
-            invoiceId={invoice.id}
-            invoiceFilename={invoice.filename}
-            file={signFile}
-            token={token}
-            onSigned={handleSigned}
-            onBack={handleBackFromSigning}
+      {canEdit && signingEnabled && invoice.reviewed && (
+        <p>
+          <button
+            type="button"
+            className="kt-auth-button"
+            onClick={handleOpenSigning}
+            disabled={loadingSignFile}
+          >
+            {loadingSignFile
+              ? 'Loading…'
+              : invoice.signed
+                ? 'Re-sign and export'
+                : 'Sign and export'}
+          </button>
+        </p>
+      )}
+
+      {invoice.signed && canEdit && (
+        <p>
+          <button
+            type="button"
+            className="kt-category-link-button"
+            onClick={handleDownloadSigned}
+            disabled={downloadingSigned}
+          >
+            {downloadingSigned ? 'Downloading…' : 'Download signed PDF'}
+          </button>
+        </p>
+      )}
+
+      <form className="kt-review-fields kt-invoice-detail-form" onSubmit={handleSave}>
+        <div className="kt-field">
+          <label htmlFor="detail-invoice-date">Invoice date</label>
+          <input
+            id="detail-invoice-date"
+            type="date"
+            value={invoiceDate}
+            onChange={(e) => setInvoiceDate(e.target.value)}
+            disabled={!canEdit}
+            required
           />
         </div>
-      ) : (
-        <>
-          {canEdit && signingEnabled && invoice.reviewed && (
-            <p>
-              <button
-                type="button"
-                className="kt-auth-button"
-                onClick={handleOpenSigning}
-                disabled={loadingSignFile}
-              >
-                {loadingSignFile
-                  ? 'Loading…'
-                  : invoice.signed
-                    ? 'Re-sign and export'
-                    : 'Sign and export'}
-              </button>
-            </p>
-          )}
 
-          {invoice.signed && canEdit && (
-            <p>
-              <button
-                type="button"
-                className="kt-category-link-button"
-                onClick={handleDownloadSigned}
-                disabled={downloadingSigned}
-              >
-                {downloadingSigned ? 'Downloading…' : 'Download signed PDF'}
-              </button>
-            </p>
-          )}
+        <div className="kt-field">
+          <label htmlFor="detail-supplier">Supplier</label>
+          <input
+            id="detail-supplier"
+            type="text"
+            value={supplier}
+            onChange={(e) => setSupplier(e.target.value)}
+            disabled={!canEdit}
+            maxLength={255}
+            required
+          />
+        </div>
 
-          <form className="kt-review-fields kt-invoice-detail-form" onSubmit={handleSave}>
-            <div className="kt-field">
-              <label htmlFor="detail-invoice-date">Invoice date</label>
-              <input
-                id="detail-invoice-date"
-                type="date"
-                value={invoiceDate}
-                onChange={(e) => setInvoiceDate(e.target.value)}
-                disabled={!canEdit}
-                required
-              />
-            </div>
+        <div className="kt-field">
+          <label htmlFor="detail-amount">Amount (inc. VAT)</label>
+          <div className="kt-amount-input">
+            <span className="kt-amount-prefix">£</span>
+            <input
+              id="detail-amount"
+              type="number"
+              step="0.01"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              disabled={!canEdit}
+              required
+            />
+          </div>
+        </div>
 
-            <div className="kt-field">
-              <label htmlFor="detail-supplier">Supplier</label>
-              <input
-                id="detail-supplier"
-                type="text"
-                value={supplier}
-                onChange={(e) => setSupplier(e.target.value)}
-                disabled={!canEdit}
-                maxLength={255}
-                required
-              />
-            </div>
+        <div className="kt-field">
+          <label htmlFor="detail-category">Category</label>
+          <select
+            id="detail-category"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            disabled={!canEdit}
+          >
+            <option value="">Uncategorised</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-            <div className="kt-field">
-              <label htmlFor="detail-amount">Amount (inc. VAT)</label>
-              <div className="kt-amount-input">
-                <span className="kt-amount-prefix">£</span>
-                <input
-                  id="detail-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  disabled={!canEdit}
-                  required
-                />
-              </div>
-            </div>
+        <div className="kt-field">
+          <label htmlFor="detail-notes">Notes</label>
+          <textarea
+            id="detail-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            disabled={!canEdit}
+            rows={3}
+          />
+        </div>
 
-            <div className="kt-field">
-              <label htmlFor="detail-category">Category</label>
-              <select
-                id="detail-category"
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                disabled={!canEdit}
-              >
-                <option value="">Uncategorised</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        {error && <div className="kt-auth-error">{error}</div>}
 
-            <div className="kt-field">
-              <label htmlFor="detail-notes">Notes</label>
-              <textarea
-                id="detail-notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                disabled={!canEdit}
-                rows={3}
-              />
-            </div>
+        {canEdit && (
+          <div className="kt-review-actions">
+            <button type="submit" className="kt-auth-button" disabled={saving}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
 
-            {error && <div className="kt-auth-error">{error}</div>}
-
-            {canEdit && (
-              <div className="kt-review-actions">
-                <button type="submit" className="kt-auth-button" disabled={saving}>
-                  {saving ? 'Saving…' : 'Save changes'}
+            {canDelete &&
+              (confirmingDelete ? (
+                <span className="kt-review-discard-confirm">
+                  Delete this invoice?
+                  <button
+                    type="button"
+                    className="kt-category-link-button kt-category-danger"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? 'Deleting…' : 'Yes, delete'}
+                  </button>
+                  <button
+                    type="button"
+                    className="kt-category-link-button"
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="kt-review-discard-button"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  Delete
                 </button>
-
-                {canDelete &&
-                  (confirmingDelete ? (
-                    <span className="kt-review-discard-confirm">
-                      Delete this invoice?
-                      <button
-                        type="button"
-                        className="kt-category-link-button kt-category-danger"
-                        onClick={handleDelete}
-                        disabled={deleting}
-                      >
-                        {deleting ? 'Deleting…' : 'Yes, delete'}
-                      </button>
-                      <button
-                        type="button"
-                        className="kt-category-link-button"
-                        onClick={() => setConfirmingDelete(false)}
-                      >
-                        Cancel
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      className="kt-review-discard-button"
-                      onClick={() => setConfirmingDelete(true)}
-                    >
-                      Delete
-                    </button>
-                  ))}
-              </div>
-            )}
-          </form>
-        </>
-      )}
+              ))}
+          </div>
+        )}
+      </form>
     </div>
   )
 }

@@ -29,14 +29,35 @@ export async function loadPdfDocument(file) {
 }
 
 // Renders one page (1-indexed, matching pdf.js convention) of an already-open
-// pdf.js document onto the given canvas, returning the rendered {width,
-// height} so callers can lay out per-page overlays without re-measuring.
-export async function renderPdfPage(pdf, pageNumber, canvas, scale = 1.1) {
+// pdf.js document onto the given canvas, scaled to fill `targetWidth` CSS
+// pixels while preserving aspect ratio, returning the rendered {width,
+// height} *in CSS pixels* so callers can lay out per-page overlays without
+// re-measuring.
+//
+// The canvas's backing-store resolution (its width/height attributes) is set
+// to targetWidth * devicePixelRatio for crisp rendering on high-DPI screens,
+// but canvas.style.width/height are pinned to the CSS-pixel viewport size —
+// this is what the caller's pointer/percentage math must be based on. Any
+// mismatch between the two (e.g. relying on a CSS `max-width: 100%` rule to
+// shrink the canvas instead of rendering it at the right size to begin with)
+// is what previously made the draggable signature box drift out of sync
+// with the visually displayed PDF.
+export async function renderPdfPage(pdf, pageNumber, canvas, targetWidth) {
   const page = await pdf.getPage(pageNumber)
+  const baseWidth = page.getViewport({ scale: 1 }).width
+  const scale = targetWidth ? targetWidth / baseWidth : 1.1
   const viewport = page.getViewport({ scale })
-  canvas.width = viewport.width
-  canvas.height = viewport.height
+
+  const outputScale = window.devicePixelRatio || 1
+  const cssWidth = Math.round(viewport.width)
+  const cssHeight = Math.round(viewport.height)
+  canvas.width = Math.round(cssWidth * outputScale)
+  canvas.height = Math.round(cssHeight * outputScale)
+  canvas.style.width = `${cssWidth}px`
+  canvas.style.height = `${cssHeight}px`
+
   const context = canvas.getContext('2d')
-  await page.render({ canvasContext: context, viewport }).promise
-  return { width: viewport.width, height: viewport.height }
+  const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null
+  await page.render({ canvasContext: context, viewport, transform }).promise
+  return { width: cssWidth, height: cssHeight }
 }

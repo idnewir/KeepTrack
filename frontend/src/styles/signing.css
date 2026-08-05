@@ -1,0 +1,290 @@
+/* Full-screen signing UI — see docs/decisions-log.md for the redesign that
+   introduced this file (previously these rules lived in settings.css). */
+
+body.kt-sign-lock-scroll {
+  overflow: hidden;
+}
+
+.kt-sign-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  background: var(--kt-background);
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.kt-sign-overlay.kt-sign-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.kt-sign-pdfarea {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kt-sign-page-indicator {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--kt-border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kt-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.kt-sign-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 56px 12px 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.kt-sign-pages {
+  position: relative;
+}
+
+.kt-sign-page {
+  position: relative;
+}
+
+.kt-sign-canvas {
+  display: block;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+.kt-sign-preview-error {
+  margin: auto;
+  padding: 24px;
+  color: #a83232;
+  font-size: 14px;
+}
+
+.kt-sign-box {
+  position: absolute;
+  border: 2px dashed var(--kt-primary);
+  background: rgba(255, 255, 255, 0.55);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.kt-sign-box:active {
+  cursor: grabbing;
+}
+
+.kt-sign-box-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kt-sign-box-image {
+  max-width: 90%;
+  max-height: 70%;
+  object-fit: contain;
+}
+
+.kt-sign-box-placeholder {
+  font-size: 12px;
+  color: var(--kt-primary);
+  font-weight: 600;
+}
+
+.kt-sign-box-date {
+  font-size: 10px;
+  color: #444;
+}
+
+.kt-sign-box-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--kt-primary);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  touch-action: none;
+}
+
+.kt-sign-box-handle-nw {
+  top: -8px;
+  left: -8px;
+  cursor: nwse-resize;
+}
+
+.kt-sign-box-handle-ne {
+  top: -8px;
+  right: -8px;
+  cursor: nesw-resize;
+}
+
+.kt-sign-box-handle-sw {
+  bottom: -8px;
+  left: -8px;
+  cursor: nesw-resize;
+}
+
+.kt-sign-box-handle-se {
+  bottom: -8px;
+  right: -8px;
+  cursor: nwse-resize;
+}
+
+/* Floating toolbar — desktop: right-hand panel */
+
+.kt-sign-toolbar {
+  width: 340px;
+  max-width: 92vw;
+  margin: 16px 16px 16px 0;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--kt-border);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kt-sign-toolbar-tab {
+  display: none;
+}
+
+.kt-sign-toolbar-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.kt-sign-pad {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: 150px;
+  border: 1px dashed var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  touch-action: none;
+  cursor: crosshair;
+  margin-bottom: 8px;
+}
+
+.kt-sign-success {
+  color: var(--kt-accent);
+  background: rgba(29, 158, 117, 0.1);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.kt-sign-toolbar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.kt-sign-place-button {
+  width: 100%;
+}
+
+.kt-sign-cancel-button {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--kt-border);
+  background: transparent;
+  color: var(--kt-text);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.kt-sign-cancel-button:hover {
+  background: var(--kt-background);
+}
+
+.kt-sign-cancel-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mobile: toolbar becomes a bottom drawer, PDF fills the whole screen width */
+
+@media (max-width: 800px) {
+  .kt-sign-overlay {
+    flex-direction: column;
+  }
+
+  .kt-sign-scroll {
+    padding-bottom: 96px;
+  }
+
+  .kt-sign-toolbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    max-height: 72vh;
+    transform: translateY(0);
+    transition: transform 0.22s ease;
+  }
+
+  .kt-sign-toolbar-tab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--kt-border);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--kt-text);
+    cursor: pointer;
+  }
+
+  .kt-sign-toolbar-tab-chevron {
+    font-size: 16px;
+  }
+
+  .kt-sign-toolbar-content {
+    max-height: calc(72vh - 44px);
+  }
+
+  .kt-sign-toolbar-collapsed {
+    transform: translateY(calc(100% - 44px));
+  }
+}
