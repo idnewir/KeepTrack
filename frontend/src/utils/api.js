@@ -40,6 +40,10 @@ export const authApi = {
   verifyMfa: (payload) => request('/auth/verify-mfa', { method: 'POST', body: payload }),
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   me: (token) => request('/auth/me', { token }),
+  updateProfile: (payload, token) =>
+    request('/auth/me/profile', { method: 'PUT', body: payload, token }),
+  changePassword: (payload, token) =>
+    request('/auth/me/password', { method: 'PUT', body: payload, token }),
   pendingUsers: (token) => request('/auth/pending-users', { token }),
   approveUser: (id, role, token) =>
     request(`/auth/approve-user/${id}`, { method: 'POST', body: { role }, token }),

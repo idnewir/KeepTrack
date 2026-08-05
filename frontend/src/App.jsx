@@ -16,6 +16,7 @@ import InvoicesPage from './pages/InvoicesPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import MFAPage from './pages/MFAPage.jsx'
 import PendingApprovalPage from './pages/PendingApprovalPage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
 import ProjectsPage from './pages/ProjectsPage.jsx'
 import ReconciliationPage from './pages/ReconciliationPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
@@ -62,6 +63,7 @@ export default function App() {
         }
       >
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/forecast" element={<ForecastBreakdownPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/invoices/:id" element={<InvoiceDetailPage />} />

@@ -76,6 +76,15 @@ export function AuthProvider({ children }) {
 
   const markSetupComplete = () => setSetupRequired(false)
 
+  // Re-fetches /auth/me and updates the stored user — used after the
+  // profile page changes display_name/email so the header picks it up
+  // immediately, without requiring a re-login.
+  const refreshUser = async () => {
+    if (!user?.token) return
+    const me = await authApi.me(user.token)
+    setUser({ ...me, token: user.token })
+  }
+
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY)
     setUser(null)
@@ -93,6 +102,7 @@ export function AuthProvider({ children }) {
       register,
       completeSetup,
       markSetupComplete,
+      refreshUser,
       logout,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

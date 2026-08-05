@@ -14,6 +14,7 @@ class UserOut(BaseModel):
     id: int
     username: str
     email: str
+    display_name: str | None = None
     role: str
     approved: bool
     created_at: datetime
@@ -77,6 +78,16 @@ class RegisterResponse(BaseModel):
 
 class ApproveUserRequest(BaseModel):
     role: str = Field(description=f"One of: {', '.join(ASSIGNABLE_ROLES)}")
+
+
+class ProfileUpdateRequest(BaseModel):
+    display_name: str | None = Field(default=None, max_length=150)
+    email: EmailStr
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=255)
 
 
 class SetupStatusResponse(BaseModel):

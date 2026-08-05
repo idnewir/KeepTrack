@@ -9,6 +9,8 @@ from models.schemas import (
     LoginRequest,
     LoginResponse,
     MFAVerifyRequest,
+    PasswordChangeRequest,
+    ProfileUpdateRequest,
     RegisterRequest,
     RegisterResponse,
     SettingOut,
@@ -241,4 +243,36 @@ def approve_user(
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
+    return user
+
+
+@router.put("/me/profile", response_model=UserOut)
+def update_my_profile(
+    payload: ProfileUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    existing = db.query(User).filter(User.email == payload.email, User.id != user.id).first()
+    if existing is not None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email already registered")
+
+    user.display_name = payload.display_name.strip() if payload.display_name else None
+    user.email = payload.email
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.put("/me/password", response_model=UserOut)
+def change_my_password(
+    payload: PasswordChangeRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect")
+
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    db.refresh(user)
     return user
