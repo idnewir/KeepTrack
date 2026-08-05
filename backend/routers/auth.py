@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from config import settings
 from database import get_db
 from models.schemas import (
+    AIConfigOut,
+    AIConfigUpdate,
     ApproveUserRequest,
     ForcePasswordChangeRequest,
     LoginRequest,
@@ -32,7 +34,8 @@ from models.schemas import (
 )
 from models.setting import Setting
 from models.user import User
-from services import audit_service, error_service
+from services import ai_provider_service, audit_service, error_service
+from services.ai_provider_service import DEFAULT_MODEL_FOR_PROVIDER, SUPPORTED_PROVIDERS
 from services.auth_service import (
     build_otpauth_uri,
     generate_mfa_secret,
@@ -135,6 +138,56 @@ def set_setup_app_start_date(payload: SetupAppStartDateRequest, db: Session = De
     db.commit()
     db.refresh(setting)
     return setting
+
+
+@router.put("/setup/ai-config", response_model=AIConfigOut)
+def set_setup_ai_config(payload: AIConfigUpdate, db: Session = Depends(get_db)):
+    """Setup wizard step 4 ("Configure AI features (optional)"). Unauthenticated
+    and gated the same way as /auth/setup/app-start-date above — see
+    services.auth_service.sole_setup_admin. Skipping this step in the
+    wizard simply leaves the migration-seeded defaults (Anthropic, no key)
+    in place; AI can always be configured later via Settings -> AI &
+    Extraction (PUT /ai/config), which this endpoint mirrors."""
+    admin = sole_setup_admin(db)
+    if admin is None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Setup has already been completed")
+
+    if payload.provider not in SUPPORTED_PROVIDERS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Unsupported provider. Must be one of: {', '.join(SUPPORTED_PROVIDERS)}",
+        )
+    if ai_provider_service.requires_endpoint_url(payload.provider) and not (payload.endpoint_url or "").strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "An endpoint URL is required for this provider")
+
+    model = (payload.model or "").strip() or DEFAULT_MODEL_FOR_PROVIDER.get(payload.provider)
+
+    def _set(key: str, value: str | None) -> None:
+        row = db.query(Setting).filter(Setting.key == key).first()
+        if row is None:
+            row = Setting(key=key)
+            db.add(row)
+        row.value = value
+        row.updated_by = admin.id
+
+    _set("ai_provider", payload.provider)
+    _set("ai_model", model)
+    _set("ai_endpoint_url", (payload.endpoint_url or "").strip() or None)
+    _set("ai_enabled", "true" if payload.ai_enabled else "false")
+    if payload.api_key and payload.api_key.strip():
+        _set("ai_api_key", encrypt_secret(payload.api_key.strip()))
+    db.commit()
+
+    cfg = ai_provider_service.get_ai_config(db)
+    _api_key, source = ai_provider_service.resolve_api_key(db, cfg["provider"])
+    return AIConfigOut(
+        provider=cfg["provider"],
+        model=cfg["model"],
+        endpoint_url=cfg["endpoint_url"],
+        ai_enabled=cfg["enabled"],
+        api_key_set=ai_provider_service.api_key_is_set(db),
+        api_key_source=source,
+    )
 
 
 @router.post("/login", response_model=LoginResponse)

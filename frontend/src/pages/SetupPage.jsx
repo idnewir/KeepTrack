@@ -10,10 +10,16 @@ function currentMonthValue() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
+const AI_PROVIDER_OPTIONS = [
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'ollama', label: 'Self-hosted (Ollama)' },
+]
+
 export default function SetupPage() {
   const { completeSetup, markSetupComplete } = useAuth()
   const navigate = useNavigate()
-  const [step, setStep] = useState('form') // 'form' | 'qr' | 'start-date' | 'done'
+  const [step, setStep] = useState('form') // 'form' | 'qr' | 'start-date' | 'ai' | 'done'
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,6 +32,12 @@ export default function SetupPage() {
   const [fyStartMonth, setFyStartMonth] = useState(9) // 1-12, defaults to September
   const [savingStartDate, setSavingStartDate] = useState(false)
   const [startDateError, setStartDateError] = useState('')
+
+  const [aiProvider, setAiProvider] = useState('anthropic')
+  const [aiApiKey, setAiApiKey] = useState('')
+  const [aiEndpointUrl, setAiEndpointUrl] = useState('')
+  const [savingAiConfig, setSavingAiConfig] = useState(false)
+  const [aiConfigError, setAiConfigError] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -75,7 +87,7 @@ export default function SetupPage() {
       setSavingStartDate(true)
       try {
         await authApi.setupAppStartDate(appStartDate, fyStartMonth)
-        setStep('done')
+        setStep('ai')
       } catch (err) {
         setStartDateError(err.message || 'Failed to save')
       } finally {
@@ -134,6 +146,101 @@ export default function SetupPage() {
             type="button"
             disabled={savingStartDate}
             onClick={() => saveStartDate(null)}
+          >
+            Skip for now
+          </button>
+        </form>
+      </AuthCard>
+    )
+  }
+
+  if (step === 'ai') {
+    const isOllama = aiProvider === 'ollama'
+
+    const handleSaveAiConfig = async () => {
+      setAiConfigError('')
+      if (isOllama && !aiEndpointUrl.trim()) {
+        setAiConfigError('Enter an endpoint URL for your self-hosted model')
+        return
+      }
+      setSavingAiConfig(true)
+      try {
+        await authApi.setupAiConfig({
+          provider: aiProvider,
+          api_key: isOllama ? null : aiApiKey.trim() || null,
+          endpoint_url: isOllama ? aiEndpointUrl.trim() : null,
+          ai_enabled: true,
+        })
+        setStep('done')
+      } catch (err) {
+        setAiConfigError(err.message || 'Failed to save AI configuration')
+      } finally {
+        setSavingAiConfig(false)
+      }
+    }
+
+    return (
+      <AuthCard
+        title="Configure AI features (optional)"
+        subtitle="AI powers automatic invoice data extraction and report summaries. You can use
+          Anthropic, OpenAI, or a self-hosted model. Skip this step to configure later."
+      >
+        {aiConfigError && <div className="kt-auth-error">{aiConfigError}</div>}
+        <form
+          className="kt-auth-form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleSaveAiConfig()
+          }}
+        >
+          <div className="kt-field">
+            <label htmlFor="ai-setup-provider">AI provider</label>
+            <select
+              id="ai-setup-provider"
+              value={aiProvider}
+              onChange={(e) => setAiProvider(e.target.value)}
+            >
+              {AI_PROVIDER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {isOllama ? (
+            <div className="kt-field">
+              <label htmlFor="ai-setup-endpoint">Endpoint URL</label>
+              <input
+                id="ai-setup-endpoint"
+                type="text"
+                placeholder="http://192.168.1.100:11434"
+                value={aiEndpointUrl}
+                onChange={(e) => setAiEndpointUrl(e.target.value)}
+              />
+            </div>
+          ) : (
+            <div className="kt-field">
+              <label htmlFor="ai-setup-key">API key</label>
+              <input
+                id="ai-setup-key"
+                type="password"
+                placeholder="Optional — can be added later in Settings"
+                value={aiApiKey}
+                onChange={(e) => setAiApiKey(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+          )}
+
+          <button className="kt-auth-button" type="submit" disabled={savingAiConfig}>
+            {savingAiConfig ? 'Saving…' : 'Save and continue'}
+          </button>
+          <button
+            className="kt-auth-button kt-auth-button-secondary"
+            type="button"
+            disabled={savingAiConfig}
+            onClick={() => setStep('done')}
           >
             Skip for now
           </button>

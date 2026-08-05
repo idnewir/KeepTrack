@@ -19,6 +19,33 @@ On the Settings page, a single on/off switch controls the invoice-signing step f
 
 Changing this switch takes effect immediately for everyone, including anyone partway through reviewing an invoice.
 
+### AI & Extraction
+
+To get there: **Settings → AI & Extraction** (Admin only).
+
+This controls how Keep Track reads uploaded invoices automatically and writes the narrative summaries in exported reports.
+
+- **Enable AI features** — an on/off switch for the whole organisation.
+  - **On** (the default) — invoices are read automatically on upload, and reports include a written AI summary.
+  - **Off** — every invoice field must be filled in by hand on the review card, and reports are generated without a summary. Nothing about uploading, reviewing, or reporting stops working — AI is simply skipped.
+- **Provider** — choose which AI service does the reading and writing:
+  - **Anthropic** (recommended, and the default)
+  - **OpenAI**
+  - **Google Gemini**
+  - **xAI Grok**
+  - **Mistral**
+  - **Cohere**
+  - **Ollama** — a model you run yourself, on your own hardware or network. No data leaves your own infrastructure.
+  - **Custom** — any other service that speaks the OpenAI-compatible API format.
+- **API key** (Anthropic, OpenAI, Gemini, Grok, Mistral, Cohere) — click **Change API key** to enter a new one. Once saved, it's shown only as dots — Keep Track encrypts it before storing it and never displays it again. A green **API key configured** badge confirms one is set; an amber banner tells you if one is missing and AI features won't work until you add one.
+  - If you'd rather manage the key outside the app (an environment variable on the server), Keep Track will say so with a blue banner and use that instead — setting a key here simply overrides it.
+- **Model** — pick from the list of models available for whichever provider you've chosen.
+- **Endpoint URL** (Ollama and Custom only) — the address of your self-hosted or custom service, e.g. `http://192.168.1.100:11434`. For Ollama, Keep Track can fetch the list of models actually installed there — click **Fetch installed models**. Ollama needs no API key.
+- **Test connection** — sends a real, tiny test message to whichever provider is currently configured and reports back whether it worked, how long it took, and which model answered — without touching any of your invoices or reports. Limited to 10 tests per hour to avoid running up unnecessary usage.
+- **Save** — applies your changes immediately, for everyone, with no page refresh needed.
+
+If an invoice's fields come back empty after upload, it usually means AI extraction couldn't read that particular document — just fill them in by hand on the review card as normal. If this keeps happening, check this page for a misconfigured or missing API key.
+
 ### Notification thresholds
 
 Decide how many days an invoice can sit unreviewed before Keep Track flags it as overdue for everyone with access to notifications.

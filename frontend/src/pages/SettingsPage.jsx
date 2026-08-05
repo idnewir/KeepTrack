@@ -5,6 +5,7 @@ import SettingsNav from '../components/settings/SettingsNav.jsx'
 import GeneralSettings from '../components/settings/GeneralSettings.jsx'
 import TerminologySettings from '../components/settings/TerminologySettings.jsx'
 import SigningExportSettings from '../components/settings/SigningExportSettings.jsx'
+import AISettings from '../components/settings/AISettings.jsx'
 import UsersSettings from '../components/settings/UsersSettings.jsx'
 import ComingSoonSettings from '../components/settings/ComingSoonSettings.jsx'
 import StorageBackupSettings from '../components/settings/StorageBackupSettings.jsx'
@@ -48,12 +49,7 @@ export default function SettingsPage() {
               {activeCategory === 'general' && <GeneralSettings token={token} />}
               {activeCategory === 'terminology' && <TerminologySettings token={token} />}
               {activeCategory === 'signing' && <SigningExportSettings token={token} />}
-              {activeCategory === 'ai' && (
-                <ComingSoonSettings
-                  title="AI & Extraction"
-                  description="Configure how invoices are read and categorised automatically."
-                />
-              )}
+              {activeCategory === 'ai' && <AISettings token={token} />}
               {activeCategory === 'storage' && <StorageBackupSettings token={token} />}
               {activeCategory === 'users' && <UsersSettings token={token} />}
               {activeCategory === 'notifications' && (

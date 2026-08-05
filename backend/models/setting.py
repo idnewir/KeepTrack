@@ -12,7 +12,10 @@ class Setting(Base):
     # Nullable: a setting can be "not set" (e.g. app_start_date before an
     # Admin configures it) rather than only ever holding a sentinel string.
     # See docs/decisions-log.md.
-    value = Column(String(500), nullable=True)
+    # Widened from 500 to 2000 (migration 0026) to fit an encrypted
+    # (Fernet) ai_api_key ciphertext, which runs longer than the plaintext
+    # key it wraps — same reasoning as widening users.mfa_secret.
+    value = Column(String(2000), nullable=True)
     # Nullable: the seeded default row (migration 0007) isn't created by any
     # user. See docs/decisions-log.md.
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)

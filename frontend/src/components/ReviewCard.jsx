@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import SigningPanel from './SigningPanel.jsx'
 import { invoicesApi } from '../utils/api.js'
@@ -10,7 +11,7 @@ function isMissing(value) {
   return value === '' || value === null || value === undefined
 }
 
-export default function ReviewCard({ invoice, file, categories, signingEnabled, onConfirm, onDiscard }) {
+export default function ReviewCard({ invoice, file, categories, signingEnabled, aiStatus, onConfirm, onDiscard }) {
   const { user } = useAuth()
   const token = user?.token
 
@@ -73,6 +74,13 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
   const supplierMissing = isMissing(supplier)
   const amountMissing = !amount || Number(amount) <= 0
   const categoryMissing = isMissing(categoryId)
+  const anyFieldMissing = supplierMissing || amountMissing || categoryMissing
+
+  // aiStatus is null while it's still loading (or failed to load) — no
+  // banner in that case, since we don't yet know whether AI is on.
+  const aiDisabled = aiStatus != null && !aiStatus.enabled
+  const aiNotConfigured = aiStatus != null && aiStatus.enabled && !aiStatus.configured
+  const aiFailedThisInvoice = aiStatus != null && aiStatus.enabled && aiStatus.configured && anyFieldMissing
 
   const handleContinue = async (e) => {
     e.preventDefault()
@@ -146,6 +154,25 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
 
   return (
     <div className="kt-review-card">
+      {aiDisabled && (
+        <div className="kt-review-ai-banner kt-review-ai-banner-info">
+          AI extraction is disabled — please fill in all fields manually.
+        </div>
+      )}
+      {aiNotConfigured && (
+        <div className="kt-review-ai-banner kt-review-ai-banner-warning">
+          AI not configured — fields must be filled in manually.{' '}
+          <Link to="/settings?section=ai">Configure AI in Settings</Link>.
+        </div>
+      )}
+      {aiFailedThisInvoice && (
+        <div className="kt-review-ai-banner kt-review-ai-banner-warning">
+          AI couldn't extract some fields for this invoice — please check and fill them in below.
+          If this keeps happening, check your AI configuration in{' '}
+          <Link to="/settings?section=ai">Settings → AI & Extraction</Link>.
+        </div>
+      )}
+
       {invoice.duplicate_flag && (
         <div className="kt-review-duplicate-banner">
           ⚠ This looks like it might be a duplicate of an invoice already on file

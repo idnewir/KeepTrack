@@ -19,7 +19,7 @@ from models.report import REPORT_TYPES, Report
 from models.schemas import PaginatedResponse, ReportGenerateRequest, ReportOut
 from models.user import User
 from services import audit_service, report_service
-from services.ai_service import generate_report_summary
+from services.ai_provider_service import generate_report_summary
 from services.pdf_report_service import generate_report_pdf
 from services.settings_service import get_site_name
 from services.storage_service import save_report_pdf

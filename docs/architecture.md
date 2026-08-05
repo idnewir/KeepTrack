@@ -12,7 +12,7 @@ Keep Track is a containerised web application with a React single-page frontend,
                                        │
                          ┌─────────────┼─────────────┐
                          ▼             ▼             ▼
-                  Anthropic API   Local filesystem   Watched folder
+                  AI provider     Local filesystem   Watched folder
                   (extraction &   (PDF storage:      watcher (inotify,
                    report text)    original+signed)   SMB/NFS share)
 ```
@@ -38,11 +38,12 @@ Keep Track is a containerised web application with a React single-page frontend,
 
 ## AI Layer
 
-- **Provider:** Anthropic API, using the `claude-sonnet-4-6` model.
+- **Provider:** configurable at runtime from Settings → AI & Extraction (`backend/services/ai_provider_service.py`), not hardcoded. Supported providers: **Anthropic** (default, `claude-sonnet-4-6`), **OpenAI**, **Google Gemini**, **xAI Grok**, **Mistral**, **Cohere**, **Ollama** (self-hosted, OpenAI-compatible), and **Custom** (any other OpenAI-compatible endpoint). Configuration — provider, model, endpoint URL (for Ollama/Custom), and an on/off switch — lives in the `settings` table; the API key is stored there too, Fernet-encrypted at rest, with a fallback to a per-provider environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.) when no key is configured in the database.
 - **Uses:**
-  1. **Invoice extraction** — reading an uploaded PDF and returning structured data (date, supplier, amount, suggested category, notes, duplicate likelihood).
+  1. **Invoice extraction** — reading an uploaded PDF and returning structured data (date, supplier, amount, suggested category, notes, duplicate likelihood). Anthropic reads the PDF natively (as a document content block); every other provider receives PyMuPDF-extracted text instead, since a single OpenAI-compatible chat-completion call is the one input shape all seven provider SDKs share.
   2. **Report generation** — given a date range, category filter, and the underlying financial data, producing a written summary (historical analysis or forecast) for inclusion in exported PDF reports.
-- All AI calls are made server-side from the backend; the frontend never talks to the Anthropic API directly.
+- Both AI features degrade gracefully — a missing/invalid key, an unreachable endpoint, or AI being turned off entirely all fall back to empty/placeholder output (and are logged to `error_log`) rather than blocking the invoice upload or report generation flow; users can always fill fields in manually.
+- All AI calls are made server-side from the backend; the frontend never talks to a provider's API directly. `POST /ai/test` lets an Admin verify the current configuration reaches the provider without running a real extraction/report.
 
 ## PDF Processing
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import ReviewCard from '../components/ReviewCard.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
-import { categoriesApi, invoicesApi, settingsApi } from '../utils/api.js'
+import { aiApi, categoriesApi, invoicesApi, settingsApi } from '../utils/api.js'
 import { singularize } from '../utils/format.js'
 
 function isPdf(file) {
@@ -21,6 +21,7 @@ export default function UploadPage() {
 
   const [categories, setCategories] = useState([])
   const [signingEnabled, setSigningEnabled] = useState(true)
+  const [aiStatus, setAiStatus] = useState(null)
   const [pendingFiles, setPendingFiles] = useState([])
   const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -42,6 +43,10 @@ export default function UploadPage() {
         setSigningEnabled(signing ? signing.value === 'true' : true)
       })
       .catch(() => setSigningEnabled(true))
+    aiApi
+      .status(token)
+      .then(setAiStatus)
+      .catch(() => setAiStatus(null))
   }, [token])
 
   const addFiles = (fileList) => {
@@ -103,7 +108,7 @@ export default function UploadPage() {
     <div>
       <h1 className="kt-page-title">Upload {expenseSingularLower}</h1>
       <p className="kt-page-subtitle">
-        Drop one or more PDF {expensesLower} below. Claude reads each one automatically —
+        Drop one or more PDF {expensesLower} below. AI reads each one automatically —
         you'll get a chance to check and correct the details before anything is saved.
       </p>
 
@@ -201,6 +206,7 @@ export default function UploadPage() {
                 file={item.file}
                 categories={categories}
                 signingEnabled={signingEnabled}
+                aiStatus={aiStatus}
                 onConfirm={handleConfirmed}
                 onDiscard={handleDiscarded}
               />

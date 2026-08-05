@@ -22,7 +22,13 @@ def list_settings(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    return db.query(Setting).order_by(Setting.key).all()
+    # ai_api_key is excluded even though it's encrypted at rest — this
+    # listing is readable by every authenticated role (Read Only included),
+    # and the dedicated GET /ai/config (Admin only) already exposes
+    # everything about it a client legitimately needs (api_key_set,
+    # api_key_source) without ever returning the ciphertext. See
+    # docs/decisions-log.md.
+    return db.query(Setting).filter(Setting.key != "ai_api_key").order_by(Setting.key).all()
 
 
 @router.get("/terminology", response_model=TerminologyOut)
@@ -69,6 +75,12 @@ def update_setting(
     setting = db.query(Setting).filter(Setting.key == key).first()
     if setting is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Setting not found")
+
+    # ai_api_key must always go through PUT /ai/config, which encrypts it
+    # before storing — this generic endpoint would otherwise write it as
+    # plaintext. See docs/decisions-log.md.
+    if key == "ai_api_key":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Use PUT /ai/config to change the AI API key")
 
     if key == "financial_year_start_month" and payload.value not in _VALID_MONTHS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Financial year start month must be between 1 and 12")

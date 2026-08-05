@@ -225,6 +225,31 @@
   border-bottom: 1px solid rgba(var(--kt-danger-rgb), 0.2);
 }
 
+.kt-review-ai-banner {
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 1px solid transparent;
+}
+
+.kt-review-ai-banner a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.kt-review-ai-banner-info {
+  background: rgba(var(--kt-primary-rgb), 0.08);
+  color: var(--kt-primary);
+  border-bottom-color: rgba(var(--kt-primary-rgb), 0.2);
+}
+
+.kt-review-ai-banner-warning {
+  background: rgba(var(--kt-amber-rgb), 0.1);
+  color: var(--kt-amber);
+  border-bottom-color: rgba(var(--kt-amber-rgb), 0.25);
+}
+
 .kt-review-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

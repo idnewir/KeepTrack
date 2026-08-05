@@ -76,6 +76,7 @@ export const authApi = {
       method: 'PUT',
       body: { app_start_date: appStartDate, financial_year_start_month: financialYearStartMonth },
     }),
+  setupAiConfig: (payload) => request('/auth/setup/ai-config', { method: 'PUT', body: payload }),
 }
 
 export const categoriesApi = {
@@ -102,6 +103,17 @@ export const settingsApi = {
 
 export const systemApi = {
   reset: (payload, token) => request('/system/reset', { method: 'POST', body: payload, token }),
+}
+
+export const aiApi = {
+  status: (token) => request('/ai/status', { token }),
+  getConfig: (token) => request('/ai/config', { token }),
+  updateConfig: (payload, token) => request('/ai/config', { method: 'PUT', body: payload, token }),
+  test: (token) => request('/ai/test', { method: 'POST', token }),
+  models: (endpointUrl, token) => {
+    const qs = endpointUrl ? `?endpoint_url=${encodeURIComponent(endpointUrl)}` : ''
+    return request(`/ai/models${qs}`, { token })
+  },
 }
 
 function auditLogQuery(filters = {}) {

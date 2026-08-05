@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from database import SessionLocal
+from routers.ai_settings import router as ai_settings_router
 from routers.auth import router as auth_router
 from routers.categories import router as categories_router
 from routers.contributions import router as contributions_router
@@ -36,6 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(ai_settings_router)
 app.include_router(auth_router)
 app.include_router(categories_router)
 app.include_router(contributions_router)

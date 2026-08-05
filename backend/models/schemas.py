@@ -198,7 +198,7 @@ class SettingOut(BaseModel):
 
 
 class SettingUpdate(BaseModel):
-    value: str = Field(min_length=1, max_length=500)
+    value: str = Field(min_length=1, max_length=2000)
 
 
 class TerminologyOut(BaseModel):
@@ -589,3 +589,42 @@ class RestoreResultOut(BaseModel):
     record_counts: dict
     backup_created_at: datetime | None
     superadmin_warning: str | None = None
+
+
+class AIConfigOut(BaseModel):
+    provider: str
+    model: str | None
+    endpoint_url: str | None
+    ai_enabled: bool
+    api_key_set: bool
+    api_key_source: str  # "database" | "environment" | "none"
+
+
+class AIConfigUpdate(BaseModel):
+    provider: str
+    model: str | None = Field(default=None, max_length=255)
+    api_key: str | None = Field(default=None, max_length=1000)
+    endpoint_url: str | None = Field(default=None, max_length=500)
+    ai_enabled: bool = True
+
+
+class AITestResultOut(BaseModel):
+    model_config = {"protected_namespaces": ()}
+
+    success: bool
+    response_time_ms: int | None
+    model_used: str | None
+    error: str | None
+
+
+class AIProviderModelsOut(BaseModel):
+    models: list[str]
+    note: str | None = None
+
+
+class AIStatusOut(BaseModel):
+    """Minimal, non-admin-safe view of AI availability — just enough for the
+    invoice review card to decide which banner (if any) to show. Deliberately
+    carries no provider/model/endpoint detail, unlike GET /ai/config."""
+    enabled: bool
+    configured: bool

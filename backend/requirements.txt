@@ -17,3 +17,12 @@ pymupdf==1.24.10
 anthropic>=0.40.0
 watchdog==4.0.2
 reportlab==4.2.5
+
+# AI provider abstraction (services/ai_provider_service.py) — one SDK per
+# supported cloud provider. xAI Grok, Ollama, and Custom endpoints reuse the
+# openai SDK (OpenAI-compatible APIs), so they need no separate package.
+httpx==0.27.2
+openai==1.51.0
+google-generativeai==0.8.3
+mistralai==1.1.0
+cohere==5.11.1

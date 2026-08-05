@@ -14,7 +14,8 @@ from models.invoice_file import InvoiceFile
 from models.schemas import InvoiceOut, InvoiceSignRequest, InvoiceUpdate, PaginatedResponse
 from models.user import User
 from services import audit_service, error_service
-from services.ai_service import check_duplicate, extract_invoice_data
+from services.ai_provider_service import extract_invoice_data
+from services.ai_service import check_duplicate
 from services.export_pdf_service import generate_table_export_pdf
 from services.preview_service import render_pdf_first_page_png
 from services.settings_service import get_site_name, is_signing_enabled
