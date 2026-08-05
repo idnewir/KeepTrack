@@ -1,8 +1,12 @@
 import { useMemo, useRef, useState } from 'react'
 import { formatCurrencyCompact, formatCurrency } from '../utils/format.js'
 
+// income re-uses the app's primary blue, which lightens for dark mode
+// (see theme.css) — spend/forecast/project are a fixed, colourblind-safe
+// categorical set validated separately (see docs/decisions-log.md) and
+// stay constant across themes.
 const COLOURS = {
-  income: '#2D6B9F',
+  income: 'var(--kt-primary)',
   spend: '#1D9E75',
   forecast: '#C97A0C',
   project: '#7C5CBF',

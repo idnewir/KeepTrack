@@ -70,7 +70,7 @@
 
 .kt-invoices-table th {
   font-weight: 600;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   background: var(--kt-background);
 }
 
@@ -79,7 +79,7 @@
 }
 
 .kt-invoice-row:hover td {
-  background: rgba(45, 107, 159, 0.05);
+  background: rgba(var(--kt-primary-rgb), 0.05);
 }
 
 .kt-invoice-row:last-child td {
@@ -104,27 +104,27 @@
 
 .kt-status-reviewed {
   color: var(--kt-accent);
-  background: rgba(29, 158, 117, 0.1);
+  background: rgba(var(--kt-accent-rgb), 0.1);
 }
 
 .kt-status-unreviewed {
-  color: #a3690a;
-  background: rgba(230, 126, 34, 0.15);
+  color: var(--kt-amber);
+  background: rgba(var(--kt-amber-rgb), 0.15);
 }
 
 .kt-status-duplicate {
-  color: #a83232;
-  background: rgba(168, 50, 50, 0.1);
+  color: var(--kt-danger);
+  background: rgba(var(--kt-danger-rgb), 0.1);
 }
 
 .kt-status-signed {
   color: var(--kt-accent);
-  background: rgba(29, 158, 117, 0.1);
+  background: rgba(var(--kt-accent-rgb), 0.1);
 }
 
 .kt-status-unsigned {
   color: var(--kt-primary);
-  background: rgba(45, 107, 159, 0.1);
+  background: rgba(var(--kt-primary-rgb), 0.1);
 }
 
 /* Upload dropzone */
@@ -141,7 +141,7 @@
 
 .kt-dropzone.dragging {
   border-color: var(--kt-primary);
-  background: rgba(45, 107, 159, 0.05);
+  background: rgba(var(--kt-primary-rgb), 0.05);
 }
 
 .kt-dropzone-title {
@@ -151,7 +151,7 @@
 }
 
 .kt-dropzone-subtitle {
-  color: #8a8a86;
+  color: var(--kt-text-muted);
   margin: 8px 0;
 }
 
@@ -217,12 +217,12 @@
 }
 
 .kt-review-duplicate-banner {
-  background: rgba(168, 50, 50, 0.1);
-  color: #a83232;
+  background: rgba(var(--kt-danger-rgb), 0.1);
+  color: var(--kt-danger);
   padding: 12px 20px;
   font-size: 14px;
   font-weight: 500;
-  border-bottom: 1px solid rgba(168, 50, 50, 0.2);
+  border-bottom: 1px solid rgba(var(--kt-danger-rgb), 0.2);
 }
 
 .kt-review-body {
@@ -251,7 +251,7 @@
 }
 
 .kt-review-preview-error {
-  color: #8a8a86;
+  color: var(--kt-text-muted);
   font-size: 14px;
   padding: 24px;
   text-align: center;
@@ -298,13 +298,13 @@
 }
 
 .kt-field-needs-attention {
-  border-color: #e6a020 !important;
-  background: rgba(230, 160, 32, 0.06) !important;
+  border-color: var(--kt-amber-strong) !important;
+  background: rgba(var(--kt-amber-rgb), 0.06) !important;
 }
 
 .kt-field-hint {
   font-size: 12px;
-  color: #a3690a;
+  color: var(--kt-amber);
 }
 
 .kt-amount-input {
@@ -332,7 +332,7 @@
 
 .kt-amount-prefix {
   padding-left: 12px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   font-weight: 500;
 }
 
@@ -354,7 +354,7 @@
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
-  color: #a83232;
+  color: var(--kt-danger);
   background: none;
   border: none;
   cursor: pointer;
@@ -363,7 +363,7 @@
 
 .kt-review-discard-confirm {
   font-size: 14px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   display: flex;
   align-items: center;
   gap: 10px;

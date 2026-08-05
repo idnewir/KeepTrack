@@ -19,15 +19,15 @@
 }
 
 .kt-notification-warning {
-  background: rgba(230, 160, 32, 0.12);
-  color: #a3690a;
-  border: 1px solid rgba(230, 160, 32, 0.3);
+  background: rgba(var(--kt-amber-rgb), 0.12);
+  color: var(--kt-amber);
+  border: 1px solid rgba(var(--kt-amber-rgb), 0.3);
 }
 
 .kt-notification-urgent {
-  background: rgba(168, 50, 50, 0.1);
-  color: #a83232;
-  border: 1px solid rgba(168, 50, 50, 0.3);
+  background: rgba(var(--kt-danger-rgb), 0.1);
+  color: var(--kt-danger);
+  border: 1px solid rgba(var(--kt-danger-rgb), 0.3);
 }
 
 .kt-notification-message {
@@ -102,7 +102,7 @@
 
 .kt-metric-label {
   font-size: 13px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   font-weight: 500;
 }
 
@@ -125,23 +125,23 @@
   color: var(--kt-accent);
 }
 .kt-metric-balance.kt-status-above .kt-metric-status {
-  background: rgba(29, 158, 117, 0.12);
+  background: rgba(var(--kt-accent-rgb), 0.12);
 }
 
 .kt-metric-balance.kt-status-near .kt-metric-value,
 .kt-metric-balance.kt-status-near .kt-metric-status {
-  color: #a3690a;
+  color: var(--kt-amber);
 }
 .kt-metric-balance.kt-status-near .kt-metric-status {
-  background: rgba(230, 160, 32, 0.14);
+  background: rgba(var(--kt-amber-rgb), 0.14);
 }
 
 .kt-metric-balance.kt-status-below .kt-metric-value,
 .kt-metric-balance.kt-status-below .kt-metric-status {
-  color: #a83232;
+  color: var(--kt-danger);
 }
 .kt-metric-balance.kt-status-below .kt-metric-status {
-  background: rgba(168, 50, 50, 0.12);
+  background: rgba(var(--kt-danger-rgb), 0.12);
 }
 
 /* Panels */
@@ -163,7 +163,7 @@
 .kt-panel-subtitle {
   margin: 0 0 10px;
   font-size: 13px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
 }
 
 .kt-dashboard-empty {
@@ -171,7 +171,7 @@
   border-radius: 12px;
   padding: 48px;
   text-align: center;
-  color: #8a8a86;
+  color: var(--kt-text-muted);
   background: var(--kt-background);
 }
 
@@ -202,11 +202,11 @@
 }
 
 .kt-reserve-fill.kt-status-near {
-  background: #e6a020;
+  background: var(--kt-amber-strong);
 }
 
 .kt-reserve-fill.kt-status-below {
-  background: #a83232;
+  background: var(--kt-danger);
 }
 
 .kt-reserve-label {
@@ -232,7 +232,7 @@
   border-radius: 10px;
   padding: 24px;
   text-align: center;
-  color: #8a8a86;
+  color: var(--kt-text-muted);
   font-size: 13px;
   background: var(--kt-background);
 }
@@ -264,7 +264,7 @@
 }
 
 .kt-panel-list-row-clickable:hover {
-  background: rgba(45, 107, 159, 0.05);
+  background: rgba(var(--kt-primary-rgb), 0.05);
 }
 
 .kt-panel-list-main {
@@ -283,7 +283,7 @@
 .kt-panel-list-sub {
   display: block;
   font-size: 12px;
-  color: #8a8a86;
+  color: var(--kt-text-muted);
   margin-top: 2px;
 }
 
@@ -340,13 +340,13 @@
 
 .kt-chart-axis-label {
   font-size: 10px;
-  fill: #8a8a86;
+  fill: var(--kt-text-muted);
 }
 
 .kt-chart-tooltip {
   position: absolute;
-  background: var(--kt-text);
-  color: #fff;
+  background: var(--kt-tooltip-bg);
+  color: var(--kt-tooltip-text);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 12px;

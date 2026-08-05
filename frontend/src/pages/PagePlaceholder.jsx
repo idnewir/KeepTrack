@@ -9,7 +9,7 @@ export default function PagePlaceholder({ title, subtitle }) {
           borderRadius: '12px',
           padding: '48px',
           textAlign: 'center',
-          color: '#8a8a86',
+          color: 'var(--kt-text-muted)',
           background: 'var(--kt-surface)',
         }}
       >

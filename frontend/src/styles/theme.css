@@ -1,14 +1,182 @@
+/* Light theme (default) */
 :root {
   --kt-primary: #2D6B9F;
+  --kt-primary-rgb: 45, 107, 159;
   --kt-accent: #1D9E75;
+  --kt-accent-rgb: 29, 158, 117;
+
+  /* Amber: --kt-amber is the muted, readable-on-white text tone used for
+     warning/near-threshold text; --kt-amber-strong is the more saturated
+     solid-fill tone (gauge fill, needs-attention border). Both collapse to
+     the single #EF9F27 dark-mode amber below — see docs/decisions-log.md. */
+  --kt-amber: #A3690A;
+  --kt-amber-strong: #E6A020;
+  --kt-amber-rgb: 230, 160, 32;
+
+  --kt-danger: #A83232;
+  --kt-danger-hover: #922B2B;
+  --kt-danger-rgb: 168, 50, 50;
+  --kt-danger-bg: #FDECEC;
+  --kt-danger-border: #F3C7C7;
+
   --kt-background: #F7F7F5;
-  --kt-text: #2C2C2A;
-  --kt-text-tertiary: #9A9A95;
   --kt-surface: #FFFFFF;
   --kt-border: #E4E4E0;
+
+  --kt-text: #2C2C2A;
+  --kt-text-secondary: #6B6B67;
+  --kt-text-muted: #8A8A86;
+  --kt-text-muted-rgb: 138, 138, 134;
+  --kt-text-tertiary: #9A9A95;
+
+  /* Instance name — a distinct, deliberately muted brand token (see
+     docs/branding.md), not the same scale as the greys above. */
+  --kt-instance-text: #5F5E5A;
+
+  /* Chart/floating tooltip always renders dark-on-light-text, in both
+     themes, so it doesn't depend on --kt-text flipping. */
+  --kt-tooltip-bg: #2C2C2A;
+  --kt-tooltip-text: #F0EFEB;
+
+  /* Frosted panel (signing toolbar) floating over the app background. */
+  --kt-glass-bg: rgba(255, 255, 255, 0.92);
+
+  --kt-avatar-bg: #D9D9D5;
+  --kt-avatar-text: #5C5C58;
+
+  --kt-swatch-border: rgba(0, 0, 0, 0.08);
+
   --kt-sidebar-width: 240px;
   --kt-header-height: 64px;
   --kt-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Dark theme — system preference, applied automatically whenever the OS is
+   in dark mode and the user hasn't explicitly overridden it (see the
+   [data-theme] rules below, which win regardless of source order because
+   an attribute selector is more specific than a bare :root). Keep this
+   block's values identical to :root[data-theme='dark'] below. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --kt-primary: #4D8BC9;
+    --kt-primary-rgb: 77, 139, 201;
+    --kt-accent: #1D9E75;
+    --kt-accent-rgb: 29, 158, 117;
+
+    --kt-amber: #EF9F27;
+    --kt-amber-strong: #EF9F27;
+    --kt-amber-rgb: 239, 159, 39;
+
+    --kt-danger: #E8685E;
+    --kt-danger-hover: #F0847B;
+    --kt-danger-rgb: 232, 104, 94;
+    --kt-danger-bg: rgba(168, 50, 50, 0.18);
+    --kt-danger-border: rgba(168, 50, 50, 0.4);
+
+    --kt-background: #1A1A18;
+    --kt-surface: #2C2C2A;
+    --kt-border: #3D3D3A;
+
+    --kt-text: #F0EFEB;
+    --kt-text-secondary: #A8A69E;
+    --kt-text-muted: #A8A69E;
+    --kt-text-muted-rgb: 168, 166, 158;
+    --kt-text-tertiary: #8C8A83;
+
+    --kt-instance-text: #A8A69E;
+
+    --kt-tooltip-bg: #3D3D3A;
+    --kt-tooltip-text: #F0EFEB;
+
+    --kt-glass-bg: rgba(44, 44, 42, 0.92);
+
+    --kt-avatar-bg: #3D3D3A;
+    --kt-avatar-text: #F0EFEB;
+
+    --kt-swatch-border: rgba(255, 255, 255, 0.18);
+  }
+}
+
+/* Explicit manual overrides (localStorage 'keeptrack-theme'), set as
+   data-theme on <html> by ThemeContext. Wins over both the :root default
+   and the prefers-color-scheme media query above regardless of the user's
+   OS setting. 'system' leaves data-theme unset, so the rules above decide. */
+:root[data-theme='dark'] {
+  --kt-primary: #4D8BC9;
+  --kt-primary-rgb: 77, 139, 201;
+  --kt-accent: #1D9E75;
+  --kt-accent-rgb: 29, 158, 117;
+
+  --kt-amber: #EF9F27;
+  --kt-amber-strong: #EF9F27;
+  --kt-amber-rgb: 239, 159, 39;
+
+  --kt-danger: #E8685E;
+  --kt-danger-hover: #F0847B;
+  --kt-danger-rgb: 232, 104, 94;
+  --kt-danger-bg: rgba(168, 50, 50, 0.18);
+  --kt-danger-border: rgba(168, 50, 50, 0.4);
+
+  --kt-background: #1A1A18;
+  --kt-surface: #2C2C2A;
+  --kt-border: #3D3D3A;
+
+  --kt-text: #F0EFEB;
+  --kt-text-secondary: #A8A69E;
+  --kt-text-muted: #A8A69E;
+  --kt-text-muted-rgb: 168, 166, 158;
+  --kt-text-tertiary: #8C8A83;
+
+  --kt-instance-text: #A8A69E;
+
+  --kt-tooltip-bg: #3D3D3A;
+  --kt-tooltip-text: #F0EFEB;
+
+  --kt-glass-bg: rgba(44, 44, 42, 0.92);
+
+  --kt-avatar-bg: #3D3D3A;
+  --kt-avatar-text: #F0EFEB;
+
+  --kt-swatch-border: rgba(255, 255, 255, 0.18);
+}
+
+:root[data-theme='light'] {
+  --kt-primary: #2D6B9F;
+  --kt-primary-rgb: 45, 107, 159;
+  --kt-accent: #1D9E75;
+  --kt-accent-rgb: 29, 158, 117;
+
+  --kt-amber: #A3690A;
+  --kt-amber-strong: #E6A020;
+  --kt-amber-rgb: 230, 160, 32;
+
+  --kt-danger: #A83232;
+  --kt-danger-hover: #922B2B;
+  --kt-danger-rgb: 168, 50, 50;
+  --kt-danger-bg: #FDECEC;
+  --kt-danger-border: #F3C7C7;
+
+  --kt-background: #F7F7F5;
+  --kt-surface: #FFFFFF;
+  --kt-border: #E4E4E0;
+
+  --kt-text: #2C2C2A;
+  --kt-text-secondary: #6B6B67;
+  --kt-text-muted: #8A8A86;
+  --kt-text-muted-rgb: 138, 138, 134;
+  --kt-text-tertiary: #9A9A95;
+
+  --kt-instance-text: #5F5E5A;
+
+  --kt-tooltip-bg: #2C2C2A;
+  --kt-tooltip-text: #F0EFEB;
+
+  --kt-glass-bg: rgba(255, 255, 255, 0.92);
+
+  --kt-avatar-bg: #D9D9D5;
+  --kt-avatar-text: #5C5C58;
+
+  --kt-swatch-border: rgba(0, 0, 0, 0.08);
 }
 
 * {
@@ -25,6 +193,7 @@ body {
   background: var(--kt-background);
   color: var(--kt-text);
   -webkit-font-smoothing: antialiased;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 a {

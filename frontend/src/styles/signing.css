@@ -34,13 +34,17 @@ body.kt-sign-lock-scroll {
   top: 16px;
   left: 16px;
   z-index: 2;
+  /* Fixed light chip, deliberately independent of the app theme (see
+     --kt-glass-bg comment on .kt-sign-toolbar) — it floats over the PDF
+     pages, which are always white, so its own colours stay fixed too
+     rather than flipping to unreadable near-white-on-white in dark mode. */
   background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--kt-border);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 20px;
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--kt-text);
+  color: #2C2C2A;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   pointer-events: none;
 }
@@ -71,7 +75,7 @@ body.kt-sign-lock-scroll {
 .kt-sign-preview-error {
   margin: auto;
   padding: 24px;
-  color: #a83232;
+  color: var(--kt-danger);
   font-size: 14px;
 }
 
@@ -158,7 +162,7 @@ body.kt-sign-lock-scroll {
   width: 340px;
   max-width: 92vw;
   margin: 16px 16px 16px 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--kt-glass-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--kt-border);
@@ -188,7 +192,11 @@ body.kt-sign-lock-scroll {
   height: 150px;
   border: 1px dashed var(--kt-border);
   border-radius: 8px;
-  background: var(--kt-surface);
+  /* Always white, not var(--kt-surface) — the ink drawn on this canvas
+     (SigningPanel.jsx) is a fixed dark stroke colour that gets exported
+     straight into the signed PDF, so the pad has to stay light-on-dark
+     legible (and paper-like) regardless of app theme. */
+  background: #fff;
   touch-action: none;
   cursor: crosshair;
   margin-bottom: 8px;
@@ -196,7 +204,7 @@ body.kt-sign-lock-scroll {
 
 .kt-sign-success {
   color: var(--kt-accent);
-  background: rgba(29, 158, 117, 0.1);
+  background: rgba(var(--kt-accent-rgb), 0.1);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 14px;

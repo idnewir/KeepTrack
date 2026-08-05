@@ -1,7 +1,7 @@
 .kt-reports-success {
-  background: rgba(29, 158, 117, 0.1);
+  background: rgba(var(--kt-accent-rgb), 0.1);
   color: var(--kt-accent);
-  border: 1px solid rgba(29, 158, 117, 0.3);
+  border: 1px solid rgba(var(--kt-accent-rgb), 0.3);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;

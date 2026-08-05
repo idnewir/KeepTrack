@@ -53,7 +53,7 @@
   display: block;
   margin-top: 6px;
   font-size: 13px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
 }
 
 .kt-project-form .kt-auth-button {
@@ -82,13 +82,13 @@
 }
 
 .kt-project-urgency-soon {
-  border-color: rgba(230, 160, 32, 0.4);
-  background: rgba(230, 160, 32, 0.05);
+  border-color: rgba(var(--kt-amber-rgb), 0.4);
+  background: rgba(var(--kt-amber-rgb), 0.05);
 }
 
 .kt-project-urgency-overdue {
-  border-color: rgba(168, 50, 50, 0.4);
-  background: rgba(168, 50, 50, 0.05);
+  border-color: rgba(var(--kt-danger-rgb), 0.4);
+  background: rgba(var(--kt-danger-rgb), 0.05);
 }
 
 .kt-project-card-main {
@@ -117,19 +117,19 @@
 }
 
 .kt-project-urgency-badge-soon {
-  color: #a3690a;
-  background: rgba(230, 160, 32, 0.14);
+  color: var(--kt-amber);
+  background: rgba(var(--kt-amber-rgb), 0.14);
 }
 
 .kt-project-urgency-badge-overdue {
-  color: #a83232;
-  background: rgba(168, 50, 50, 0.12);
+  color: var(--kt-danger);
+  background: rgba(var(--kt-danger-rgb), 0.12);
 }
 
 .kt-project-description {
   margin: 8px 0 0;
   font-size: 14px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   line-height: 1.5;
 }
 
@@ -139,7 +139,7 @@
   gap: 16px;
   margin-top: 12px;
   font-size: 13px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
 }
 
 .kt-project-actions {
@@ -179,14 +179,14 @@
 /* Admin correction form for a completed (otherwise locked) project */
 
 .kt-project-admin-edit-form {
-  border-color: rgba(168, 50, 50, 0.3);
-  background: rgba(168, 50, 50, 0.04);
+  border-color: rgba(var(--kt-danger-rgb), 0.3);
+  background: rgba(var(--kt-danger-rgb), 0.04);
 }
 
 .kt-admin-edit-warning {
   margin: 0;
   font-size: 13px;
-  color: #a3690a;
+  color: var(--kt-amber);
   flex: 1 1 100%;
 }
 
@@ -209,9 +209,9 @@
    above, but rows have no border of their own to tint — colour the
    background instead. */
 .kt-panel-list-row.kt-project-urgency-soon {
-  background: rgba(230, 160, 32, 0.08);
+  background: rgba(var(--kt-amber-rgb), 0.08);
 }
 
 .kt-panel-list-row.kt-project-urgency-overdue {
-  background: rgba(168, 50, 50, 0.08);
+  background: rgba(var(--kt-danger-rgb), 0.08);
 }

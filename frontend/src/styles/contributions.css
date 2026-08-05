@@ -14,22 +14,22 @@
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
-  background: rgba(230, 160, 32, 0.1);
-  border: 1px solid rgba(230, 160, 32, 0.35);
+  background: rgba(var(--kt-amber-rgb), 0.1);
+  border: 1px solid rgba(var(--kt-amber-rgb), 0.35);
   border-radius: 10px;
   padding: 16px 20px;
   margin: -20px -24px;
 }
 
 .kt-opening-balance-prompt strong {
-  color: #a3690a;
+  color: var(--kt-amber);
   font-size: 15px;
 }
 
 .kt-opening-balance-prompt p {
   margin: 4px 0 0;
   font-size: 13px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   max-width: 480px;
 }
 
@@ -43,7 +43,7 @@
 .kt-opening-balance-label {
   display: block;
   font-size: 13px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   font-weight: 500;
 }
 
@@ -73,7 +73,7 @@
 }
 
 .kt-negative-balance {
-  color: #a83232;
+  color: var(--kt-danger);
   font-weight: 600;
 }
 
@@ -107,7 +107,7 @@
 
 .kt-month-tile.selected {
   border-color: var(--kt-primary);
-  box-shadow: 0 0 0 2px rgba(45, 107, 159, 0.15);
+  box-shadow: 0 0 0 2px rgba(var(--kt-primary-rgb), 0.15);
 }
 
 .kt-month-tile-label {
@@ -123,27 +123,27 @@
 }
 
 .kt-month-tile.overdue {
-  border-color: rgba(168, 50, 50, 0.4);
+  border-color: rgba(var(--kt-danger-rgb), 0.4);
 }
 
 .kt-tone-zero {
   color: var(--kt-accent);
-  background: rgba(29, 158, 117, 0.12);
+  background: rgba(var(--kt-accent-rgb), 0.12);
 }
 
 .kt-tone-small {
-  color: #a3690a;
-  background: rgba(230, 160, 32, 0.14);
+  color: var(--kt-amber);
+  background: rgba(var(--kt-amber-rgb), 0.14);
 }
 
 .kt-tone-large {
-  color: #a83232;
-  background: rgba(168, 50, 50, 0.12);
+  color: var(--kt-danger);
+  background: rgba(var(--kt-danger-rgb), 0.12);
 }
 
 .kt-tone-pending {
-  color: #6b6b67;
-  background: rgba(138, 138, 134, 0.12);
+  color: var(--kt-text-secondary);
+  background: rgba(var(--kt-text-muted-rgb), 0.12);
 }
 
 /* Reconciliation detail panel */
@@ -165,11 +165,11 @@
 }
 
 .kt-metric-card.kt-tone-small .kt-metric-value {
-  color: #a3690a;
+  color: var(--kt-amber);
 }
 
 .kt-metric-card.kt-tone-large .kt-metric-value {
-  color: #a83232;
+  color: var(--kt-danger);
 }
 
 .kt-reconcile-form {
@@ -183,7 +183,7 @@
 .kt-suggested-reason {
   font-size: 14px;
   font-style: italic;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   margin: 0 0 16px;
 }
 
@@ -203,7 +203,7 @@
 
 .kt-reconciled-meta {
   font-size: 13px;
-  color: #8a8a86;
+  color: var(--kt-text-muted);
   margin: 0;
 }
 
@@ -221,15 +221,15 @@
   max-width: 480px;
   margin: 12px 0 16px;
   padding: 16px;
-  border: 1px solid rgba(168, 50, 50, 0.3);
+  border: 1px solid rgba(var(--kt-danger-rgb), 0.3);
   border-radius: 10px;
-  background: rgba(168, 50, 50, 0.04);
+  background: rgba(var(--kt-danger-rgb), 0.04);
 }
 
 .kt-admin-edit-warning {
   margin: 0;
   font-size: 13px;
-  color: #a3690a;
+  color: var(--kt-amber);
 }
 
 .kt-admin-edit-actions,

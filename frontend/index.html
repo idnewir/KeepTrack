@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Keep Track</title>
+    <script>
+      // Runs before first paint so an explicit light/dark override applies
+      // immediately, instead of flashing the wrong theme until React mounts
+      // and ThemeContext runs. 'system'/missing leaves data-theme unset —
+      // theme.css's prefers-color-scheme media query already handles that
+      // case with no JS needed, so there's nothing to set here.
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('keeptrack-theme')
+          if (stored === 'light' || stored === 'dark') {
+            document.documentElement.setAttribute('data-theme', stored)
+          }
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

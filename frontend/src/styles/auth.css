@@ -42,7 +42,7 @@
 
 .kt-auth-subtitle {
   margin: 0 0 24px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   font-size: 14px;
   text-align: center;
   line-height: 1.5;
@@ -122,17 +122,17 @@
 }
 
 .kt-auth-error {
-  background: #fdecec;
-  color: #a83232;
-  border: 1px solid #f3c7c7;
+  background: var(--kt-danger-bg);
+  color: var(--kt-danger);
+  border: 1px solid var(--kt-danger-border);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;
 }
 
 .kt-login-setup-banner {
-  background: rgba(45, 107, 159, 0.08);
-  border: 1px solid rgba(45, 107, 159, 0.25);
+  background: rgba(var(--kt-primary-rgb), 0.08);
+  border: 1px solid rgba(var(--kt-primary-rgb), 0.25);
   border-radius: 8px;
   padding: 14px 16px;
   margin-bottom: 20px;
@@ -158,7 +158,7 @@
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   line-height: 1.5;
 }
 
@@ -166,7 +166,7 @@
   margin-top: 20px;
   text-align: center;
   font-size: 14px;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
 }
 
 .kt-auth-footer a {
@@ -213,6 +213,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b6b67;
+  color: var(--kt-text-secondary);
   font-size: 15px;
 }
