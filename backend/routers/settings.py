@@ -10,6 +10,8 @@ from utils.deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
+_VALID_MONTHS = {str(m) for m in range(1, 13)}
+
 
 @router.get("", response_model=list[SettingOut])
 def list_settings(
@@ -29,6 +31,9 @@ def update_setting(
     setting = db.query(Setting).filter(Setting.key == key).first()
     if setting is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Setting not found")
+
+    if key == "financial_year_start_month" and payload.value not in _VALID_MONTHS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Financial year start month must be between 1 and 12")
 
     setting.value = payload.value
     setting.updated_by = admin.id

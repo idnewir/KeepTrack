@@ -14,14 +14,14 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from config import settings as app_config
 from models.setting import Setting
+from services.settings_service import get_financial_year_start_month
 
 APP_START_DATE_KEY = "app_start_date"
 
 
-def _current_financial_year_start(today: date) -> date:
-    start_month = app_config.default_financial_year_start_month
+def _current_financial_year_start(db: Session, today: date) -> date:
+    start_month = get_financial_year_start_month(db)
     start_year = today.year if today.month >= start_month else today.year - 1
     return date(start_year, start_month, 1)
 
@@ -38,4 +38,4 @@ def get_effective_start_date(db: Session, today: date | None = None) -> date:
     app_start_date = get_app_start_date(db)
     if app_start_date is not None:
         return app_start_date
-    return _current_financial_year_start(today or date.today())
+    return _current_financial_year_start(db, today or date.today())

@@ -1,3 +1,10 @@
+// Full month names, indexed 0 (January) - 11 (December) — shared by the
+// financial year start month dropdown on Settings and the setup wizard.
+export const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
 export function formatCurrency(amount) {
   const value = Number(amount) || 0
   return `£${value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`

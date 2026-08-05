@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { settingsApi } from '../utils/api.js'
 import { useAuth } from '../hooks/AuthContext.jsx'
-import { formatMonthYear } from '../utils/format.js'
+import { formatMonthYear, MONTH_NAMES } from '../utils/format.js'
 
 function currentMonthValue() {
   const now = new Date()
@@ -16,6 +16,10 @@ export default function SettingsPage() {
   const [signingEnabled, setSigningEnabled] = useState(null)
   const [appStartDate, setAppStartDate] = useState(null) // 'YYYY-MM-DD' or null
   const [appStartMonthInput, setAppStartMonthInput] = useState(currentMonthValue)
+  const [fyStartMonth, setFyStartMonth] = useState(9) // 1-12, current saved value
+  const [fyStartMonthInput, setFyStartMonthInput] = useState(9) // dropdown selection
+  const [fyStartMonthStep, setFyStartMonthStep] = useState('idle') // 'idle' | 'confirm'
+  const [savingFyStartMonth, setSavingFyStartMonth] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingAppStartDate, setSavingAppStartDate] = useState(false)
@@ -33,6 +37,11 @@ export default function SettingsPage() {
         const startDate = rows.find((row) => row.key === 'app_start_date')
         setAppStartDate(startDate?.value || null)
         setAppStartMonthInput(startDate?.value ? startDate.value.slice(0, 7) : currentMonthValue())
+
+        const fyMonth = rows.find((row) => row.key === 'financial_year_start_month')
+        const fyMonthValue = fyMonth?.value ? Number(fyMonth.value) : 9
+        setFyStartMonth(fyMonthValue)
+        setFyStartMonthInput(fyMonthValue)
       })
       .catch((err) => setError(err.message || 'Failed to load settings'))
       .finally(() => setLoading(false))
@@ -82,6 +91,30 @@ export default function SettingsPage() {
     } finally {
       setSavingAppStartDate(false)
     }
+  }
+
+  const handleRequestSaveFyStartMonth = () => {
+    if (fyStartMonthInput === fyStartMonth) return
+    setFyStartMonthStep('confirm')
+  }
+
+  const handleConfirmSaveFyStartMonth = async () => {
+    setError('')
+    setSavingFyStartMonth(true)
+    try {
+      await settingsApi.update('financial_year_start_month', String(fyStartMonthInput), token)
+      setFyStartMonth(fyStartMonthInput)
+      setFyStartMonthStep('idle')
+    } catch (err) {
+      setError(err.message || 'Failed to save financial year start month')
+    } finally {
+      setSavingFyStartMonth(false)
+    }
+  }
+
+  const handleCancelSaveFyStartMonth = () => {
+    setFyStartMonthInput(fyStartMonth)
+    setFyStartMonthStep('idle')
   }
 
   return (
@@ -139,6 +172,72 @@ export default function SettingsPage() {
                 >
                   Clear
                 </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="kt-settings-row">
+          <div className="kt-settings-row-text">
+            <span className="kt-settings-row-title">Financial year start month</span>
+            <p className="kt-settings-row-description">
+              The month your financial year begins. Keep Track will organise all data around
+              this date.
+            </p>
+            {fyStartMonthStep === 'confirm' && (
+              <p className="kt-opening-balance-prompt" style={{ marginTop: 8 }}>
+                <strong>
+                  Changing the financial year start month will affect how all historical data is
+                  grouped and displayed. Existing financial year records will not be changed
+                  automatically.
+                </strong>
+              </p>
+            )}
+          </div>
+          {loading ? (
+            <span className="kt-settings-row-status">Loading…</span>
+          ) : (
+            <div className="kt-settings-row-control" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {fyStartMonthStep === 'confirm' ? (
+                <>
+                  <button
+                    type="button"
+                    className="kt-category-link-button"
+                    onClick={handleConfirmSaveFyStartMonth}
+                    disabled={savingFyStartMonth}
+                  >
+                    {savingFyStartMonth ? 'Saving…' : 'Confirm change'}
+                  </button>
+                  <button
+                    type="button"
+                    className="kt-category-link-button kt-category-danger"
+                    onClick={handleCancelSaveFyStartMonth}
+                    disabled={savingFyStartMonth}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <select
+                    value={fyStartMonthInput}
+                    onChange={(e) => setFyStartMonthInput(Number(e.target.value))}
+                  >
+                    {MONTH_NAMES.map((name, i) => (
+                      <option key={name} value={i + 1}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="kt-category-link-button"
+                    onClick={handleRequestSaveFyStartMonth}
+                    disabled={fyStartMonthInput === fyStartMonth}
+                  >
+                    Save
+                  </button>
+                </>
               )}
             </div>
           )}

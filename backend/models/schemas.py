@@ -159,6 +159,7 @@ class SettingUpdate(BaseModel):
 
 class SetupAppStartDateRequest(BaseModel):
     app_start_date: date | None = None
+    financial_year_start_month: int | None = Field(default=None, ge=1, le=12)
 
 
 class DashboardFinancialYear(BaseModel):

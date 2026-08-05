@@ -29,8 +29,11 @@ class Settings(BaseSettings):
     watched_folder_path: str = "/data/watched"
     report_storage_path: str = "/data/reports"
 
+    # Fallback used only if the financial_year_start_month settings row is
+    # somehow missing/unset — see services/settings_service.py. The FY end
+    # month is always derived as the month before this one, so there's no
+    # separate end-month setting.
     default_financial_year_start_month: int = 9
-    default_financial_year_end_month: int = 8
     unconfirmed_invoice_alert_days: int = 5
 
 

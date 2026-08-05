@@ -43,8 +43,11 @@ export const authApi = {
   pendingUsers: (token) => request('/auth/pending-users', { token }),
   approveUser: (id, role, token) =>
     request(`/auth/approve-user/${id}`, { method: 'POST', body: { role }, token }),
-  setupAppStartDate: (appStartDate) =>
-    request('/auth/setup/app-start-date', { method: 'PUT', body: { app_start_date: appStartDate } }),
+  setupAppStartDate: (appStartDate, financialYearStartMonth) =>
+    request('/auth/setup/app-start-date', {
+      method: 'PUT',
+      body: { app_start_date: appStartDate, financial_year_start_month: financialYearStartMonth },
+    }),
 }
 
 export const categoriesApi = {

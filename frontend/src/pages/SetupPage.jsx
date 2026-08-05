@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AuthCard from '../components/AuthCard.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { authApi } from '../utils/api.js'
+import { MONTH_NAMES } from '../utils/format.js'
 
 function currentMonthValue() {
   const now = new Date()
@@ -22,6 +23,7 @@ export default function SetupPage() {
   const [setupData, setSetupData] = useState(null)
 
   const [startMonth, setStartMonth] = useState(currentMonthValue)
+  const [fyStartMonth, setFyStartMonth] = useState(9) // 1-12, defaults to September
   const [savingStartDate, setSavingStartDate] = useState(false)
   const [startDateError, setStartDateError] = useState('')
 
@@ -72,7 +74,7 @@ export default function SetupPage() {
       setStartDateError('')
       setSavingStartDate(true)
       try {
-        await authApi.setupAppStartDate(appStartDate)
+        await authApi.setupAppStartDate(appStartDate, fyStartMonth)
         setStep('done')
       } catch (err) {
         setStartDateError(err.message || 'Failed to save')
@@ -104,6 +106,26 @@ export default function SetupPage() {
               required
             />
           </div>
+
+          <div className="kt-field">
+            <label htmlFor="fy-start-month">When does your financial year start?</label>
+            <select
+              id="fy-start-month"
+              value={fyStartMonth}
+              onChange={(e) => setFyStartMonth(Number(e.target.value))}
+            >
+              {MONTH_NAMES.map((name, i) => (
+                <option key={name} value={i + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <p className="kt-auth-subtitle" style={{ marginTop: 6 }}>
+              This is the month your financial year begins. For example, many UK charities use
+              September. You can change this later in Settings.
+            </p>
+          </div>
+
           <button className="kt-auth-button" type="submit" disabled={savingStartDate}>
             {savingStartDate ? 'Saving…' : 'Confirm'}
           </button>

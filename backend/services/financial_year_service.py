@@ -1,8 +1,12 @@
 """Financial year rules shared by the dashboard (and, later, reports/reconciliation).
 
-- The financial year runs from `default_financial_year_start_month` to
-  `default_financial_year_end_month` (Sept-Aug by default, see config.py),
-  determined from today's date.
+- The financial year runs 12 months from the configured
+  `financial_year_start_month` setting (Settings page / setup wizard;
+  September by default — see services/settings_service.py), determined from
+  today's date. Changing the setting does not rewrite existing
+  `financial_years` rows: a new start month produces a new FY label, so the
+  next lookup lazily creates a fresh row alongside the old one rather than
+  altering history. See docs/decisions-log.md.
 - The 3-month "target reserve" and the forecast for remaining months are both
   driven off the same recent-months category totals: the target reserve is
   their sum (a rolling average of total monthly spend), and each forecast
@@ -15,13 +19,13 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from config import settings
 from models.category import Category
 from models.contribution import Contribution
 from models.financial_year import FinancialYear
 from models.invoice import Invoice
 from models.planned_project import PlannedProject
 from services.date_service import get_effective_start_date
+from services.settings_service import get_financial_year_start_month
 
 MONTH_LABELS = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -29,23 +33,39 @@ MONTH_LABELS = [
 ]
 
 
-def fy_bounds_for(for_date: date) -> tuple[date, date, str]:
-    """Start/end dates and label (e.g. "2025/26") of the FY containing for_date."""
-    start_month = settings.default_financial_year_start_month
+def fy_bounds_for(db: Session, for_date: date) -> tuple[date, date, str]:
+    """Start/end dates and label (e.g. "FY2025/26 (Apr-Mar)") of the FY containing for_date."""
+    start_month = get_financial_year_start_month(db)
     start_year = for_date.year if for_date.month >= start_month else for_date.year - 1
-    end_year = start_year + 1
 
-    end_month = settings.default_financial_year_end_month
+    # The FY always spans exactly 12 months, so the end month is always the
+    # one immediately before the start month (wrapping December -> January).
+    # A January start month is the one case where that doesn't cross into a
+    # second calendar year (Jan-Dec of the same year); every other start
+    # month does (e.g. Sep 2025 - Aug 2026).
+    if start_month == 1:
+        end_year = start_year
+        end_month = 12
+    else:
+        end_year = start_year + 1
+        end_month = start_month - 1
     end_day = monthrange(end_year, end_month)[1]
 
     start = date(start_year, start_month, 1)
     end = date(end_year, end_month, end_day)
-    label = f"{start_year}/{str(end_year)[-2:]}"
+    if end_year == start_year:
+        label = f"FY{start_year} ({MONTH_LABELS[start_month - 1]}–{MONTH_LABELS[end_month - 1]})"
+    else:
+        label = f"FY{start_year}/{str(end_year)[-2:]} ({MONTH_LABELS[start_month - 1]}–{MONTH_LABELS[end_month - 1]})"
     return start, end, label
 
 
+def get_current_financial_year(db: Session, for_date: date | None = None) -> FinancialYear:
+    return get_or_create_financial_year(db, for_date)
+
+
 def get_or_create_financial_year(db: Session, for_date: date | None = None) -> FinancialYear:
-    start, end, label = fy_bounds_for(for_date or date.today())
+    start, end, label = fy_bounds_for(db, for_date or date.today())
 
     fy = db.query(FinancialYear).filter(FinancialYear.label == label).first()
     if fy is not None:

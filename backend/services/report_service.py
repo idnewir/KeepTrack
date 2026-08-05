@@ -168,10 +168,10 @@ def _category_breakdown(invoices: list[Invoice], categories: list[Category], inc
     return breakdown
 
 
-def _financial_year_windows(years_included: int, end_date: date) -> list[tuple[date, date, str]]:
+def _financial_year_windows(db: Session, years_included: int, end_date: date) -> list[tuple[date, date, str]]:
     """The last `years_included` financial years, oldest first, ending with the FY containing end_date."""
-    end_start, _end_end, _end_label = fy_bounds_for(end_date)
-    windows = [fy_bounds_for(date(end_start.year - i, end_start.month, 1)) for i in range(years_included)]
+    end_start, _end_end, _end_label = fy_bounds_for(db, end_date)
+    windows = [fy_bounds_for(db, date(end_start.year - i, end_start.month, 1)) for i in range(years_included)]
     windows.reverse()
     return windows
 
@@ -342,7 +342,7 @@ def build_report_data(
 
     category_breakdown = _category_breakdown(invoices, categories, include_uncategorised)
 
-    fy_windows = _financial_year_windows(years_included, date_to)
+    fy_windows = _financial_year_windows(db, years_included, date_to)
     annual_totals = _annual_totals(db, categories, category_ids, fy_windows)
 
     forecast = {"months": [], "by_category": []}
