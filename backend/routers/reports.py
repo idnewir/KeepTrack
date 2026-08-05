@@ -186,7 +186,7 @@ def generate_report(
         generated_by_username=user.username,
         generated_at=generated_at,
     )
-    file_path = save_report_pdf(pdf_bytes, title, generated_at.date())
+    file_path = save_report_pdf(db, pdf_bytes, title, generated_at.date())
 
     report = Report(
         title=title,

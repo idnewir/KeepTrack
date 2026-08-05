@@ -249,6 +249,32 @@ async function requestBlob(path, { token } = {}) {
   return res.blob()
 }
 
+// Same as requestBlob but POST — used by storageApi.createBackup, which
+// both performs the backup (a POST, since it's a state-changing action) and
+// streams the resulting zip back as the download in one round trip. Also
+// reads the server-set filename off Content-Disposition, since it carries
+// the real timestamped backup filename rather than one the frontend would
+// otherwise have to guess.
+async function requestBlobPost(path, { token } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    let data = null
+    try {
+      data = await res.json()
+    } catch {
+      // no JSON body
+    }
+    throw new ApiError(data?.detail || `Request failed (${res.status})`, res.status, data)
+  }
+  const disposition = res.headers.get('Content-Disposition') || ''
+  const match = disposition.match(/filename="?([^"]+)"?/)
+  const blob = await res.blob()
+  return { blob, filename: match ? match[1] : 'backup.zip' }
+}
+
 // Saves a Blob (an export download, or a report PDF) to the user's device
 // via a throwaway, immediately-revoked object URL.
 export function triggerBlobDownload(blob, filename) {
@@ -337,6 +363,30 @@ export const invoicesApi = {
   downloadSignedPdf: (id, token) => requestBlob(`/invoices/${id}/signed-pdf`, { token }),
   getOriginalPdf: (id, token) => requestBlob(`/invoices/${id}/original-pdf`, { token }),
   getPreview: (id, token) => requestBlob(`/invoices/${id}/preview`, { token }),
+}
+
+export const storageApi = {
+  status: (token) => request('/storage/status', { token }),
+  changePath: (payload, token) => request('/storage/path', { method: 'PUT', body: payload, token }),
+  listBackups: (token) => request('/storage/backup', { token }),
+  createBackup: (token) => requestBlobPost('/storage/backup', { token }),
+  downloadBackup: (filename, token) =>
+    requestBlob(`/storage/backup/${encodeURIComponent(filename)}/download`, { token }),
+  deleteBackup: (filename, token) =>
+    request(`/storage/backup/${encodeURIComponent(filename)}`, { method: 'DELETE', token }),
+  setSchedule: (payload, token) =>
+    request('/storage/backup/schedule', { method: 'POST', body: payload, token }),
+  previewRestore: (file, token) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return requestForm('/storage/restore/preview', { formData, token })
+  },
+  restore: (file, superadminPassword, token) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('superadmin_password', superadminPassword)
+    return requestForm('/storage/restore', { formData, token })
+  },
 }
 
 export const reportsApi = {

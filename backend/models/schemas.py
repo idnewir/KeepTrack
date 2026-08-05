@@ -518,3 +518,74 @@ class ReconciliationMonthOut(BaseModel):
     calculated_balance: Decimal
     reconciled: bool
     reconciliation: ReconciliationOut | None
+
+
+class StorageBreakdownItem(BaseModel):
+    label: str
+    file_count: int
+    size_bytes: int
+    size_human: str
+
+
+class StorageStatusOut(BaseModel):
+    storage_path: str
+    total_files: int
+    total_size_bytes: int
+    total_size_human: str
+    breakdown: list[StorageBreakdownItem]
+    backup_path: str | None
+    backup_schedule: str
+    backup_retention_count: int
+    last_backup_date: datetime | None
+    last_backup_size_human: str | None
+    next_scheduled_backup: datetime | None
+
+
+class StoragePathChangeRequest(BaseModel):
+    new_path: str = Field(min_length=1, max_length=500)
+    move_files: bool = True
+
+
+class StoragePathChangeResponse(BaseModel):
+    storage_path: str
+    files_moved: int
+    bytes_moved: int
+    message: str
+
+
+class BackupOut(BaseModel):
+    filename: str
+    backup_type: str
+    created_at: datetime
+    size_bytes: int
+    size_human: str
+
+
+class BackupScheduleRequest(BaseModel):
+    backup_schedule: str = Field(description="One of: manual, daily, weekly, monthly")
+    backup_path: str | None = Field(default=None, max_length=500)
+    backup_retention_count: int = Field(default=5, ge=1, le=100)
+
+
+class BackupScheduleOut(BaseModel):
+    backup_schedule: str
+    backup_path: str | None
+    backup_retention_count: int
+    next_scheduled_backup: datetime | None
+
+
+class BackupManifestPreview(BaseModel):
+    backup_type: str
+    created_at: datetime
+    keep_track_version: str
+    record_counts: dict
+    files_included_count: int
+    secrets_to_copy_manually: list[str]
+    superadmin_warning: str | None = None
+
+
+class RestoreResultOut(BaseModel):
+    message: str
+    record_counts: dict
+    backup_created_at: datetime | None
+    superadmin_warning: str | None = None

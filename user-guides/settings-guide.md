@@ -86,6 +86,67 @@ A rolling record of things that went wrong in the background — a failed AI ext
 - If any critical errors appear in the last 7 days, Admins and the Superadmin see a banner on the Dashboard linking straight here.
 - **Export CSV** — exports whatever's currently filtered.
 
+### Storage & Backup
+
+To get there: **Settings → Storage & Backup** (Admin; restoring is Superadmin only).
+
+This is where invoice files, signed PDFs, and reports live on disk, and where you back up and
+restore your whole Keep Track installation. For the full technical detail, see
+[docs/storage-and-backup.md](../docs/storage-and-backup.md).
+
+#### Storage location
+
+The top card shows where your files currently live, how much space they're using in total, and a
+breakdown (with a small usage bar) across original PDFs, signed PDFs, and generated reports.
+
+- **Change storage path** — move Keep Track's files somewhere new (a different volume, a mounted
+  NAS share, and so on). Enter the new path, leave **Move existing files to new location** switched
+  on (the default) so nothing breaks, and confirm. Keep Track shows a progress state while it moves
+  everything and updates every invoice and report's link to match — if anything goes wrong partway
+  through, it automatically puts everything back the way it was rather than leaving things
+  half-moved. Turning the move switch off just changes the setting without moving anything — Keep
+  Track will warn you clearly that every existing file link will break until you move the files
+  there yourself.
+
+#### Backups
+
+- **Last backup** shows the date, size, and whether it was manual or scheduled — or "Never" if
+  you haven't backed up yet.
+- **Create manual backup** — click it, and after a short wait (backups can take a while for a
+  large amount of data) your browser downloads a zip file containing everything: your database,
+  every file, and a summary of what's inside. Manual backups are never deleted automatically, so
+  keep as many as you like.
+- **Scheduled backups** — set a schedule (Daily, Weekly, or Monthly), a destination path for Keep
+  Track to save them to automatically, and how many to keep. Once a scheduled backup pushes you
+  over that number, the oldest scheduled ones are cleaned up automatically — manual backups are
+  never touched by this.
+
+#### Restore from backup
+
+This is clearly separated and marked with a warning, because **restoring replaces all current
+data and cannot be undone.** Only the Superadmin account can do it.
+
+1. Choose a Keep Track backup `.zip` file.
+2. Keep Track reads it and shows you a preview — when it was made, how many of each record it
+   contains, how many files, and a warning if the backup's Superadmin account doesn't match this
+   installation's.
+3. Enter the Superadmin password and click **Confirm restore**.
+
+Once confirmed, Keep Track briefly stops accepting other requests while it restores your database
+and files, then signs everyone out — including you — so make sure you're ready to log back in
+straight afterwards.
+
+#### Backup history
+
+If you've set a backup destination path, every backup saved there is listed here with its
+filename, date, size, and type, each with its own **Download** and **Delete** (with confirmation)
+button. If no destination is configured yet, this stays empty — set one in the Backups section
+above.
+
+> Scheduled backups are retained based on your configured count. Manual backups are never
+> automatically deleted. Store backups in a secure location — they contain all your data,
+> including user accounts.
+
 ### Watched folder
 
 Set the network folder path that Keep Track should watch for new invoice files (if your organisation uses this feature).

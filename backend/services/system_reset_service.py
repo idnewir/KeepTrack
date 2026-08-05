@@ -11,7 +11,6 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from config import settings as app_config
 from models.category import Category
 from models.contribution import Contribution
 from models.financial_year import FinancialYear
@@ -23,6 +22,7 @@ from models.report import Report
 from models.setting import Setting
 from models.system_event import SystemEvent
 from models.user import User
+from services import storage_service
 
 RESET_CONFIRMATION_PHRASE = "RESET KEEP TRACK"
 RATE_LIMIT_MAX_ATTEMPTS = 3
@@ -50,7 +50,7 @@ DEFAULT_CATEGORIES = [
 ]
 
 # Mirrors every settings row seeded across migrations 0007, 0014, 0015, 0018,
-# 0019, and 0020 — the full set of "first run" defaults a fresh install
+# 0019, 0020, and 0025 — the full set of "first run" defaults a fresh install
 # would have. Same duplication rationale as DEFAULT_CATEGORIES above.
 DEFAULT_SETTINGS = [
     {"key": "signing_enabled", "value": "true"},
@@ -65,6 +65,12 @@ DEFAULT_SETTINGS = [
     {"key": "reserve_calculation", "value": "automatic"},
     {"key": "reserve_months", "value": "3"},
     {"key": "reserve_manual_amount", "value": None},
+    {"key": "storage_path", "value": "/data"},
+    {"key": "backup_path", "value": None},
+    {"key": "backup_schedule", "value": "manual"},
+    {"key": "backup_retention_count", "value": "5"},
+    {"key": "last_backup_date", "value": None},
+    {"key": "last_backup_size", "value": None},
 ]
 
 
@@ -109,14 +115,17 @@ def _clear_directory_contents(path: str) -> None:
             os.remove(entry.path)
 
 
-def _wipe_uploaded_files() -> None:
+def _wipe_uploaded_files(storage_root: str) -> None:
     """Deletes every original invoice PDF, every signed invoice PDF, and
     every generated report PDF from disk, leaving the base storage
-    directories themselves in place and ready for new uploads."""
+    directories themselves in place and ready for new uploads. `storage_root`
+    must be read from the settings table before it's wiped and reseeded to
+    its default below — otherwise a custom storage_path an Admin configured
+    would already be lost by the time this runs."""
     for base_dir in (
-        os.path.join(app_config.invoice_storage_path, "original"),
-        app_config.signed_invoice_storage_path,
-        app_config.report_storage_path,
+        os.path.join(storage_root, "invoices", "original"),
+        os.path.join(storage_root, "invoices", "signed"),
+        os.path.join(storage_root, "reports"),
     ):
         _clear_directory_contents(base_dir)
 
@@ -132,6 +141,11 @@ def perform_reset(db: Session, *, wipe_files: bool) -> None:
     computed live from other tables, not stored (see docs/decisions-log.md's
     2026-08-04 main dashboard build entry). Nothing here needs to touch it.
     """
+    # Read before the settings table is wiped/reseeded below — an Admin may
+    # have configured a custom storage_path, and _wipe_uploaded_files needs
+    # to know where the files it's deleting actually are.
+    storage_root = storage_service.get_storage_root(db)
+
     db.query(MonthlyReconciliation).delete()
     db.query(Contribution).delete()
     db.query(InvoiceFile).delete()
@@ -151,4 +165,4 @@ def perform_reset(db: Session, *, wipe_files: bool) -> None:
     db.commit()
 
     if wipe_files:
-        _wipe_uploaded_files()
+        _wipe_uploaded_files(storage_root)

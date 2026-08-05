@@ -1,9 +1,9 @@
 """Overlays a drawn signature image and date text onto an invoice PDF.
 
 The original PDF is never modified: this always writes a new file under
-SIGNED_INVOICE_STORAGE_PATH and returns its path, mirroring how
+storage_service.invoices_signed_root() and returns its path, mirroring how
 storage_service.save_invoice_pdf lays out originals under
-INVOICE_STORAGE_PATH/original/{year}/{month}/.
+invoices_original_root()/{year}/{month}/.
 """
 import base64
 import binascii
@@ -12,8 +12,9 @@ import uuid
 from datetime import date as date_type
 
 import fitz
+from sqlalchemy.orm import Session
 
-from config import settings
+from services import storage_service
 
 
 def _decode_signature_image(signature_image: str) -> bytes:
@@ -27,6 +28,7 @@ def _decode_signature_image(signature_image: str) -> bytes:
 
 
 def sign_invoice_pdf(
+    db: Session,
     original_path: str,
     signature_image: str,
     signed_date: date_type,
@@ -95,7 +97,7 @@ def sign_invoice_pdf(
 
         today = date_type.today()
         target_dir = os.path.join(
-            settings.signed_invoice_storage_path,
+            storage_service.invoices_signed_root(db),
             f"{today.year:04d}",
             f"{today.month:02d}",
         )

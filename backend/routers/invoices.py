@@ -86,7 +86,7 @@ def upload_invoices(
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"'{upload.filename}' is not a PDF")
 
         content = upload.file.read()
-        stored_path = save_invoice_pdf(upload.filename or "invoice.pdf", content)
+        stored_path = save_invoice_pdf(db, upload.filename or "invoice.pdf", content)
 
         extracted = extract_invoice_data(content, categories, db)
         category_id = extracted["category_id"] if extracted["category_id"] in category_ids else None
@@ -318,6 +318,7 @@ def sign_invoice(
 
     try:
         signed_path = sign_invoice_pdf(
+            db,
             original_path=invoice_file.original_path,
             signature_image=payload.signature_image,
             signed_date=payload.date,

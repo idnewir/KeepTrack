@@ -7,6 +7,7 @@ import TerminologySettings from '../components/settings/TerminologySettings.jsx'
 import SigningExportSettings from '../components/settings/SigningExportSettings.jsx'
 import UsersSettings from '../components/settings/UsersSettings.jsx'
 import ComingSoonSettings from '../components/settings/ComingSoonSettings.jsx'
+import StorageBackupSettings from '../components/settings/StorageBackupSettings.jsx'
 import LogsSettings from '../components/settings/LogsSettings.jsx'
 import DangerZoneSettings from '../components/settings/DangerZoneSettings.jsx'
 
@@ -53,12 +54,7 @@ export default function SettingsPage() {
                   description="Configure how invoices are read and categorised automatically."
                 />
               )}
-              {activeCategory === 'storage' && (
-                <ComingSoonSettings
-                  title="Storage & Backup"
-                  description="Manage where invoice files and backups are kept."
-                />
-              )}
+              {activeCategory === 'storage' && <StorageBackupSettings token={token} />}
               {activeCategory === 'users' && <UsersSettings token={token} />}
               {activeCategory === 'notifications' && (
                 <ComingSoonSettings

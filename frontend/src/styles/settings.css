@@ -622,6 +622,65 @@
   align-items: center;
 }
 
+/* Storage & Backup */
+
+.kt-storage-usage-summary {
+  font-size: 14px;
+  color: var(--kt-text-secondary);
+  margin-bottom: 16px;
+}
+
+.kt-storage-usage-summary strong {
+  color: var(--kt-text);
+  font-size: 15px;
+}
+
+.kt-storage-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kt-storage-breakdown-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.kt-storage-breakdown-label span:first-child {
+  font-weight: 600;
+  color: var(--kt-text);
+}
+
+.kt-storage-breakdown-label span:last-child {
+  color: var(--kt-text-muted);
+}
+
+.kt-storage-bar-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  overflow: hidden;
+}
+
+.kt-storage-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--kt-primary);
+  transition: width 0.2s ease;
+}
+
+.kt-storage-preview-list {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+  text-transform: capitalize;
+}
+
 /* Reusable modal */
 
 .kt-modal-overlay {

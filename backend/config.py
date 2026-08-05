@@ -24,10 +24,12 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     anthropic_model: str = "claude-sonnet-4-6"
 
-    invoice_storage_path: str = "/data/invoices"
-    signed_invoice_storage_path: str = "/data/invoices/signed"
+    # Original/signed invoice PDFs and generated reports all live under a
+    # single configurable root, the DB-backed storage_path setting (see
+    # services/storage_service.py) — not env vars, so an Admin can change it
+    # at runtime via PUT /storage/path. watched_folder_path stays an env var:
+    # it's an *input* the folder-watcher scans, not app-managed storage.
     watched_folder_path: str = "/data/watched"
-    report_storage_path: str = "/data/reports"
 
     # Fallback used only if the financial_year_start_month settings row is
     # somehow missing/unset — see services/settings_service.py. The FY end

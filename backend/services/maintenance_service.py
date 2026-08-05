@@ -28,13 +28,14 @@ from database import SessionLocal
 from models.audit_log import AuditLog, AuditLogArchive
 from models.error_log import ErrorLog
 from models.setting import Setting
-from services import audit_service, error_service
+from services import audit_service, backup_service, error_service
 
 logger = logging.getLogger("keep_track.maintenance")
 
 AUDIT_LOG_RETENTION_DAYS = 90
 ERROR_LOG_RETENTION_DAYS = 90
 MAINTENANCE_INTERVAL_SECONDS = 90 * 24 * 60 * 60  # 90 days
+BACKUP_CHECK_INTERVAL_SECONDS = 5 * 60  # 5 minutes — see run_scheduled_backup_check
 
 LAST_ARCHIVE_RUN_KEY = "last_audit_archive_run"
 LAST_ERROR_CLEANUP_RUN_KEY = "last_error_cleanup_run"
@@ -163,4 +164,58 @@ def start_scheduler() -> None:
     immediately — call run_maintenance_once() once at startup for that, so
     the two never race on the same first run."""
     thread = threading.Thread(target=_scheduler_loop, daemon=True)
+    thread.start()
+
+
+def run_scheduled_backup_check(db: Session) -> bool:
+    """Runs a scheduled (daily/weekly/monthly) backup if one is due right
+    now, per backup_service.should_run_scheduled_backup. Applies retention
+    afterwards and records success/failure — this app has no outbound
+    email, so "Admin notification" is the audit log (success) plus the
+    error log (failure), the same two places every other background
+    failure in this file already surfaces to Admins. See
+    docs/decisions-log.md."""
+    if not backup_service.should_run_scheduled_backup(db):
+        return False
+
+    try:
+        result = backup_service.perform_backup(db, "scheduled", None, None)
+    except Exception as exc:
+        logger.exception("Scheduled backup failed")
+        db.rollback()
+        error_service.log_error(
+            db, "critical", "scheduled_backup", f"Scheduled backup failed: {exc}",
+            stack_trace=traceback.format_exc(),
+        )
+        return False
+
+    deleted = backup_service.apply_retention(db)
+    audit_service.log_action(
+        db, "backup.created",
+        f"Scheduled backup created ('{result['filename']}', "
+        f"{result['size_bytes']} bytes){f', {deleted} old backup(s) removed under retention' if deleted else ''}",
+        metadata={"filename": result["filename"], "size_bytes": result["size_bytes"], "retention_deleted": deleted},
+    )
+    return True
+
+
+def _backup_scheduler_loop() -> None:
+    while True:
+        time.sleep(BACKUP_CHECK_INTERVAL_SECONDS)
+        db = SessionLocal()
+        try:
+            run_scheduled_backup_check(db)
+        except Exception:
+            logger.exception("Backup scheduler iteration failed")
+        finally:
+            db.close()
+
+
+def start_backup_scheduler() -> None:
+    """Starts the backup-schedule-checking background thread. Checked every
+    5 minutes (not just once at 2am) so a due backup still runs even if the
+    app was restarted or briefly down across 2am — see
+    should_run_scheduled_backup's own same-day guard for why this can't
+    double-run within one day."""
+    thread = threading.Thread(target=_backup_scheduler_loop, daemon=True)
     thread.start()
