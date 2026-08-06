@@ -593,11 +593,22 @@ def restore_from_zip(zip_path: str) -> dict:
 
             staged = _stage_existing_storage_aside(storage_root)
             try:
+                storage_root_abs = os.path.abspath(storage_root)
                 for name in zf.namelist():
                     if not name.startswith("files/") or name == "files/":
                         continue
                     rel = name[len("files/"):]
-                    dest = os.path.join(storage_root, rel)
+                    # rel comes from inside the zip's own file list, which is
+                    # attacker-controlled if the zip wasn't produced by this
+                    # app's own create_backup_zip (e.g. a tampered or
+                    # hand-crafted "backup"). A "../../etc/cron.d/x"-style
+                    # entry would otherwise let a restore write arbitrary
+                    # files anywhere the backend process can write — resolve
+                    # the destination and refuse anything that would land
+                    # outside storage_root. See docs/decisions-log.md.
+                    dest = os.path.abspath(os.path.join(storage_root, rel))
+                    if dest != storage_root_abs and not dest.startswith(storage_root_abs + os.sep):
+                        raise ValueError(f"Backup contains an unsafe file path: {name!r}")
                     os.makedirs(os.path.dirname(dest), exist_ok=True)
                     with zf.open(name) as src, open(dest, "wb") as out:
                         shutil.copyfileobj(src, out)

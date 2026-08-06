@@ -23,6 +23,7 @@ from services.signing_service import sign_invoice_pdf
 from services.storage_service import save_invoice_pdf
 from utils.csv_export import csv_response
 from utils.deps import get_current_user, require_standard
+from utils.file_validation import MAX_INVOICE_PDF_BYTES, looks_like_pdf, sanitise_filename
 from utils.pagination import paginate
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
@@ -83,18 +84,30 @@ def upload_invoices(
     created: list[Invoice] = []
 
     for upload in files:
-        if upload.content_type != "application/pdf" and not (upload.filename or "").lower().endswith(".pdf"):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"'{upload.filename}' is not a PDF")
+        safe_filename = sanitise_filename(upload.filename or "invoice.pdf")
+        if not safe_filename.lower().endswith(".pdf"):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"'{safe_filename}' is not a PDF")
 
         content = upload.file.read()
-        stored_path = save_invoice_pdf(db, upload.filename or "invoice.pdf", content)
+        if len(content) > MAX_INVOICE_PDF_BYTES:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"'{safe_filename}' is too large (max {MAX_INVOICE_PDF_BYTES // (1024 * 1024)} MB)",
+            )
+        # The Content-Type header and filename extension are both
+        # client-supplied and prove nothing on their own — this checks the
+        # file's actual magic bytes instead, per the security requirement.
+        if not looks_like_pdf(content):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"'{safe_filename}' is not a valid PDF file")
+
+        stored_path = save_invoice_pdf(db, safe_filename, content)
 
         extracted = extract_invoice_data(content, categories, db)
         category_id = extracted["category_id"] if extracted["category_id"] in category_ids else None
         duplicate_flag = check_duplicate(db, extracted["supplier"], extracted["amount"], extracted["invoice_date"])
 
         invoice = Invoice(
-            filename=upload.filename or "invoice.pdf",
+            filename=safe_filename,
             invoice_date=extracted["invoice_date"] or date.today(),
             supplier=extracted["supplier"] or "",
             amount=extracted["amount"] or 0,

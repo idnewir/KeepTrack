@@ -6,7 +6,11 @@ from passlib.context import CryptContext
 
 from config import settings
 
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# rounds=12 is pinned explicitly (rather than relying on passlib's own
+# default, which is an implementation detail that could change between
+# versions) to guarantee the minimum cost factor the security requirements
+# call for.
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 
 SCOPE_MFA = "mfa"
 SCOPE_ACCESS = "access"

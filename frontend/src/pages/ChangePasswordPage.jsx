@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/AuthContext.jsx'
 import { authApi } from '../utils/api.js'
 
 export default function ChangePasswordPage() {
-  const { user, refreshUser, logout } = useAuth()
+  const { user, applyPasswordChange, logout } = useAuth()
   const navigate = useNavigate()
 
   const [newPassword, setNewPassword] = useState('')
@@ -28,8 +28,8 @@ export default function ChangePasswordPage() {
 
     setSubmitting(true)
     try {
-      await authApi.forcePasswordChange({ new_password: newPassword }, user.token)
-      await refreshUser()
+      const result = await authApi.forcePasswordChange({ new_password: newPassword }, user.token)
+      applyPasswordChange(result)
       navigate('/', { replace: true })
     } catch (err) {
       setError(err.message || 'Failed to change password')

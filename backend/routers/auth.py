@@ -17,6 +17,7 @@ from models.schemas import (
     LoginResponse,
     MFAVerifyRequest,
     PaginatedResponse,
+    PasswordChangeOut,
     PasswordChangeRequest,
     PasswordResetOut,
     ProfileUpdateRequest,
@@ -34,7 +35,7 @@ from models.schemas import (
 )
 from models.setting import Setting
 from models.user import User
-from services import ai_provider_service, audit_service, error_service
+from services import ai_provider_service, audit_service, error_service, rate_limit_service
 from services.ai_provider_service import DEFAULT_MODEL_FOR_PROVIDER, SUPPORTED_PROVIDERS
 from services.auth_service import (
     build_otpauth_uri,
@@ -193,12 +194,27 @@ def set_setup_ai_config(payload: AIConfigUpdate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=LoginResponse)
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     ip_address = _client_ip(request)
+
+    # Brute-force protection: capped per source IP (not per username, which
+    # isn't trustworthy pre-authentication and would let an attacker lock
+    # out a real user just by spamming their username). See
+    # services/rate_limit_service.py and docs/decisions-log.md.
+    if rate_limit_service.is_rate_limited(
+        db, rate_limit_service.LOGIN_EVENT_TYPE, ip_address,
+        rate_limit_service.LOGIN_MAX_ATTEMPTS, rate_limit_service.LOGIN_WINDOW_MINUTES,
+    ):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Too many login attempts. Please wait a few minutes before trying again.",
+        )
+
     user = db.query(User).filter(User.username == payload.username).first()
     # Always run the bcrypt comparison, even for an unknown username, so the
     # response time doesn't reveal whether the username exists.
     password_hash = user.password_hash if user else DUMMY_PASSWORD_HASH
     password_ok = verify_password(payload.password, password_hash)
     if user is None or not password_ok:
+        rate_limit_service.record_attempt(db, rate_limit_service.LOGIN_EVENT_TYPE, ip_address, "invalid_credentials")
         audit_service.log_action(
             db, "user.login_failed", f"Failed login attempt for username '{payload.username}'",
             user_id=user.id if user else None, ip_address=ip_address,
@@ -262,6 +278,19 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
 @router.post("/verify-mfa", response_model=TokenResponse)
 def verify_mfa(payload: MFAVerifyRequest, request: Request, db: Session = Depends(get_db)):
     ip_address = _client_ip(request)
+
+    # Brute-force protection on the 6-digit TOTP code, same shape as
+    # /auth/login's — a code has only 10^6 possibilities, so this matters at
+    # least as much here. See services/rate_limit_service.py.
+    if rate_limit_service.is_rate_limited(
+        db, rate_limit_service.MFA_EVENT_TYPE, ip_address,
+        rate_limit_service.MFA_MAX_ATTEMPTS, rate_limit_service.MFA_WINDOW_MINUTES,
+    ):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Too many verification attempts. Please wait a few minutes before trying again.",
+        )
+
     try:
         claims = decode_token(payload.temp_token, expected_scope=SCOPE_MFA)
     except TokenError as exc:
@@ -277,6 +306,7 @@ def verify_mfa(payload: MFAVerifyRequest, request: Request, db: Session = Depend
         )
 
     if not verify_totp_code(decrypt_secret(user.mfa_secret), payload.code):
+        rate_limit_service.record_attempt(db, rate_limit_service.MFA_EVENT_TYPE, ip_address, "invalid_code")
         audit_service.log_action(
             db, "user.mfa_failed", f"Failed MFA attempt for '{user.username}'",
             user_id=user.id, ip_address=ip_address,
@@ -317,7 +347,21 @@ def logout(
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
+    ip_address = _client_ip(request)
+
+    # Caps registration spam/enumeration from a single source — see
+    # services/rate_limit_service.py.
+    if rate_limit_service.is_rate_limited(
+        db, rate_limit_service.REGISTER_EVENT_TYPE, ip_address,
+        rate_limit_service.REGISTER_MAX_ATTEMPTS, rate_limit_service.REGISTER_WINDOW_MINUTES,
+    ):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Too many registration attempts. Please wait before trying again.",
+        )
+    rate_limit_service.record_attempt(db, rate_limit_service.REGISTER_EVENT_TYPE, ip_address, "attempted")
+
     if db.query(User).filter(User.username == payload.username).first():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Username already taken")
     if db.query(User).filter(User.email == payload.email).first():
@@ -535,6 +579,10 @@ def reset_user_password(
 
     user.password_hash = hash_password(temporary_password)
     user.must_change_password = True
+    # The target user's existing sessions (if any survived until now) should
+    # not keep working under their old password's token — see
+    # docs/decisions-log.md.
+    user.token_invalid_before = datetime.now(timezone.utc)
     db.commit()
 
     audit_service.log_action(
@@ -588,7 +636,7 @@ def update_my_profile(
     return user
 
 
-@router.put("/me/password", response_model=UserOut)
+@router.put("/me/password", response_model=PasswordChangeOut)
 def change_my_password(
     payload: PasswordChangeRequest,
     db: Session = Depends(get_db),
@@ -599,6 +647,11 @@ def change_my_password(
 
     user.password_hash = hash_password(payload.new_password)
     user.must_change_password = False
+    # Invalidates every token issued before this moment, including the one
+    # this very request used — a changed password should mean every prior
+    # session (this device's included) needs a fresh login. See
+    # docs/decisions-log.md and utils/deps.get_current_user.
+    user.token_invalid_before = datetime.now(timezone.utc)
     db.commit()
     db.refresh(user)
 
@@ -606,10 +659,15 @@ def change_my_password(
         db, "user.password_changed", f"'{user.username}' changed their own password",
         user_id=user.id, affected_table="users", affected_record_id=user.id,
     )
-    return user
+
+    new_token = create_token(
+        subject=user.id, scope=SCOPE_ACCESS, expiry_minutes=settings.jwt_expiry_minutes,
+        extra_claims={"role": user.role},
+    )
+    return PasswordChangeOut(user=user, access_token=new_token, expires_in_minutes=settings.jwt_expiry_minutes)
 
 
-@router.put("/me/force-password-change", response_model=UserOut)
+@router.put("/me/force-password-change", response_model=PasswordChangeOut)
 def force_change_my_password(
     payload: ForcePasswordChangeRequest,
     db: Session = Depends(get_db),
@@ -621,6 +679,7 @@ def force_change_my_password(
     that follows an Admin password reset — see docs/decisions-log.md."""
     user.password_hash = hash_password(payload.new_password)
     user.must_change_password = False
+    user.token_invalid_before = datetime.now(timezone.utc)
     db.commit()
     db.refresh(user)
 
@@ -629,4 +688,9 @@ def force_change_my_password(
         user_id=user.id, affected_table="users", affected_record_id=user.id,
         metadata={"forced": True},
     )
-    return user
+
+    new_token = create_token(
+        subject=user.id, scope=SCOPE_ACCESS, expiry_minutes=settings.jwt_expiry_minutes,
+        extra_claims={"role": user.role},
+    )
+    return PasswordChangeOut(user=user, access_token=new_token, expires_in_minutes=settings.jwt_expiry_minutes)

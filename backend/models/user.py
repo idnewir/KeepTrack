@@ -27,3 +27,12 @@ class User(Base):
     last_login = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True, server_default="true")
     must_change_password = Column(Boolean, nullable=False, default=False, server_default="false")
+    # Stamped with "now" whenever this user's password changes (self-service
+    # change, forced change, or an Admin's reset) so every JWT issued before
+    # that moment stops working immediately — otherwise a stolen token would
+    # keep working for up to its full 8-hour life even after the password
+    # that (maybe) leaked alongside it was changed. Checked in
+    # utils/deps.get_current_user against the token's iat claim, the same
+    # pattern already used for the global JWT_INVALIDATE_BEFORE_KEY setting
+    # (see docs/decisions-log.md), but scoped to one user instead of everyone.
+    token_invalid_before = Column(DateTime(timezone=True), nullable=True)

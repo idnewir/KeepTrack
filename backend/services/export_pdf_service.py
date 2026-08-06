@@ -18,6 +18,8 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from utils.pdf_text import pdf_text
+
 PRIMARY = colors.HexColor("#2D6B9F")
 ACCENT = colors.HexColor("#1D9E75")
 TEXT_DARK = colors.HexColor("#2C2C2A")
@@ -118,15 +120,15 @@ def generate_table_export_pdf(
         title=title,
     )
 
-    story = [Paragraph(title, styles["title"])]
+    story = [Paragraph(pdf_text(title), styles["title"])]
     if subtitle:
-        story.append(Paragraph(subtitle, styles["subtitle"]))
+        story.append(Paragraph(pdf_text(subtitle), styles["subtitle"]))
     else:
         story.append(Spacer(1, 0.4 * cm))
 
     if rows:
-        header_row = [Paragraph(c, styles["table_header"]) for c in columns]
-        body_rows = [[Paragraph(str(cell) if cell is not None else "", styles["table_cell"]) for cell in row] for row in rows]
+        header_row = [Paragraph(pdf_text(c), styles["table_header"]) for c in columns]
+        body_rows = [[Paragraph(pdf_text(cell), styles["table_cell"]) for cell in row] for row in rows]
         table = Table([header_row, *body_rows], repeatRows=1)
         table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), PRIMARY),

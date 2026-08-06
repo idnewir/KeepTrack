@@ -1,4 +1,4 @@
-fastapi==0.115.0
+fastapi==0.141.1
 uvicorn[standard]==0.30.6
 sqlalchemy==2.0.35
 psycopg2-binary==2.9.9
@@ -6,13 +6,21 @@ alembic==1.13.2
 pydantic==2.9.2
 pydantic-settings==2.5.2
 email-validator==2.2.0
-python-jose[cryptography]==3.3.0
+# 3.3.0 had two known CVEs: an algorithm-confusion issue affecting
+# asymmetric-key verification (not triggered by this app, which only ever
+# decodes with a fixed HS256 algorithms allowlist — see utils/security.py)
+# and a JWE decompression-bomb DoS reachable simply by POSTing a crafted
+# token to any endpoint that decodes one. Fixed in 3.4.0+; see docs/security.md.
+python-jose[cryptography]==3.5.0
 cryptography==50.0.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 pyotp==2.9.0
 qrcode[pil]==7.4.2
-python-multipart==0.0.9
+# 0.0.9 had several known multipart-parsing CVEs (malformed
+# Content-Type/boundary handling); this app's invoice and backup-restore
+# uploads both go through it. See docs/security.md.
+python-multipart==0.0.32
 pymupdf==1.24.10
 anthropic>=0.40.0
 watchdog==4.0.2

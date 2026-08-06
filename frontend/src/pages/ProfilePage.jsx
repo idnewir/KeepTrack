@@ -22,7 +22,7 @@ function formatMemberSince(dateStr) {
 }
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, applyPasswordChange } = useAuth()
   const token = user?.token
 
   const [displayName, setDisplayName] = useState(user?.display_name || '')
@@ -70,7 +70,10 @@ export default function ProfilePage() {
 
     setSavingPassword(true)
     try {
-      await authApi.changePassword({ current_password: currentPassword, new_password: newPassword }, token)
+      const result = await authApi.changePassword(
+        { current_password: currentPassword, new_password: newPassword }, token
+      )
+      applyPasswordChange(result)
       setPasswordSuccess('Password changed.')
       setCurrentPassword('')
       setNewPassword('')

@@ -24,6 +24,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Run as a non-root user — the image otherwise runs the app (and every
+# dependency it loads) as root by default, which is more privilege than an
+# API server needs and a needless amplifier for any future code-execution
+# bug. /data is where storage_service/backup_service write invoice PDFs,
+# reports, and backups (see docker-compose.yml's mounted volumes), so it
+# needs to be owned by the same user the app runs as.
+RUN groupadd --system keeptrack && useradd --system --gid keeptrack --home-dir /app keeptrack \
+    && mkdir -p /data/invoices /data/watched /data/reports \
+    && chown -R keeptrack:keeptrack /app /data
+USER keeptrack
+
 EXPOSE 8000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

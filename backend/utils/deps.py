@@ -50,6 +50,18 @@ def get_current_user(
     user = db.get(User, int(payload["sub"]))
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User no longer exists")
+
+    # Per-user session invalidation: stamped on this user's row whenever
+    # their password changes (self-service, forced, or an Admin's reset) —
+    # see docs/decisions-log.md. Same floor-to-whole-seconds comparison as
+    # the global invalidation check above and for the same reason: iat only
+    # has whole-second resolution.
+    if user.token_invalid_before is not None:
+        invalidate_before = user.token_invalid_before.replace(microsecond=0)
+        issued_at = datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
+        if issued_at < invalidate_before:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session invalidated — please log in again.")
+
     if not user.approved:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account pending approval")
     if not user.is_active:

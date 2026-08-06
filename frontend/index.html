@@ -4,24 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Keep Track</title>
-    <script>
-      // Runs before first paint so an explicit light/dark override applies
-      // immediately, instead of flashing the wrong theme until React mounts
-      // and ThemeContext runs. 'system'/missing leaves data-theme unset —
-      // theme.css's prefers-color-scheme media query already handles that
-      // case with no JS needed, so there's nothing to set here.
-      (function () {
-        try {
-          var stored = window.localStorage.getItem('keeptrack-theme')
-          if (stored === 'light' || stored === 'dark') {
-            document.documentElement.setAttribute('data-theme', stored)
-          }
-        } catch (e) {}
-      })()
-    </script>
+    <!--
+      This app is a single-origin SPA that talks only to its own backend API
+      (VITE_API_BASE_URL) and never embeds third-party scripts, fonts, or
+      iframes. img-src allows data:/blob: for the setup/registration QR code
+      (returned as a base64 PNG), the signature pad's canvas output, and
+      invoice preview thumbnails (fetched as a Blob and shown via an object
+      URL) — see utils/api.js and components/ReviewCard.jsx/SigningPanel.jsx.
+      connect-src is widened to the configured API origin below since the
+      frontend and backend can run on different hosts/ports.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' %VITE_API_BASE_URL%; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    />
   </head>
   <body>
     <div id="root"></div>
+    <script src="/theme-init.js"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

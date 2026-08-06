@@ -123,6 +123,19 @@ class PasswordChangeRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=255)
 
 
+class PasswordChangeOut(BaseModel):
+    """A password change invalidates every token issued before the change
+    (including the one the request itself used, per the security
+    requirement that a password change invalidate existing sessions) — so
+    the endpoint hands back a fresh token for the session that just proved
+    it knows the new password, alongside the updated user. See
+    docs/decisions-log.md."""
+    user: UserOut
+    access_token: str
+    token_type: str = "bearer"
+    expires_in_minutes: int
+
+
 class SetupStatusResponse(BaseModel):
     setup_required: bool
 

@@ -85,6 +85,17 @@ export function AuthProvider({ children }) {
     setUser({ ...me, token: user.token })
   }
 
+  // Used after a password change: the backend invalidates every token
+  // issued before the change (including the one this session was using),
+  // so it hands back a fresh one for the session that just proved it knows
+  // the new password. Without swapping it in here, the very next API call
+  // from this tab would fail with "session invalidated". See
+  // docs/decisions-log.md.
+  const applyPasswordChange = ({ user: freshUser, access_token }) => {
+    localStorage.setItem(TOKEN_KEY, access_token)
+    setUser({ ...freshUser, token: access_token })
+  }
+
   const logout = () => {
     // Best-effort audit hook — JWTs are stateless, so logging out is really
     // just discarding the local token; the request just records the event
@@ -109,6 +120,7 @@ export function AuthProvider({ children }) {
       completeSetup,
       markSetupComplete,
       refreshUser,
+      applyPasswordChange,
       logout,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

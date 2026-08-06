@@ -2,10 +2,12 @@
 import logging
 import traceback
 
+from cryptography.fernet import Fernet
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from config import settings as app_config
 from database import SessionLocal
 from routers.ai_settings import router as ai_settings_router
 from routers.auth import router as auth_router
@@ -27,15 +29,101 @@ from version import APP_VERSION
 
 logger = logging.getLogger("keep_track.main")
 
+# Routes that legitimately carry a large body (PDF / backup zip uploads) —
+# checked against the smaller, default request-size ceiling below. Everything
+# else in the API is ordinary JSON and has no business exceeding a few MB.
+_LARGE_UPLOAD_PATHS = ("/invoices/upload", "/storage/restore", "/storage/restore/preview")
+
+# A known-insecure value some earlier version of config.py shipped as a real,
+# working Fernet key default — refused outright even if somehow still
+# present in an old .env, since it's public (visible in git history).
+_KNOWN_LEAKED_MFA_KEY = "Y--gwZnpacveIT8vPJl1yoqdRCJj3G7apSRtMJw0nIo="
+_KNOWN_PLACEHOLDER_JWT_SECRETS = {"", "change-me-to-a-long-random-string"}
+
+
+def _validate_security_config() -> None:
+    """Refuses to start with a missing or known-insecure JWT signing secret
+    or MFA encryption key, rather than silently running with one an attacker
+    (or anyone who has read this repository) could already know. See
+    docs/decisions-log.md and docs/security.md."""
+    problems = []
+    if app_config.jwt_secret in _KNOWN_PLACEHOLDER_JWT_SECRETS or len(app_config.jwt_secret) < 32:
+        problems.append(
+            "JWT_SECRET is missing, empty, or too short. Set it to a long random "
+            "string in your .env file (e.g. `openssl rand -hex 32`)."
+        )
+    if app_config.mfa_encryption_key == _KNOWN_LEAKED_MFA_KEY:
+        problems.append(
+            "MFA_ENCRYPTION_KEY is set to a publicly known placeholder value that "
+            "offers no real protection. Generate a real one with: "
+            "python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+        )
+    else:
+        try:
+            Fernet(app_config.mfa_encryption_key.encode())
+        except Exception:
+            problems.append(
+                "MFA_ENCRYPTION_KEY is missing or not a valid Fernet key. Generate one with: "
+                "python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+    if problems:
+        raise RuntimeError(
+            "Refusing to start with insecure configuration:\n- " + "\n- ".join(problems)
+        )
+
+
+def _parse_cors_origins(raw: str) -> list[str]:
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
 app = FastAPI(title="Keep Track API", version=APP_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_parse_cors_origins(app_config.cors_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # This API only ever returns JSON/file downloads, never renders HTML
+    # itself — a maximally restrictive policy has no legitimate content to
+    # break and closes off this origin as a target for injected markup.
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    )
+    return response
+
+
+@app.middleware("http")
+async def limit_request_body_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            length = int(content_length)
+        except ValueError:
+            length = None
+        if length is not None:
+            limit = (
+                app_config.max_upload_body_bytes
+                if request.url.path in _LARGE_UPLOAD_PATHS
+                else app_config.max_request_body_bytes
+            )
+            if length > limit:
+                return JSONResponse(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    content={"detail": "Request body is too large."},
+                )
+    return await call_next(request)
+
 
 app.include_router(ai_settings_router)
 app.include_router(auth_router)
@@ -99,6 +187,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 def on_startup():
+    _validate_security_config()
+
     db = SessionLocal()
     try:
         storage_service.ensure_storage_dirs(db)
