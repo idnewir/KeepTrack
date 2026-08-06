@@ -19,6 +19,7 @@ import LoginPage from './pages/LoginPage.jsx'
 import MFAPage from './pages/MFAPage.jsx'
 import PendingApprovalPage from './pages/PendingApprovalPage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
+import ProjectDetailPage from './pages/ProjectDetailPage.jsx'
 import ProjectsPage from './pages/ProjectsPage.jsx'
 import ReconciliationPage from './pages/ReconciliationPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
@@ -83,6 +84,7 @@ export default function App() {
             <Route path="/contributions" element={<ContributionsPage />} />
             <Route path="/reconciliation" element={<ReconciliationPage />} />
             <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/projects/:id" element={<ProjectDetailPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route
               path="/settings"

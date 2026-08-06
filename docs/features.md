@@ -37,6 +37,11 @@ This document describes every feature area of Keep Track in detail. It is the re
 ### Confirmation
 - Once the user is happy with the fields (and has signed, if applicable), they confirm and the invoice is written to the database, associated with the current financial year.
 
+### Linking to a planned project
+- On the review card, below the category field, an optional **"Link to project"** searchable dropdown lists all active planned projects (with their estimated cost) so an invoice can be tied to the project it belongs to. Left unset by default — linking is entirely optional.
+- On the invoice detail page, a linked invoice shows a clickable project name badge (navigating to that project's detail page) below the category field, with an **"Unlink from project"** action (confirmation required) for Standard and Admin users.
+- Linking is many-invoices-to-one-project — every confirmed invoice linked to a project counts toward that project's actual spend (see Planned Projects, below).
+
 ---
 
 ## 2. Categories
@@ -115,6 +120,20 @@ On login, the user sees relevant alerts:
 - Shown in the **planned projects dashboard panel**, listing all currently active projects, amber-highlighted if due within 60 days and red if overdue.
 - The **Projects page** (`/projects`) lists all active projects — name, description (truncated, expandable), estimated cost, expected month/year, financial year if assigned, status, and a colour-coded days-until-due indicator — with the total estimated upcoming spend shown at the top.
 - A project can be **marked complete** (Standard or Admin, with confirmation), which removes it from the active list and the forecast, and moves it into a collapsed **Completed projects** section (visible to Admins). Separately, an **Admin can deactivate** a project (with confirmation) to drop it without marking it complete — both actions turn the project inactive, but only completion sets its distinct "complete" status.
+
+### Tracking actual spend against a planned project
+- Invoices can optionally be [linked to a planned project](#linking-to-a-planned-project) at review time or later, so **actual spend** can be tracked against the **estimated cost** — the whole point being to see whether a project is running to budget as invoices for it come in, not just to log the estimate upfront.
+- Every project reports, computed live from its linked, confirmed invoices (never stored, so these figures can never drift from the underlying invoice data):
+  - **Actual cost** — the sum of every confirmed invoice linked to it.
+  - **Variance** — estimated cost minus actual cost (positive is under budget, negative is over), and the same as a percentage of the estimate.
+  - **Project status** — one of **Planning** (nothing linked yet), **In progress** (at least one invoice linked, not yet complete or over budget), **Over budget** (actual spend exceeds the estimate), or **Completed** (marked complete — this takes priority over "over budget" once a project is finished).
+  - **Invoice count** and the full list of linked invoices (date, supplier, amount, category), each linking through to its own invoice detail page.
+- The **Projects page** cards show actual spend, a colour-coded variance (green under budget, amber within 10%, red over), a progress bar (actual vs. estimated), the invoice count, and an expandable "View linked invoices" list.
+- Each project also has a full **project detail page** (`/projects/{id}`) — financial summary (estimated cost, actual spend, remaining budget or over-budget amount, variance percentage), a progress bar, a status badge, the full linked-invoices table, and a timeline (created, first invoice linked, completed).
+- The **dashboard's planned projects panel** shows actual vs. estimated spend and a mini progress bar for each project, with over-budget projects highlighted; clicking a project opens its detail page.
+- The **forecast** treats an in-progress project's *remaining* estimate (estimated cost minus actual spend so far, not the full estimate) as the amount still to come in its expected month — its actual spend to date already shows up in the months those invoices landed in, so the full estimate isn't double-counted on top.
+- The **Invoices page** has a project filter (all invoices / unlinked only / each active project by name), making it easy to see all spend recorded against a specific project.
+- **Reports** include a project summary section — a table of each project's estimated, actual, and variance figures (with a combined total, and over-budget projects highlighted) — and the AI-written summary calls out any project significantly over or under its estimate by name.
 
 ---
 

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import SigningPanel from './SigningPanel.jsx'
 import { invoicesApi } from '../utils/api.js'
+import { formatCurrency } from '../utils/format.js'
 
 // A field is treated as "AI couldn't determine this" when it's still at the
 // sentinel empty value the upload endpoint fills in for a NOT NULL column
@@ -11,7 +12,7 @@ function isMissing(value) {
   return value === '' || value === null || value === undefined
 }
 
-export default function ReviewCard({ invoice, file, categories, signingEnabled, aiStatus, onConfirm, onDiscard }) {
+export default function ReviewCard({ invoice, file, categories, projects = [], signingEnabled, aiStatus, onConfirm, onDiscard }) {
   const { user } = useAuth()
   const token = user?.token
 
@@ -28,6 +29,31 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
     invoice.category_id != null ? String(invoice.category_id) : ''
   )
   const [notes, setNotes] = useState(invoice.notes || '')
+  const [projectId, setProjectId] = useState(
+    invoice.project_id != null ? String(invoice.project_id) : ''
+  )
+  const [projectSearch, setProjectSearch] = useState('')
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false)
+  const projectBlurTimeout = useRef(null)
+
+  const selectedProject = projects.find((p) => String(p.id) === projectId) || null
+  const filteredProjects = projectSearch.trim()
+    ? projects.filter((p) => p.name.toLowerCase().includes(projectSearch.trim().toLowerCase()))
+    : projects
+
+  const openProjectMenu = () => {
+    if (projectBlurTimeout.current) clearTimeout(projectBlurTimeout.current)
+    setProjectSearch('')
+    setProjectMenuOpen(true)
+  }
+  const closeProjectMenu = () => {
+    projectBlurTimeout.current = setTimeout(() => setProjectMenuOpen(false), 150)
+  }
+  const chooseProject = (id) => {
+    if (projectBlurTimeout.current) clearTimeout(projectBlurTimeout.current)
+    setProjectId(id)
+    setProjectMenuOpen(false)
+  }
 
   // 'fields' = reviewing/correcting extracted data; 'signing' = the
   // draw-and-place-signature step, shown only when signing is enabled.
@@ -95,6 +121,7 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
           amount: Number(amount),
           category_id: categoryId ? Number(categoryId) : null,
           notes: notes.trim() || null,
+          project_id: projectId ? Number(projectId) : null,
         },
         token
       )
@@ -263,6 +290,48 @@ export default function ReviewCard({ invoice, file, categories, signingEnabled, 
               ))}
             </select>
             {categoryMissing && <span className="kt-field-hint">Please choose a category</span>}
+          </div>
+
+          <div className="kt-field">
+            <label htmlFor={`project-${invoice.id}`}>Link to project (optional)</label>
+            <div className="kt-project-select">
+              <input
+                id={`project-${invoice.id}`}
+                type="text"
+                autoComplete="off"
+                placeholder="Search projects…"
+                value={projectMenuOpen ? projectSearch : selectedProject ? selectedProject.name : ''}
+                onFocus={openProjectMenu}
+                onChange={(e) => setProjectSearch(e.target.value)}
+                onBlur={closeProjectMenu}
+              />
+              {projectMenuOpen && (
+                <ul className="kt-project-select-menu">
+                  <li
+                    className="kt-project-select-option kt-project-select-none"
+                    onMouseDown={() => chooseProject('')}
+                  >
+                    None
+                  </li>
+                  {filteredProjects.map((p) => (
+                    <li
+                      key={p.id}
+                      className="kt-project-select-option"
+                      onMouseDown={() => chooseProject(String(p.id))}
+                    >
+                      <span>{p.name}</span>
+                      <span className="kt-project-select-cost">{formatCurrency(p.estimated_cost)}</span>
+                    </li>
+                  ))}
+                  {filteredProjects.length === 0 && (
+                    <li className="kt-project-select-empty">No matching projects</li>
+                  )}
+                </ul>
+              )}
+            </div>
+            <span className="kt-field-hint-plain">
+              Link this invoice to a project to track actual spend
+            </span>
           </div>
 
           <div className="kt-field">

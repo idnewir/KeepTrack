@@ -24,6 +24,7 @@ from models.contribution import Contribution
 from models.financial_year import FinancialYear
 from models.invoice import Invoice
 from models.planned_project import PlannedProject
+from services import project_service
 from services.financial_year_service import (
     MONTH_LABELS,
     MONTH_LABELS_FULL,
@@ -352,6 +353,32 @@ def build_report_data(
 
     funding_position = _funding_position(db, date_from, invoices, contributions)
 
+    # Enriches the same in-range project set used for the AI context's
+    # "planned projects due" list (below) with actual-vs-estimated figures,
+    # for the report's new project summary table. Reuses
+    # services/project_service.py rather than recomputing actual spend here,
+    # so a report's numbers can't disagree with the Projects page's.
+    planned_projects = []
+    total_estimated = Decimal("0")
+    total_actual = Decimal("0")
+    for p in projects:
+        actual_cost, invoice_count = project_service.actual_cost_and_invoice_count(db, p.id)
+        variance = p.estimated_cost - actual_cost
+        total_estimated += p.estimated_cost
+        total_actual += actual_cost
+        planned_projects.append({
+            "id": p.id,
+            "name": p.name,
+            "estimated_cost": p.estimated_cost,
+            "expected_month": p.expected_month,
+            "expected_month_label": f"{MONTH_LABELS_FULL[p.expected_month.month - 1]} {p.expected_month.year}",
+            "actual_cost": actual_cost,
+            "invoice_count": invoice_count,
+            "variance": variance,
+            "variance_percent": (variance / p.estimated_cost * 100) if p.estimated_cost else Decimal("0"),
+            "project_status": project_service.compute_status(p, actual_cost),
+        })
+
     return {
         "date_from": date_from,
         "date_to": date_to,
@@ -367,15 +394,11 @@ def build_report_data(
         "category_breakdown": category_breakdown,
         "annual_totals": annual_totals,
         "forecast": forecast,
-        "planned_projects": [
-            {
-                "id": p.id,
-                "name": p.name,
-                "estimated_cost": p.estimated_cost,
-                "expected_month": p.expected_month,
-                "expected_month_label": f"{MONTH_LABELS_FULL[p.expected_month.month - 1]} {p.expected_month.year}",
-            }
-            for p in projects
-        ],
+        "planned_projects": planned_projects,
+        "project_summary_totals": {
+            "total_estimated": total_estimated,
+            "total_actual": total_actual,
+            "total_variance": total_estimated - total_actual,
+        },
         "funding_position": funding_position,
     }

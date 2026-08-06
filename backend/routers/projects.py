@@ -9,10 +9,31 @@ from models.financial_year import FinancialYear
 from models.planned_project import PlannedProject
 from models.schemas import FinancialYearOut, ProjectCreate, ProjectOut, ProjectUpdate
 from models.user import User
-from services import audit_service, financial_year_service as fy_service
+from services import audit_service, financial_year_service as fy_service, project_service
 from utils.deps import get_current_user, require_admin, require_standard
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+def _project_to_out(db: Session, project: PlannedProject) -> dict:
+    return {
+        "id": project.id,
+        "name": project.name,
+        "description": project.description,
+        "estimated_cost": project.estimated_cost,
+        "expected_month": project.expected_month,
+        "financial_year_id": project.financial_year_id,
+        "created_by": project.created_by,
+        "created_at": project.created_at,
+        "active": project.active,
+        "completed": project.completed,
+        "completed_at": project.completed_at,
+        "edited_by": project.edited_by,
+        "edited_at": project.edited_at,
+        "edit_reason": project.edit_reason,
+        "admin_edit_notes": project.admin_edit_notes,
+        **project_service.project_financials(db, project),
+    }
 
 
 # Not in the original endpoint list — added so the planned-project form's
@@ -39,12 +60,13 @@ def list_projects(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    return (
+    projects = (
         db.query(PlannedProject)
         .filter(PlannedProject.active.is_(True))
         .order_by(PlannedProject.expected_month)
         .all()
     )
+    return [_project_to_out(db, p) for p in projects]
 
 
 @router.get("/all", response_model=list[ProjectOut])
@@ -52,7 +74,8 @@ def list_all_projects(
     db: Session = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
-    return db.query(PlannedProject).order_by(PlannedProject.expected_month).all()
+    projects = db.query(PlannedProject).order_by(PlannedProject.expected_month).all()
+    return [_project_to_out(db, p) for p in projects]
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
@@ -64,7 +87,7 @@ def get_project(
     project = db.get(PlannedProject, project_id)
     if project is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
-    return project
+    return _project_to_out(db, project)
 
 
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
@@ -94,7 +117,7 @@ def create_project(
         db, "project.created", f"Created planned project '{project.name}'",
         user_id=user.id, affected_table="planned_projects", affected_record_id=project.id,
     )
-    return project
+    return _project_to_out(db, project)
 
 
 @router.put("/{project_id}", response_model=ProjectOut)
@@ -142,7 +165,7 @@ def update_project(
             db, "project.edited", f"Edited completed project '{project.name}' (admin override): {payload.edit_reason}",
             user_id=user.id, affected_table="planned_projects", affected_record_id=project.id,
         )
-        return project
+        return _project_to_out(db, project)
 
     if payload.financial_year_id is not None:
         fy = db.get(FinancialYear, payload.financial_year_id)
@@ -166,7 +189,7 @@ def update_project(
         db, "project.edited", f"Edited planned project '{project.name}'",
         user_id=user.id, affected_table="planned_projects", affected_record_id=project.id,
     )
-    return project
+    return _project_to_out(db, project)
 
 
 @router.delete("/{project_id}", response_model=ProjectOut)
@@ -187,7 +210,7 @@ def deactivate_project(
         db, "project.deactivated", f"Deactivated planned project '{project.name}'",
         user_id=admin.id, affected_table="planned_projects", affected_record_id=project.id,
     )
-    return project
+    return _project_to_out(db, project)
 
 
 @router.post("/{project_id}/complete", response_model=ProjectOut)
@@ -201,6 +224,7 @@ def complete_project(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
 
     project.completed = True
+    project.completed_at = datetime.now(timezone.utc)
     project.active = False
     db.commit()
     db.refresh(project)
@@ -209,4 +233,4 @@ def complete_project(
         db, "project.completed", f"Marked planned project '{project.name}' as complete",
         user_id=user.id, affected_table="planned_projects", affected_record_id=project.id,
     )
-    return project
+    return _project_to_out(db, project)

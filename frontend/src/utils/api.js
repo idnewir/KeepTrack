@@ -361,6 +361,7 @@ function invoicesQuery(filters = {}) {
     params.set('reviewed', filters.reviewed)
   }
   if (filters.signed) params.set('signed', filters.signed)
+  if (filters.project) params.set('project', filters.project)
   return params
 }
 
@@ -387,7 +388,13 @@ export const invoicesApi = {
   },
   get: (id, token) => request(`/invoices/${id}`, { token }),
   update: (id, payload, token) => request(`/invoices/${id}`, { method: 'PUT', body: payload, token }),
-  confirm: (id, token) => request(`/invoices/${id}/confirm`, { method: 'POST', token }),
+  confirm: (id, token, projectId) =>
+    request(`/invoices/${id}/confirm`, {
+      method: 'POST',
+      body: projectId !== undefined ? { project_id: projectId } : undefined,
+      token,
+    }),
+  unlinkProject: (id, token) => request(`/invoices/${id}/unlink-project`, { method: 'POST', token }),
   remove: (id, token) => request(`/invoices/${id}`, { method: 'DELETE', token }),
   sign: (id, payload, token) => request(`/invoices/${id}/sign`, { method: 'POST', body: payload, token }),
   downloadSignedPdf: (id, token) => requestBlob(`/invoices/${id}/signed-pdf`, { token }),

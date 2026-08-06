@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js'
 import { useTerminology } from '../context/TerminologyContext.jsx'
-import { categoriesApi, invoicesApi, triggerBlobDownload } from '../utils/api.js'
+import { categoriesApi, invoicesApi, projectsApi, triggerBlobDownload } from '../utils/api.js'
 import { singularize } from '../utils/format.js'
 import PaginationBar from '../components/PaginationBar.jsx'
 
@@ -38,6 +38,7 @@ export default function InvoicesPage() {
   const [searchParams] = useSearchParams()
 
   const [categories, setCategories] = useState([])
+  const [projects, setProjects] = useState([])
   const [invoices, setInvoices] = useState([])
   const [pagination, setPagination] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -60,11 +61,13 @@ export default function InvoicesPage() {
   const [signedFilter, setSignedFilter] = useState(
     quickFilter === 'unsigned' ? 'unsigned' : searchParams.get('signed') || ''
   )
+  const [projectFilter, setProjectFilter] = useState(searchParams.get('project') || '')
 
-  const filters = { categoryId, dateFrom, dateTo, reviewed, signed: signedFilter }
+  const filters = { categoryId, dateFrom, dateTo, reviewed, signed: signedFilter, project: projectFilter }
 
   useEffect(() => {
     categoriesApi.list(token).then(setCategories).catch(() => setCategories([]))
+    projectsApi.list(token).then(setProjects).catch(() => setProjects([]))
   }, [token])
 
   // Filters (not page/per-page) changing resets back to page 1, per the
@@ -78,7 +81,7 @@ export default function InvoicesPage() {
     }
     setPage(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryId, dateFrom, dateTo, reviewed, signedFilter])
+  }, [categoryId, dateFrom, dateTo, reviewed, signedFilter, projectFilter])
 
   useEffect(() => {
     let cancelled = false
@@ -101,7 +104,7 @@ export default function InvoicesPage() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryId, dateFrom, dateTo, reviewed, signedFilter, page, perPage, token])
+  }, [categoryId, dateFrom, dateTo, reviewed, signedFilter, projectFilter, page, perPage, token])
 
   const categoryById = new Map(categories.map((c) => [c.id, c]))
 
@@ -169,6 +172,19 @@ export default function InvoicesPage() {
             {SIGNED_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="kt-field">
+          <label htmlFor="filter-project">Project</label>
+          <select id="filter-project" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
+            <option value="">All invoices</option>
+            <option value="unlinked">Unlinked only</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
               </option>
             ))}
           </select>

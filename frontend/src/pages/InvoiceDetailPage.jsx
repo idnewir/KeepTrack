@@ -27,6 +27,8 @@ export default function InvoiceDetailPage() {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [downloadingSigned, setDownloadingSigned] = useState(false)
+  const [confirmingUnlink, setConfirmingUnlink] = useState(false)
+  const [unlinking, setUnlinking] = useState(false)
 
   const [invoiceDate, setInvoiceDate] = useState('')
   const [supplier, setSupplier] = useState('')
@@ -144,6 +146,20 @@ export default function InvoiceDetailPage() {
     } finally {
       setSigningStage(false)
       setSignFile(null)
+    }
+  }
+
+  const handleUnlinkProject = async () => {
+    setError('')
+    setUnlinking(true)
+    try {
+      const updated = await invoicesApi.unlinkProject(invoice.id, token)
+      setInvoice(updated)
+      setConfirmingUnlink(false)
+    } catch (err) {
+      setError(err.message || 'Failed to unlink project')
+    } finally {
+      setUnlinking(false)
     }
   }
 
@@ -287,6 +303,43 @@ export default function InvoiceDetailPage() {
             ))}
           </select>
         </div>
+
+        {invoice.project_id != null && (
+          <div className="kt-invoice-project-row">
+            <Link to={`/projects/${invoice.project_id}`} className="kt-invoice-project-badge">
+              {invoice.project_name || `Project #${invoice.project_id}`}
+            </Link>
+            {canEdit &&
+              (confirmingUnlink ? (
+                <span className="kt-review-discard-confirm">
+                  Unlink from this project?
+                  <button
+                    type="button"
+                    className="kt-category-link-button kt-category-danger"
+                    onClick={handleUnlinkProject}
+                    disabled={unlinking}
+                  >
+                    {unlinking ? 'Unlinking…' : 'Yes, unlink'}
+                  </button>
+                  <button
+                    type="button"
+                    className="kt-category-link-button"
+                    onClick={() => setConfirmingUnlink(false)}
+                  >
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="kt-category-link-button"
+                  onClick={() => setConfirmingUnlink(true)}
+                >
+                  Unlink from project
+                </button>
+              ))}
+          </div>
+        )}
 
         <div className="kt-field">
           <label htmlFor="detail-notes">Notes</label>

@@ -25,6 +25,7 @@ from models.contribution import Contribution
 from models.financial_year import FinancialYear
 from models.invoice import Invoice
 from models.planned_project import PlannedProject
+from services import project_service
 from services.date_service import get_effective_start_date
 from services.settings_service import get_financial_year_start_month, get_reserve_settings, get_terminology
 
@@ -191,6 +192,14 @@ def planned_project_cost_for_month(db: Session, fy: FinancialYear, year: int, mo
 
     Includes projects tied to this FY (financial_year_id == fy.id) and
     projects not yet tied to any FY (financial_year_id is NULL).
+
+    A project with confirmed invoices already linked to it (in_progress or
+    over_budget) contributes only its *remaining* estimate here — its actual
+    spend to date already shows up in the months those invoices actually
+    landed in, via the ordinary actual_spend totals. Adding the full estimate
+    on top in the expected month would double-count that spend. A project
+    with nothing linked yet contributes its full estimate, as before. See
+    docs/decisions-log.md.
     """
     month_start = date(year, month, 1)
     month_end = date(year, month, monthrange(year, month)[1])
@@ -205,7 +214,11 @@ def planned_project_cost_for_month(db: Session, fy: FinancialYear, year: int, mo
         .filter((PlannedProject.financial_year_id == fy.id) | (PlannedProject.financial_year_id.is_(None)))
         .all()
     )
-    return sum((p.estimated_cost for p in projects), Decimal("0"))
+    total = Decimal("0")
+    for p in projects:
+        actual_cost, _count = project_service.actual_cost_and_invoice_count(db, p.id)
+        total += project_service.remaining_estimated_cost(p, actual_cost)
+    return total
 
 
 def active_planned_projects(db: Session, fy: FinancialYear) -> list[PlannedProject]:
@@ -313,17 +326,23 @@ def build_summary(db: Session, today: date | None = None) -> dict:
     )
 
     projects = active_planned_projects(db, fy)
-    planned_projects = [
-        {
+    planned_projects = []
+    for p in projects:
+        actual_cost, invoice_count = project_service.actual_cost_and_invoice_count(db, p.id)
+        variance = p.estimated_cost - actual_cost
+        planned_projects.append({
             "id": p.id,
             "name": p.name,
             "description": p.description,
             "estimated_cost": p.estimated_cost,
             "expected_month": p.expected_month,
             "expected_month_label": f"{MONTH_LABELS_FULL[p.expected_month.month - 1]} {p.expected_month.year}",
-        }
-        for p in projects
-    ]
+            "actual_cost": actual_cost,
+            "invoice_count": invoice_count,
+            "variance": variance,
+            "variance_percent": (variance / p.estimated_cost * 100) if p.estimated_cost else Decimal("0"),
+            "project_status": project_service.compute_status(p, actual_cost),
+        })
 
     upcoming_expected_invoices = _build_upcoming_expected_invoices(db, today)
     recent_activity = _build_recent_activity(db)

@@ -11,7 +11,8 @@ from database import get_db
 from models.category import Category
 from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
-from models.schemas import InvoiceOut, InvoiceSignRequest, InvoiceUpdate, PaginatedResponse
+from models.planned_project import PlannedProject
+from models.schemas import InvoiceConfirmRequest, InvoiceOut, InvoiceSignRequest, InvoiceUpdate, PaginatedResponse
 from models.user import User
 from services import audit_service, error_service, financial_year_service as fy_service
 from services.ai_provider_service import extract_invoice_data
@@ -30,6 +31,38 @@ from utils.pagination import paginate
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
 
+def _invoice_to_out(db: Session, invoice: Invoice, project_names: dict[int, str] | None = None) -> dict:
+    """InvoiceOut, plus project_name resolved either from a pre-fetched batch
+    (list_invoices) or a one-off lookup (single-invoice endpoints)."""
+    project_name = None
+    if invoice.project_id is not None:
+        if project_names is not None:
+            project_name = project_names.get(invoice.project_id)
+        else:
+            project = db.get(PlannedProject, invoice.project_id)
+            project_name = project.name if project else None
+
+    return {
+        "id": invoice.id,
+        "filename": invoice.filename,
+        "upload_date": invoice.upload_date,
+        "invoice_date": invoice.invoice_date,
+        "supplier": invoice.supplier,
+        "amount": invoice.amount,
+        "category_id": invoice.category_id,
+        "notes": invoice.notes,
+        "signed": invoice.signed,
+        "signed_pdf_path": invoice.signed_pdf_path,
+        "financial_year_id": invoice.financial_year_id,
+        "reviewed": invoice.reviewed,
+        "duplicate_flag": invoice.duplicate_flag,
+        "created_by": invoice.created_by,
+        "created_at": invoice.created_at,
+        "project_id": invoice.project_id,
+        "project_name": project_name,
+    }
+
+
 def _filtered_invoices_query(
     db: Session,
     category_id: int | None,
@@ -37,6 +70,7 @@ def _filtered_invoices_query(
     date_to: date | None,
     reviewed: bool | None,
     signed: str | None = None,
+    project: str | None = None,
 ):
     query = db.query(Invoice).filter(Invoice.deleted.is_(False))
 
@@ -58,6 +92,14 @@ def _filtered_invoices_query(
         query = query.filter(Invoice.signed.is_(True))
     elif signed == "unsigned":
         query = query.filter(Invoice.reviewed.is_(True), Invoice.signed.is_(False))
+
+    # "unlinked" is a sentinel (like signed's "signed"/"unsigned" above)
+    # rather than overloading project_id=None, since None already means "no
+    # filter" for every other numeric filter param here.
+    if project == "unlinked":
+        query = query.filter(Invoice.project_id.is_(None))
+    elif project:
+        query = query.filter(Invoice.project_id == int(project))
 
     return query.order_by(Invoice.invoice_date.desc(), Invoice.id.desc())
 
@@ -132,7 +174,7 @@ def upload_invoices(
             user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
         )
 
-    return created
+    return [_invoice_to_out(db, invoice) for invoice in created]
 
 
 @router.get("", response_model=PaginatedResponse[InvoiceOut])
@@ -142,14 +184,23 @@ def list_invoices(
     date_to: date | None = None,
     reviewed: bool | None = None,
     signed: str | None = None,
+    project: str | None = None,
     page: int = 1,
     per_page: int = 25,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    query = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed)
+    query = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed, project)
     items, pagination = paginate(query, page, per_page)
-    return {"data": items, "pagination": pagination}
+
+    project_ids = {inv.project_id for inv in items if inv.project_id is not None}
+    project_names = (
+        dict(db.query(PlannedProject.id, PlannedProject.name).filter(PlannedProject.id.in_(project_ids)).all())
+        if project_ids
+        else {}
+    )
+    data = [_invoice_to_out(db, inv, project_names) for inv in items]
+    return {"data": data, "pagination": pagination}
 
 
 @router.get("/export/csv")
@@ -159,10 +210,11 @@ def export_invoices_csv(
     date_to: date | None = None,
     reviewed: bool | None = None,
     signed: str | None = None,
+    project: str | None = None,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    invoices = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed).all()
+    invoices = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed, project).all()
     categories = {c.id: c.name for c in db.query(Category).all()}
 
     rows = [
@@ -192,10 +244,11 @@ def export_invoices_pdf(
     date_to: date | None = None,
     reviewed: bool | None = None,
     signed: str | None = None,
+    project: str | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    invoices = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed).all()
+    invoices = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed, project).all()
     categories = {c.id: c.name for c in db.query(Category).all()}
     category_name = categories.get(category_id) if category_id is not None else None
 
@@ -236,7 +289,7 @@ def get_invoice(
     invoice = db.get(Invoice, invoice_id)
     if invoice is None or invoice.deleted:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
-    return invoice
+    return _invoice_to_out(db, invoice)
 
 
 @router.put("/{invoice_id}", response_model=InvoiceOut)
@@ -268,6 +321,12 @@ def update_invoice(
     if payload.notes is not None and payload.notes != invoice.notes:
         changed_fields["notes"] = {"before": invoice.notes, "after": payload.notes}
         invoice.notes = payload.notes
+    if payload.project_id is not None and payload.project_id != invoice.project_id:
+        project = db.get(PlannedProject, payload.project_id)
+        if project is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+        changed_fields["project_id"] = {"before": invoice.project_id, "after": payload.project_id}
+        invoice.project_id = payload.project_id
 
     db.commit()
     db.refresh(invoice)
@@ -288,18 +347,26 @@ def update_invoice(
             user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
             metadata={"changed_fields": changed_fields},
         )
-    return invoice
+    return _invoice_to_out(db, invoice)
 
 
 @router.post("/{invoice_id}/confirm", response_model=InvoiceOut)
 def confirm_invoice(
     invoice_id: int,
+    payload: InvoiceConfirmRequest = InvoiceConfirmRequest(),
     db: Session = Depends(get_db),
     user: User = Depends(require_standard),
 ):
     invoice = db.get(Invoice, invoice_id)
     if invoice is None or invoice.deleted:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
+
+    linked_project = None
+    if payload.project_id is not None and payload.project_id != invoice.project_id:
+        linked_project = db.get(PlannedProject, payload.project_id)
+        if linked_project is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Project not found")
+        invoice.project_id = payload.project_id
 
     invoice.reviewed = True
     db.commit()
@@ -313,11 +380,39 @@ def confirm_invoice(
     # same POST /invoices/{id}/confirm action), so this logs invoice.reviewed
     # only, rather than emitting two audit entries for one action. See
     # docs/decisions-log.md.
+    description = f"Reviewed and confirmed invoice '{invoice.filename}'"
+    if linked_project is not None:
+        description += f", linked to project '{linked_project.name}'"
     audit_service.log_action(
-        db, "invoice.reviewed", f"Reviewed and confirmed invoice '{invoice.filename}'",
+        db, "invoice.reviewed", description,
         user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
     )
-    return invoice
+    return _invoice_to_out(db, invoice)
+
+
+@router.post("/{invoice_id}/unlink-project", response_model=InvoiceOut)
+def unlink_invoice_project(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_standard),
+):
+    invoice = db.get(Invoice, invoice_id)
+    if invoice is None or invoice.deleted:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
+    if invoice.project_id is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This invoice is not linked to a project")
+
+    project = db.get(PlannedProject, invoice.project_id)
+    invoice.project_id = None
+    db.commit()
+    db.refresh(invoice)
+
+    audit_service.log_action(
+        db, "invoice.project_unlinked",
+        f"Unlinked invoice '{invoice.filename}' from project '{project.name if project else '?'}'",
+        user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
+    )
+    return _invoice_to_out(db, invoice)
 
 
 @router.post("/{invoice_id}/sign", response_model=InvoiceOut)
@@ -388,7 +483,7 @@ def sign_invoice(
             db, "invoice.signed", f"Signed invoice '{invoice.filename}'",
             user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
         )
-    return invoice
+    return _invoice_to_out(db, invoice)
 
 
 @router.get("/{invoice_id}/original-pdf")
@@ -498,4 +593,4 @@ def delete_invoice(
         db, "invoice.deleted", f"Deleted invoice '{invoice.filename}'",
         user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
     )
-    return invoice
+    return _invoice_to_out(db, invoice)

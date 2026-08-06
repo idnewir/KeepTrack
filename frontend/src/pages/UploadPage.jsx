@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import ReviewCard from '../components/ReviewCard.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
-import { aiApi, categoriesApi, invoicesApi, settingsApi } from '../utils/api.js'
+import { aiApi, categoriesApi, invoicesApi, projectsApi, settingsApi } from '../utils/api.js'
 import { singularize } from '../utils/format.js'
 
 function isPdf(file) {
@@ -20,6 +20,7 @@ export default function UploadPage() {
   const expenseSingularLower = expenseSingular.toLowerCase()
 
   const [categories, setCategories] = useState([])
+  const [projects, setProjects] = useState([])
   const [signingEnabled, setSigningEnabled] = useState(true)
   const [aiStatus, setAiStatus] = useState(null)
   const [pendingFiles, setPendingFiles] = useState([])
@@ -36,6 +37,7 @@ export default function UploadPage() {
 
   useEffect(() => {
     categoriesApi.list(token).then(setCategories).catch(() => setCategories([]))
+    projectsApi.list(token).then(setProjects).catch(() => setProjects([]))
     settingsApi
       .list(token)
       .then((rows) => {
@@ -205,6 +207,7 @@ export default function UploadPage() {
                 invoice={item.invoice}
                 file={item.file}
                 categories={categories}
+                projects={projects}
                 signingEnabled={signingEnabled}
                 aiStatus={aiStatus}
                 onConfirm={handleConfirmed}

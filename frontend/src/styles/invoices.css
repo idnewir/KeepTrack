@@ -398,6 +398,111 @@
   max-width: 480px;
 }
 
+/* Searchable project-link dropdown (review card, invoice detail) */
+
+.kt-field-hint-plain {
+  font-size: 12px;
+  color: var(--kt-text-muted);
+}
+
+.kt-project-select {
+  position: relative;
+}
+
+.kt-project-select input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+}
+
+.kt-project-select-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.kt-project-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.kt-project-select-option:hover,
+.kt-project-select-none:hover {
+  background: rgba(var(--kt-primary-rgb), 0.08);
+}
+
+.kt-project-select-none {
+  color: var(--kt-text-secondary);
+  font-style: italic;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.kt-project-select-cost {
+  color: var(--kt-text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.kt-project-select-empty {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--kt-text-muted);
+}
+
+/* Project badge on the invoice detail page */
+
+.kt-invoice-project-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 999px;
+  color: var(--kt-primary);
+  background: rgba(var(--kt-primary-rgb), 0.1);
+  text-decoration: none;
+  margin: 4px 0;
+}
+
+.kt-invoice-project-badge:hover {
+  background: rgba(var(--kt-primary-rgb), 0.18);
+}
+
+.kt-invoice-project-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0 16px;
+}
+
 @media (max-width: 800px) {
   .kt-review-body {
     grid-template-columns: 1fr;

@@ -235,7 +235,7 @@ export default function DashboardPage() {
 
       <div className="kt-panels-row">
         <UpcomingInvoicesPanel items={summary.upcoming_expected_invoices} navigate={navigate} expensesLower={expensesLower} />
-        <PlannedProjectsPanel items={summary.planned_projects} projectsLower={projectsLower} />
+        <PlannedProjectsPanel items={summary.planned_projects} projectsLower={projectsLower} navigate={navigate} />
         <RecentActivityPanel items={summary.recent_activity} navigate={navigate} expensesLower={expensesLower} />
       </div>
     </div>
@@ -281,7 +281,7 @@ function UpcomingInvoicesPanel({ items, navigate, expensesLower }) {
   )
 }
 
-function PlannedProjectsPanel({ items, projectsLower }) {
+function PlannedProjectsPanel({ items, projectsLower, navigate }) {
   return (
     <div className="kt-dashboard-panel kt-panel-card">
       <h2 className="kt-panel-title">Planned {projectsLower}</h2>
@@ -294,26 +294,49 @@ function PlannedProjectsPanel({ items, projectsLower }) {
         <ul className="kt-panel-list">
           {items.map((item) => {
             const urgency = projectUrgency(item.expected_month)
+            const overBudget = item.project_status === 'over_budget'
+            const progressPct =
+              item.estimated_cost > 0 ? Math.min(100, (Number(item.actual_cost) / Number(item.estimated_cost)) * 100) : 0
             return (
               <li
                 key={item.id}
-                className={`kt-panel-list-row${urgency.status !== 'normal' ? ` kt-project-urgency-${urgency.status}` : ''}`}
+                className={`kt-panel-list-row kt-panel-list-row-clickable kt-panel-list-row-column${
+                  urgency.status !== 'normal' ? ` kt-project-urgency-${urgency.status}` : ''
+                }${overBudget ? ' kt-panel-list-row-over-budget' : ''}`}
+                onClick={() => navigate(`/projects/${item.id}`)}
               >
-                <span className="kt-panel-list-main">
-                  <span className="kt-category-swatch" style={{ background: '#7C5CBF' }} aria-hidden="true" />
-                  <span>
-                    <strong>{item.name}</strong>
-                    <span className="kt-panel-list-sub">
-                      Expected {item.expected_month_label}
-                      {urgency.status !== 'normal' && (
-                        <span className={`kt-project-urgency-badge kt-project-urgency-badge-${urgency.status}`} style={{ marginLeft: 8 }}>
-                          {urgency.label}
-                        </span>
-                      )}
+                <div className="kt-panel-list-row-top">
+                  <span className="kt-panel-list-main">
+                    <span className="kt-category-swatch" style={{ background: '#7C5CBF' }} aria-hidden="true" />
+                    <span>
+                      <strong>{item.name}</strong>
+                      <span className="kt-panel-list-sub">
+                        Expected {item.expected_month_label}
+                        {urgency.status !== 'normal' && (
+                          <span className={`kt-project-urgency-badge kt-project-urgency-badge-${urgency.status}`} style={{ marginLeft: 8 }}>
+                            {urgency.label}
+                          </span>
+                        )}
+                        {overBudget && (
+                          <span className="kt-project-urgency-badge kt-project-urgency-badge-overdue" style={{ marginLeft: 8 }}>
+                            Over budget
+                          </span>
+                        )}
+                      </span>
                     </span>
                   </span>
-                </span>
-                <span className="kt-panel-list-amount">{formatCurrency(item.estimated_cost)}</span>
+                  <span className="kt-panel-list-amount">
+                    {formatCurrency(item.actual_cost)} / {formatCurrency(item.estimated_cost)}
+                  </span>
+                </div>
+                {item.invoice_count > 0 && (
+                  <div className="kt-project-progress-track kt-panel-list-progress">
+                    <div
+                      className={`kt-project-progress-fill kt-project-variance-${overBudget ? 'over' : 'under'}`}
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                )}
               </li>
             )
           })}

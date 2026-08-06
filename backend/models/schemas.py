@@ -175,6 +175,8 @@ class InvoiceOut(BaseModel):
     duplicate_flag: bool
     created_by: int
     created_at: datetime
+    project_id: int | None = None
+    project_name: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -185,6 +187,17 @@ class InvoiceUpdate(BaseModel):
     amount: Decimal | None = Field(default=None, gt=0)
     category_id: int | None = None
     notes: str | None = None
+    # Links the invoice to a planned project. Like category_id above, this
+    # only ever *sets* a link via PUT — it can't be used to clear one back to
+    # null (None means "leave unchanged", not "clear"), matching this
+    # schema's existing convention for every other optional field. Clearing a
+    # link is a distinct, confirmation-guarded action — see
+    # POST /invoices/{id}/unlink-project. See docs/decisions-log.md.
+    project_id: int | None = None
+
+
+class InvoiceConfirmRequest(BaseModel):
+    project_id: int | None = None
 
 
 class InvoiceSignRequest(BaseModel):
@@ -261,6 +274,11 @@ class DashboardPlannedProject(BaseModel):
     estimated_cost: Decimal
     expected_month: date
     expected_month_label: str
+    actual_cost: Decimal
+    invoice_count: int
+    variance: Decimal
+    variance_percent: Decimal
+    project_status: str
 
 
 class DashboardUpcomingInvoice(BaseModel):
@@ -417,6 +435,16 @@ class ReconciliationOut(BaseModel):
     current_discrepancy: Decimal
 
 
+class ProjectLinkedInvoiceOut(BaseModel):
+    id: int
+    invoice_date: date
+    supplier: str
+    amount: Decimal
+    category_id: int | None
+    category_name: str | None
+    category_colour: str | None
+
+
 class ProjectOut(BaseModel):
     id: int
     name: str
@@ -428,10 +456,20 @@ class ProjectOut(BaseModel):
     created_at: datetime
     active: bool
     completed: bool
+    completed_at: datetime | None = None
     edited_by: int | None = None
     edited_at: datetime | None = None
     edit_reason: str | None = None
     admin_edit_notes: str | None = None
+    # Computed live from linked confirmed invoices — never stored, so these
+    # can't drift from the underlying invoice data. See
+    # services/project_service.py and docs/decisions-log.md.
+    actual_cost: Decimal
+    invoice_count: int
+    variance: Decimal
+    variance_percent: Decimal
+    project_status: str
+    linked_invoices: list[ProjectLinkedInvoiceOut] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

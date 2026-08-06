@@ -38,3 +38,9 @@ class Invoice(Base):
     # Not in the documented schema — added to support soft delete on
     # DELETE /invoices/{id}. See docs/decisions-log.md.
     deleted = Column(Boolean, nullable=False, default=False, server_default="false")
+    # Optional link to a planned project, so its actual spend can be tracked
+    # against the estimate. ON DELETE SET NULL rather than the schema doc's
+    # default RESTRICT — planned_projects rows are never hard-deleted (only
+    # deactivated/soft-completed), so this is belt-and-braces rather than a
+    # path that's expected to fire. See docs/decisions-log.md.
+    project_id = Column(Integer, ForeignKey("planned_projects.id", ondelete="SET NULL"), nullable=True, index=True)

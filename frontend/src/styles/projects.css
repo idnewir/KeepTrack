@@ -176,6 +176,211 @@
   }
 }
 
+/* Actual vs. estimated spend tracking on a project card */
+
+.kt-project-status-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.kt-project-status-planning {
+  color: var(--kt-text-secondary);
+  background: var(--kt-background);
+}
+
+.kt-project-status-in_progress {
+  color: var(--kt-primary);
+  background: rgba(var(--kt-primary-rgb), 0.12);
+}
+
+.kt-project-status-completed {
+  color: var(--kt-accent);
+  background: rgba(var(--kt-accent-rgb), 0.12);
+}
+
+.kt-project-status-over_budget {
+  color: var(--kt-danger);
+  background: rgba(var(--kt-danger-rgb), 0.12);
+}
+
+.kt-project-financials {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--kt-border);
+}
+
+.kt-project-financial-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+  margin-bottom: 8px;
+}
+
+.kt-project-variance {
+  font-weight: 600;
+}
+
+.kt-project-variance-under {
+  color: var(--kt-accent);
+}
+
+.kt-project-variance-amber {
+  color: var(--kt-amber);
+}
+
+.kt-project-variance-over {
+  color: var(--kt-danger);
+}
+
+.kt-project-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  overflow: hidden;
+}
+
+.kt-project-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.kt-project-progress-fill.kt-project-variance-under {
+  background: var(--kt-accent);
+}
+
+.kt-project-progress-fill.kt-project-variance-amber {
+  background: var(--kt-amber-strong);
+}
+
+.kt-project-progress-fill.kt-project-variance-over {
+  background: var(--kt-danger);
+}
+
+.kt-project-invoice-count-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.kt-project-invoice-count {
+  color: var(--kt-text-secondary);
+}
+
+.kt-project-linked-invoices {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--kt-border);
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.kt-project-linked-invoice-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 90px 1fr;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--kt-surface);
+  font-size: 13px;
+  color: var(--kt-text);
+  text-decoration: none;
+}
+
+.kt-project-linked-invoice-row:hover {
+  background: rgba(var(--kt-primary-rgb), 0.05);
+}
+
+@media (max-width: 640px) {
+  .kt-project-linked-invoice-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Project detail page */
+
+.kt-project-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.kt-project-detail-header .kt-page-title {
+  margin: 0;
+}
+
+.kt-project-variance-card.kt-project-variance-under .kt-metric-value,
+.kt-project-variance-card.kt-project-variance-under .kt-metric-status {
+  color: var(--kt-accent);
+}
+.kt-project-variance-card.kt-project-variance-under .kt-metric-status {
+  background: rgba(var(--kt-accent-rgb), 0.12);
+}
+
+.kt-project-variance-card.kt-project-variance-amber .kt-metric-value,
+.kt-project-variance-card.kt-project-variance-amber .kt-metric-status {
+  color: var(--kt-amber);
+}
+.kt-project-variance-card.kt-project-variance-amber .kt-metric-status {
+  background: rgba(var(--kt-amber-rgb), 0.14);
+}
+
+.kt-project-variance-card.kt-project-variance-over .kt-metric-value,
+.kt-project-variance-card.kt-project-variance-over .kt-metric-status {
+  color: var(--kt-danger);
+}
+.kt-project-variance-card.kt-project-variance-over .kt-metric-status {
+  background: rgba(var(--kt-danger-rgb), 0.12);
+}
+
+.kt-project-progress-track-large {
+  height: 16px;
+}
+
+.kt-project-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kt-project-timeline li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--kt-border);
+}
+
+.kt-project-timeline li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.kt-project-timeline li span:first-child {
+  color: var(--kt-text-secondary);
+}
+
+.kt-project-timeline li span:last-child {
+  font-weight: 600;
+}
+
 /* Admin correction form for a completed (otherwise locked) project */
 
 .kt-project-admin-edit-form {

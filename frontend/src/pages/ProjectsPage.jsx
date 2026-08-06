@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { projectsApi } from '../utils/api.js'
@@ -21,6 +22,20 @@ function yearOptions() {
 }
 
 const FY_OPTION_LABELS = ['Current', 'Next', 'Year after next']
+
+// Green under budget, amber within 10% of the estimate, red over budget —
+// per the task brief's colour coding, driven off the same variance/
+// variance_percent the backend already computes (services/project_service.py).
+function varianceLevel(project) {
+  if (project.variance < 0) return 'over'
+  if (project.variance_percent <= 10) return 'amber'
+  return 'under'
+}
+
+function progressPercent(project) {
+  if (!project.estimated_cost || Number(project.estimated_cost) <= 0) return 0
+  return Math.min(100, (Number(project.actual_cost) / Number(project.estimated_cost)) * 100)
+}
 
 function fyLabelFor(financialYears, financialYearId) {
   if (financialYearId == null) return null
@@ -49,6 +64,7 @@ export default function ProjectsPage() {
   const [saving, setSaving] = useState(false)
 
   const [expandedIds, setExpandedIds] = useState(() => new Set())
+  const [expandedInvoiceIds, setExpandedInvoiceIds] = useState(() => new Set())
   const [confirmAction, setConfirmAction] = useState(null) // { id, type: 'complete' | 'deactivate' }
   const [busyId, setBusyId] = useState(null)
 
@@ -145,6 +161,14 @@ export default function ProjectsPage() {
 
   const toggleExpanded = (id) =>
     setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
+  const toggleInvoicesExpanded = (id) =>
+    setExpandedInvoiceIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
@@ -378,6 +402,8 @@ export default function ProjectsPage() {
               financialYears={financialYears}
               expanded={expandedIds.has(project.id)}
               onToggleExpanded={() => toggleExpanded(project.id)}
+              invoicesExpanded={expandedInvoiceIds.has(project.id)}
+              onToggleInvoices={() => toggleInvoicesExpanded(project.id)}
               canManage={canManage}
               isAdmin={isAdmin}
               confirmAction={confirmAction}
@@ -405,6 +431,8 @@ export default function ProjectsPage() {
                   financialYears={financialYears}
                   expanded={expandedIds.has(project.id)}
                   onToggleExpanded={() => toggleExpanded(project.id)}
+                  invoicesExpanded={expandedInvoiceIds.has(project.id)}
+                  onToggleInvoices={() => toggleInvoicesExpanded(project.id)}
                   canManage={false}
                   isAdmin={isAdmin}
                   confirmAction={confirmAction}
@@ -499,11 +527,20 @@ export default function ProjectsPage() {
   )
 }
 
+const STATUS_LABELS = {
+  planning: 'Planning',
+  in_progress: 'In progress',
+  completed: 'Complete',
+  over_budget: 'Over budget',
+}
+
 function ProjectCard({
   project,
   financialYears,
   expanded,
   onToggleExpanded,
+  invoicesExpanded,
+  onToggleInvoices,
   canManage,
   isAdmin,
   confirmAction,
@@ -522,14 +559,21 @@ function ProjectCard({
   const urgency = !project.completed ? projectUrgency(project.expected_month) : null
   const confirmingComplete = confirmAction?.id === project.id && confirmAction.type === 'complete'
   const confirmingDeactivate = confirmAction?.id === project.id && confirmAction.type === 'deactivate'
+  const level = varianceLevel(project)
+  const progressPct = progressPercent(project)
 
   return (
     <li className={`kt-project-card${urgency ? ` kt-project-urgency-${urgency.status}` : ''}`}>
       <div className="kt-project-card-main">
         <div className="kt-project-card-header">
-          <h3 className="kt-project-name">{project.name}</h3>
+          <h3 className="kt-project-name">
+            <Link to={`/projects/${project.id}`}>{project.name}</Link>
+          </h3>
           <span className={`kt-category-status${project.completed ? '' : ' inactive'}`}>
             {project.completed ? 'Complete' : 'Active'}
+          </span>
+          <span className={`kt-project-status-badge kt-project-status-${project.project_status}`}>
+            {STATUS_LABELS[project.project_status] || project.project_status}
           </span>
           {urgency && urgency.status !== 'normal' && (
             <span className={`kt-project-urgency-badge kt-project-urgency-badge-${urgency.status}`}>
@@ -551,11 +595,51 @@ function ProjectCard({
 
         <div className="kt-project-meta">
           <span>
-            <strong>{formatCurrency(project.estimated_cost)}</strong>
+            <strong>{formatCurrency(project.estimated_cost)}</strong> estimated
           </span>
           <span>Expected {formatMonthYear(project.expected_month)}</span>
           {project.financial_year_id != null && (
             <span>{fyLabelFor(financialYears, project.financial_year_id)}</span>
+          )}
+        </div>
+
+        <div className="kt-project-financials">
+          <div className="kt-project-financial-row">
+            <span>Actual spend to date: <strong>{formatCurrency(project.actual_cost)}</strong></span>
+            <span className={`kt-project-variance kt-project-variance-${level}`}>
+              {project.variance >= 0 ? 'Under' : 'Over'} budget by{' '}
+              {formatCurrency(Math.abs(project.variance))} ({Math.abs(Number(project.variance_percent)).toFixed(1)}%)
+            </span>
+          </div>
+          <div className="kt-project-progress-track">
+            <div
+              className={`kt-project-progress-fill kt-project-variance-${level}`}
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <div className="kt-project-invoice-count-row">
+            <span className="kt-project-invoice-count">
+              {project.invoice_count} invoice{project.invoice_count === 1 ? '' : 's'} linked
+            </span>
+            {project.invoice_count > 0 && (
+              <button type="button" className="kt-category-link-button" onClick={onToggleInvoices}>
+                {invoicesExpanded ? 'Hide linked invoices' : 'View linked invoices'}
+              </button>
+            )}
+          </div>
+          {invoicesExpanded && project.invoice_count > 0 && (
+            <ul className="kt-project-linked-invoices">
+              {project.linked_invoices.map((inv) => (
+                <li key={inv.id}>
+                  <Link to={`/invoices/${inv.id}`} className="kt-project-linked-invoice-row">
+                    <span>{inv.invoice_date}</span>
+                    <span>{inv.supplier}</span>
+                    <span>{formatCurrency(inv.amount)}</span>
+                    <span>{inv.category_name || 'Uncategorised'}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>

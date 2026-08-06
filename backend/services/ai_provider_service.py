@@ -301,7 +301,9 @@ def _build_report_system_prompt(site_name: str, terminology: dict[str, str], res
         f"{tone} Always write for a non-technical audience — avoid jargon, do not "
         "restate every figure verbatim (the report already shows tables and charts "
         "alongside your text), and do not invent any numbers not present in the data "
-        "given to you.\n\n"
+        f"given to you. If any {term_projects.lower()} in the data is significantly over "
+        "or under its estimated cost, call it out by name — this is one of the most "
+        "useful things trustees or stakeholders can learn from this report.\n\n"
         "Respond with ONLY a single JSON object — no markdown code fences, no "
         "commentary before or after it — matching exactly this shape:\n"
         '{"executive_summary": "2-3 paragraphs as one string, paragraphs separated by '
@@ -374,9 +376,18 @@ def _build_report_context(report_data: dict, site_name: str, terminology: dict[s
 
     if report_data["planned_projects"]:
         lines.append("")
-        lines.append(f"Planned {term_projects.lower()} due in this period:")
+        lines.append(f"Planned {term_projects.lower()} due in this period (estimated vs. actual spend so far):")
         for p in report_data["planned_projects"]:
-            lines.append(f"- {p['name']}: {_format_currency(p['estimated_cost'])}, expected {p['expected_month_label']}")
+            variance_note = (
+                f", {_format_currency(abs(p['variance']))} "
+                f"{'under' if p['variance'] >= 0 else 'over'} budget"
+                if p["actual_cost"]
+                else ""
+            )
+            lines.append(
+                f"- {p['name']}: estimated {_format_currency(p['estimated_cost'])}, "
+                f"actual {_format_currency(p['actual_cost'])}{variance_note}, expected {p['expected_month_label']}"
+            )
 
     funding = report_data.get("funding_position")
     if funding:

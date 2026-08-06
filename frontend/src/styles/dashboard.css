@@ -294,6 +294,27 @@
   flex-shrink: 0;
 }
 
+.kt-panel-list-row-column {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.kt-panel-list-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kt-panel-list-progress {
+  height: 6px;
+}
+
+.kt-panel-list-row-over-budget {
+  background: rgba(var(--kt-danger-rgb), 0.08);
+}
+
 /* Chart */
 
 .kt-chart-wrap {

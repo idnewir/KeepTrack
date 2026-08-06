@@ -344,6 +344,59 @@ def _forecast_table(styles, data: dict) -> Table | None:
     return table
 
 
+def _project_summary_table(styles, data: dict) -> Table | None:
+    projects = data.get("planned_projects") or []
+    if not projects:
+        return None
+
+    header = ["Project", "Estimated", "Actual", "Variance", "Status"]
+    rows = [[Paragraph(h, styles["table_header"]) for h in header]]
+    status_labels = {
+        "planning": "Planning", "in_progress": "In progress",
+        "completed": "Complete", "over_budget": "Over budget",
+    }
+    over_budget_row_indexes = []
+    for i, p in enumerate(projects, start=1):
+        if p["project_status"] == "over_budget":
+            over_budget_row_indexes.append(i)
+        rows.append([
+            Paragraph(pdf_text(p["name"]), styles["table_cell"]),
+            Paragraph(_money(p["estimated_cost"]), styles["table_cell"]),
+            Paragraph(_money(p["actual_cost"]), styles["table_cell"]),
+            Paragraph(_money(p["variance"]), styles["table_cell"]),
+            Paragraph(status_labels.get(p["project_status"], p["project_status"]), styles["table_cell"]),
+        ])
+
+    totals = data.get("project_summary_totals") or {}
+    rows.append([
+        Paragraph("Total", styles["table_cell"]),
+        Paragraph(_money(totals.get("total_estimated", 0)), styles["table_cell"]),
+        Paragraph(_money(totals.get("total_actual", 0)), styles["table_cell"]),
+        Paragraph(_money(totals.get("total_variance", 0)), styles["table_cell"]),
+        Paragraph("", styles["table_cell"]),
+    ])
+
+    table = Table(rows, colWidths=[5.5 * cm, 3.2 * cm, 3.2 * cm, 3.2 * cm, 3 * cm], repeatRows=1)
+    style = [
+        ("BACKGROUND", (0, 0), (-1, 0), PRIMARY),
+        ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, colors.HexColor("#F7F7F5")]),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#F0F0EC")),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+    ]
+    # Over-budget projects highlighted per the task brief — a light red tint
+    # on the whole row, distinct from the alternating white/grey stripes.
+    for row_index in over_budget_row_indexes:
+        style.append(("BACKGROUND", (0, row_index), (-1, row_index), colors.HexColor("#F7E2E2")))
+    table.setStyle(TableStyle(style))
+    return table
+
+
 def _funding_table(styles, data: dict) -> Table | None:
     funding = data.get("funding_position")
     if not funding:
@@ -438,6 +491,17 @@ def generate_report_pdf(
         if forecast_table:
             story.append(Paragraph("Forecast breakdown by category", styles["h2"]))
             story.append(forecast_table)
+
+    project_summary_table = _project_summary_table(styles, data)
+    if project_summary_table:
+        story.append(PageBreak())
+        story.append(Paragraph("Project summary", styles["h1"]))
+        story.append(Paragraph(
+            "Planned projects due in this period, with actual spend to date against their estimate.",
+            styles["muted"],
+        ))
+        story.append(Spacer(1, 0.3 * cm))
+        story.append(project_summary_table)
 
     funding_table = _funding_table(styles, data)
     if funding_table:

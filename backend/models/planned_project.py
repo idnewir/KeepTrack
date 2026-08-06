@@ -24,6 +24,10 @@ class PlannedProject(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     active = Column(Boolean, nullable=False, default=True, server_default="true")
     completed = Column(Boolean, nullable=False, default=False, server_default="false")
+    # Set only by POST /projects/{id}/complete — added for the project detail
+    # page's timeline ("when completed"), which had nothing to show without
+    # it. See docs/decisions-log.md.
+    completed_at = Column(DateTime(timezone=True), nullable=True)
     # Set only when an Admin corrects a completed (locked) project via
     # admin_override — see docs/decisions-log.md. Null otherwise.
     edited_by = Column(Integer, ForeignKey("users.id"), nullable=True)
