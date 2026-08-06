@@ -362,6 +362,10 @@ function invoicesQuery(filters = {}) {
   }
   if (filters.signed) params.set('signed', filters.signed)
   if (filters.project) params.set('project', filters.project)
+  if (filters.historical !== undefined && filters.historical !== '') {
+    params.set('historical', filters.historical)
+  }
+  if (filters.importBatch) params.set('import_batch', filters.importBatch)
   return params
 }
 
@@ -400,6 +404,29 @@ export const invoicesApi = {
   downloadSignedPdf: (id, token) => requestBlob(`/invoices/${id}/signed-pdf`, { token }),
   getOriginalPdf: (id, token) => requestBlob(`/invoices/${id}/original-pdf`, { token }),
   getPreview: (id, token) => requestBlob(`/invoices/${id}/preview`, { token }),
+}
+
+export const importsApi = {
+  previewCsv: (file, token) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return requestForm('/imports/csv/preview', { formData, token })
+  },
+  uploadCsv: (file, columnMap, token, onProgress) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (columnMap) formData.append('column_map', JSON.stringify(columnMap))
+    return requestForm('/imports/csv', { formData, token, onProgress })
+  },
+  uploadPdfs: (files, token, onProgress) => {
+    const formData = new FormData()
+    files.forEach((file) => formData.append('files', file))
+    return requestForm('/imports/pdf', { formData, token, onProgress })
+  },
+  list: (token) => request('/imports', { token }),
+  get: (batchId, token) => request(`/imports/${batchId}`, { token }),
+  deleteBatch: (batchId, token, dryRun = false) =>
+    request(`/imports/${batchId}${dryRun ? '?dry_run=true' : ''}`, { method: 'DELETE', token }),
 }
 
 export const storageApi = {

@@ -1,0 +1,208 @@
+/* Import page: CSV/PDF tabs, column mapping, results, and history */
+
+.kt-import-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--kt-border);
+  margin-bottom: 24px;
+}
+
+.kt-import-tab-button {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--kt-text-secondary);
+  cursor: pointer;
+}
+
+.kt-import-tab-button:hover {
+  color: var(--kt-text);
+}
+
+.kt-import-tab-button.active {
+  color: var(--kt-primary);
+  border-bottom-color: var(--kt-primary);
+}
+
+.kt-import-tab {
+  margin-bottom: 40px;
+}
+
+.kt-import-actions-row {
+  margin: 12px 0 20px;
+}
+
+.kt-import-mapping {
+  margin-top: 20px;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.kt-import-mapping-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.kt-import-mapping-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.kt-import-preview-scroll {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.kt-import-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.kt-import-preview-table th,
+.kt-import-preview-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--kt-border);
+  text-align: left;
+}
+
+.kt-import-preview-table th {
+  color: var(--kt-text-secondary);
+  font-weight: 600;
+}
+
+.kt-import-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.kt-import-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.kt-import-progress-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--kt-border);
+  overflow: hidden;
+}
+
+.kt-import-progress-fill {
+  height: 100%;
+  background: var(--kt-primary);
+  transition: width 0.2s ease;
+}
+
+.kt-import-results {
+  margin-top: 24px;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.kt-import-results h3 {
+  margin-top: 0;
+}
+
+.kt-import-results-summary {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kt-import-issue-list {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+}
+
+.kt-import-view-invoices {
+  display: inline-block;
+  width: auto;
+}
+
+.kt-import-review-section {
+  margin-top: 32px;
+}
+
+.kt-import-queue-status-waiting {
+  color: var(--kt-text-secondary);
+  background: rgba(var(--kt-text-muted-rgb), 0.15);
+}
+
+.kt-import-queue-status-processing {
+  color: var(--kt-primary);
+  background: rgba(var(--kt-primary-rgb), 0.1);
+}
+
+.kt-import-queue-status-ready {
+  color: var(--kt-amber);
+  background: rgba(var(--kt-amber-rgb), 0.15);
+}
+
+.kt-import-queue-status-confirmed {
+  color: var(--kt-accent);
+  background: rgba(var(--kt-accent-rgb), 0.1);
+}
+
+.kt-import-queue-status-failed {
+  color: var(--kt-danger);
+  background: rgba(var(--kt-danger-rgb), 0.1);
+}
+
+.kt-import-history {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--kt-border);
+}
+
+.kt-import-history-title {
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+
+.kt-import-history-actions {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.kt-import-batch-status-complete {
+  color: var(--kt-accent);
+  background: rgba(var(--kt-accent-rgb), 0.1);
+}
+
+.kt-import-batch-status-partial {
+  color: var(--kt-amber);
+  background: rgba(var(--kt-amber-rgb), 0.15);
+}
+
+.kt-import-batch-status-failed {
+  color: var(--kt-danger);
+  background: rgba(var(--kt-danger-rgb), 0.1);
+}
+
+.kt-import-batch-status-processing {
+  color: var(--kt-primary);
+  background: rgba(var(--kt-primary-rgb), 0.1);
+}

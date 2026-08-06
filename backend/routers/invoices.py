@@ -60,6 +60,8 @@ def _invoice_to_out(db: Session, invoice: Invoice, project_names: dict[int, str]
         "created_at": invoice.created_at,
         "project_id": invoice.project_id,
         "project_name": project_name,
+        "is_historical": invoice.is_historical,
+        "import_batch_id": invoice.import_batch_id,
     }
 
 
@@ -71,6 +73,8 @@ def _filtered_invoices_query(
     reviewed: bool | None,
     signed: str | None = None,
     project: str | None = None,
+    historical: bool | None = None,
+    import_batch: str | None = None,
 ):
     query = db.query(Invoice).filter(Invoice.deleted.is_(False))
 
@@ -82,6 +86,10 @@ def _filtered_invoices_query(
         query = query.filter(Invoice.invoice_date <= date_to)
     if reviewed is not None:
         query = query.filter(Invoice.reviewed == reviewed)
+    if historical is not None:
+        query = query.filter(Invoice.is_historical == historical)
+    if import_batch:
+        query = query.filter(Invoice.import_batch_id == import_batch)
     # "Signed" mirrors InvoicesPage's own badge logic (see frontend
     # InvoicesPage.jsx): an unreviewed invoice is neither signed nor
     # unsigned, so "unsigned" only ever means "reviewed but not signed" —
@@ -185,12 +193,14 @@ def list_invoices(
     reviewed: bool | None = None,
     signed: str | None = None,
     project: str | None = None,
+    historical: bool | None = None,
+    import_batch: str | None = None,
     page: int = 1,
     per_page: int = 25,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    query = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed, project)
+    query = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed, project, historical, import_batch)
     items, pagination = paginate(query, page, per_page)
 
     project_ids = {inv.project_id for inv in items if inv.project_id is not None}
@@ -211,10 +221,12 @@ def export_invoices_csv(
     reviewed: bool | None = None,
     signed: str | None = None,
     project: str | None = None,
+    historical: bool | None = None,
+    import_batch: str | None = None,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    invoices = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed, project).all()
+    invoices = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed, project, historical, import_batch).all()
     categories = {c.id: c.name for c in db.query(Category).all()}
 
     rows = [
@@ -245,10 +257,12 @@ def export_invoices_pdf(
     reviewed: bool | None = None,
     signed: str | None = None,
     project: str | None = None,
+    historical: bool | None = None,
+    import_batch: str | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    invoices = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed, project).all()
+    invoices = _filtered_invoices_query(db, category_id, date_from, date_to, reviewed, signed, project, historical, import_batch).all()
     categories = {c.id: c.name for c in db.query(Category).all()}
     category_name = categories.get(category_id) if category_id is not None else None
 

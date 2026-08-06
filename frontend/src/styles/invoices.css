@@ -127,6 +127,12 @@
   background: rgba(var(--kt-primary-rgb), 0.1);
 }
 
+.kt-status-historical {
+  color: var(--kt-text-secondary);
+  background: rgba(var(--kt-text-muted-rgb), 0.15);
+  margin-left: 8px;
+}
+
 /* Upload dropzone */
 
 .kt-dropzone {
@@ -214,6 +220,15 @@
   border: 1px solid var(--kt-border);
   border-radius: 12px;
   overflow: hidden;
+}
+
+.kt-review-historical-banner {
+  background: rgba(var(--kt-accent-rgb), 0.1);
+  color: var(--kt-accent);
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(var(--kt-accent-rgb), 0.25);
 }
 
 .kt-review-duplicate-banner {

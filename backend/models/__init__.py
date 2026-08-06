@@ -3,6 +3,7 @@ from models.category import Category
 from models.contribution import Contribution
 from models.error_log import ErrorLog
 from models.financial_year import FinancialYear
+from models.import_batch import ImportBatch
 from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
 from models.monthly_reconciliation import MonthlyReconciliation
@@ -19,6 +20,7 @@ __all__ = [
     "Contribution",
     "ErrorLog",
     "FinancialYear",
+    "ImportBatch",
     "Invoice",
     "InvoiceFile",
     "MonthlyReconciliation",

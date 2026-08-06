@@ -12,7 +12,7 @@ function isMissing(value) {
   return value === '' || value === null || value === undefined
 }
 
-export default function ReviewCard({ invoice, file, categories, projects = [], signingEnabled, aiStatus, onConfirm, onDiscard }) {
+export default function ReviewCard({ invoice, file, categories, projects = [], signingEnabled, aiStatus, historical = false, onConfirm, onDiscard }) {
   const { user } = useAuth()
   const token = user?.token
 
@@ -125,7 +125,7 @@ export default function ReviewCard({ invoice, file, categories, projects = [], s
         },
         token
       )
-      if (signingEnabled) {
+      if (signingEnabled && !historical) {
         setStage('signing')
       } else {
         const confirmed = await invoicesApi.confirm(invoice.id, token)
@@ -181,6 +181,11 @@ export default function ReviewCard({ invoice, file, categories, projects = [], s
 
   return (
     <div className="kt-review-card">
+      {historical && (
+        <div className="kt-review-historical-banner">
+          Historical import — signing not required
+        </div>
+      )}
       {aiDisabled && (
         <div className="kt-review-ai-banner kt-review-ai-banner-info">
           AI extraction is disabled — please fill in all fields manually.
@@ -348,7 +353,7 @@ export default function ReviewCard({ invoice, file, categories, projects = [], s
 
           <div className="kt-review-actions">
             <button type="submit" className="kt-auth-button" disabled={saving || discarding}>
-              {saving ? 'Saving…' : signingEnabled ? 'Continue to sign' : 'Confirm'}
+              {saving ? 'Saving…' : signingEnabled && !historical ? 'Continue to sign' : 'Confirm'}
             </button>
 
             {confirmingDiscard ? (

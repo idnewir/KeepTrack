@@ -15,6 +15,7 @@ from routers.categories import router as categories_router
 from routers.contributions import router as contributions_router
 from routers.dashboard import router as dashboard_router
 from routers.financial_years import router as financial_years_router
+from routers.imports import router as imports_router
 from routers.invoices import router as invoices_router
 from routers.logs import router as logs_router
 from routers.projects import router as projects_router
@@ -32,7 +33,13 @@ logger = logging.getLogger("keep_track.main")
 # Routes that legitimately carry a large body (PDF / backup zip uploads) —
 # checked against the smaller, default request-size ceiling below. Everything
 # else in the API is ordinary JSON and has no business exceeding a few MB.
-_LARGE_UPLOAD_PATHS = ("/invoices/upload", "/storage/restore", "/storage/restore/preview")
+_LARGE_UPLOAD_PATHS = (
+    "/invoices/upload",
+    "/storage/restore",
+    "/storage/restore/preview",
+    "/imports/csv",
+    "/imports/pdf",
+)
 
 # A known-insecure value some earlier version of config.py shipped as a real,
 # working Fernet key default — refused outright even if somehow still
@@ -131,6 +138,7 @@ app.include_router(categories_router)
 app.include_router(contributions_router)
 app.include_router(dashboard_router)
 app.include_router(financial_years_router)
+app.include_router(imports_router)
 app.include_router(invoices_router)
 app.include_router(logs_router)
 app.include_router(projects_router)

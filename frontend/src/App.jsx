@@ -13,6 +13,7 @@ import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
 import ContributionsPage from './pages/ContributionsPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import ForecastBreakdownPage from './pages/ForecastBreakdownPage.jsx'
+import ImportPage from './pages/ImportPage.jsx'
 import InvoiceDetailPage from './pages/InvoiceDetailPage.jsx'
 import InvoicesPage from './pages/InvoicesPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="/invoices" element={<InvoicesPage />} />
             <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
             <Route path="/upload" element={<UploadPage />} />
+            <Route path="/import" element={<ImportPage />} />
             <Route path="/contributions" element={<ContributionsPage />} />
             <Route path="/reconciliation" element={<ReconciliationPage />} />
             <Route path="/projects" element={<ProjectsPage />} />

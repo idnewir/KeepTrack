@@ -44,3 +44,10 @@ class Invoice(Base):
     # deactivated/soft-completed), so this is belt-and-braces rather than a
     # path that's expected to fire. See docs/decisions-log.md.
     project_id = Column(Integer, ForeignKey("planned_projects.id", ondelete="SET NULL"), nullable=True, index=True)
+    # Set by the bulk historical import feature (routers/imports.py) —
+    # historical invoices skip review and signing entirely (reviewed=True,
+    # signed=False from creation) and carry the batch's import_batch_id so
+    # they can be filtered, reviewed, and deleted as a group. See
+    # docs/decisions-log.md.
+    is_historical = Column(Boolean, nullable=False, default=False, server_default="false")
+    import_batch_id = Column(String(64), nullable=True, index=True)

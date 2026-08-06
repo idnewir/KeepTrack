@@ -177,6 +177,8 @@ class InvoiceOut(BaseModel):
     created_at: datetime
     project_id: int | None = None
     project_name: str | None = None
+    is_historical: bool = False
+    import_batch_id: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -719,3 +721,51 @@ class AIStatusOut(BaseModel):
     carries no provider/model/endpoint detail, unlike GET /ai/config."""
     enabled: bool
     configured: bool
+
+
+class CSVPreviewOut(BaseModel):
+    headers: list[str]
+    rows: list[list[str]]
+    column_map: dict[str, int]
+
+
+class ImportBatchOut(BaseModel):
+    id: int
+    batch_id: str
+    import_type: str
+    filename: str | None
+    total_records: int
+    imported_records: int
+    failed_records: int
+    status: str
+    imported_by: int
+    imported_by_username: str | None = None
+    imported_at: datetime
+    notes: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class ImportRowIssue(BaseModel):
+    row: int
+    reason: str
+
+
+class CSVImportResultOut(BaseModel):
+    batch: ImportBatchOut
+    total_rows: int
+    imported: int
+    skipped: list[ImportRowIssue]
+    duplicates_flagged: list[ImportRowIssue]
+
+
+class ImportBatchDetailOut(BaseModel):
+    batch: ImportBatchOut
+    invoices: list[InvoiceOut]
+
+
+class ImportBatchDeleteResult(BaseModel):
+    batch_id: str
+    dry_run: bool
+    deleted_count: int
+    protected_count: int
