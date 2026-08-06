@@ -4,6 +4,7 @@ export const SETTINGS_CATEGORIES = [
   { key: 'signing', label: 'Signing & Export' },
   { key: 'ai', label: 'AI & Extraction' },
   { key: 'storage', label: 'Storage & Backup' },
+  { key: 'import', label: 'Import Data' },
   { key: 'users', label: 'Users', badge: 'Admin' },
   { key: 'notifications', label: 'Notifications' },
   { key: 'logs', label: 'Logs', badge: 'Admin' },

@@ -5,13 +5,11 @@ import { useTerminology } from '../context/TerminologyContext.jsx'
 export default function Sidebar({ open, onNavigate }) {
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
-  const canImport = user?.role !== 'readonly'
   const terminology = useTerminology()
 
   const navItems = [
     { label: 'Dashboard', to: '/' },
     { label: terminology.term_expenses, to: '/invoices' },
-    { label: 'Import', to: '/import', importOnly: true },
     { label: terminology.term_income, to: '/contributions' },
     { label: terminology.term_reconciliation, to: '/reconciliation' },
     { label: terminology.term_projects, to: '/projects' },
@@ -25,7 +23,6 @@ export default function Sidebar({ open, onNavigate }) {
         <ul className="kt-nav-list">
           {navItems
             .filter((item) => !item.adminOnly || isAdmin)
-            .filter((item) => !item.importOnly || canImport)
             .map((item) => (
             <li key={item.to}>
               <NavLink

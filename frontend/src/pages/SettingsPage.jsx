@@ -9,6 +9,7 @@ import AISettings from '../components/settings/AISettings.jsx'
 import UsersSettings from '../components/settings/UsersSettings.jsx'
 import ComingSoonSettings from '../components/settings/ComingSoonSettings.jsx'
 import StorageBackupSettings from '../components/settings/StorageBackupSettings.jsx'
+import ImportSettings from '../components/settings/ImportSettings.jsx'
 import LogsSettings from '../components/settings/LogsSettings.jsx'
 import DangerZoneSettings from '../components/settings/DangerZoneSettings.jsx'
 
@@ -51,6 +52,7 @@ export default function SettingsPage() {
               {activeCategory === 'signing' && <SigningExportSettings token={token} />}
               {activeCategory === 'ai' && <AISettings token={token} />}
               {activeCategory === 'storage' && <StorageBackupSettings token={token} />}
+              {activeCategory === 'import' && <ImportSettings token={token} />}
               {activeCategory === 'users' && <UsersSettings token={token} />}
               {activeCategory === 'notifications' && (
                 <ComingSoonSettings
