@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useSiteName } from '../context/SiteNameContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
+import Avatar from './Avatar.jsx'
 import Logo from './Logo.jsx'
 
 const THEME_LABELS = {
@@ -128,6 +129,7 @@ export default function Header({ onMenuClick }) {
             aria-haspopup="menu"
             aria-expanded={menuOpen}
           >
+            <Avatar userId={user.id} token={user.token} size={32} title={user.display_name || user.username} />
             <span className="kt-header-username">{user.display_name || user.username}</span>
             <span className={`kt-header-caret${menuOpen ? ' open' : ''}`} aria-hidden="true">
               ▾

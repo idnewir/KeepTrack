@@ -39,3 +39,22 @@ class User(Base):
     # Flips to true the first time this user dismisses the one-off welcome
     # overlay shown after their first login — see docs/decisions-log.md.
     has_seen_welcome = Column(Boolean, nullable=False, default=False, server_default="false")
+    # Path to an uploaded profile picture under
+    # services/profile_service.py's avatar storage root. Mutually exclusive
+    # with avatar_url at the application layer — avatar_url wins if both are
+    # somehow set. See docs/decisions-log.md.
+    avatar_path = Column(String(500), nullable=True)
+    # External avatar image (Gravatar, DiceBear, any direct image URL).
+    avatar_url = Column(String(1000), nullable=True)
+    # Path to an uploaded signature image (always stored as PNG with a
+    # transparent background) under services/profile_service.py's signature
+    # storage root, used to auto-fill the signing panel.
+    signature_path = Column(String(500), nullable=True)
+
+    @property
+    def has_avatar(self) -> bool:
+        return bool(self.avatar_path)
+
+    @property
+    def has_signature(self) -> bool:
+        return bool(self.signature_path)

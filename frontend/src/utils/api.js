@@ -94,6 +94,25 @@ export const authApi = {
   setupAiConfig: (payload) => request('/auth/setup/ai-config', { method: 'PUT', body: payload }),
 }
 
+export const profileApi = {
+  uploadAvatar: (file, token, onProgress) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return requestForm('/profile/avatar', { formData, token, onProgress })
+  },
+  removeAvatar: (token) => request('/profile/avatar', { method: 'DELETE', token }),
+  // Fetched as a Blob (not a plain <img src>) since the endpoint requires
+  // an Authorization header — same pattern as invoicesApi.getPreview.
+  getAvatarBlob: (userId, token) => requestBlob(`/profile/avatar/${userId}`, { token }),
+  uploadSignature: (file, token, onProgress) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return requestForm('/profile/signature', { formData, token, onProgress })
+  },
+  removeSignature: (token) => request('/profile/signature', { method: 'DELETE', token }),
+  getSignatureBlob: (userId, token) => requestBlob(`/profile/signature/${userId}`, { token }),
+}
+
 export const categoriesApi = {
   list: (token) => request('/categories', { token }),
   listAll: (token) => request('/categories/all', { token }),

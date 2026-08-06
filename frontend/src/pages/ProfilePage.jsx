@@ -2,19 +2,15 @@ import { useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { authApi } from '../utils/api.js'
 import { clearMfaRememberToken, getMfaRememberExpiry } from '../utils/mfaRemember.js'
+import Avatar from '../components/Avatar.jsx'
+import AvatarSection from '../components/profile/AvatarSection.jsx'
+import SignatureSection from '../components/profile/SignatureSection.jsx'
 
 const ROLE_LABELS = {
   superadmin: 'Superadmin',
   admin: 'Admin',
   standard: 'Standard user',
   readonly: 'Read only',
-}
-
-function initialsFor(name) {
-  const parts = (name || '').trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
 function formatMemberSince(dateStr) {
@@ -128,14 +124,18 @@ export default function ProfilePage() {
       <p className="kt-page-subtitle">Manage your account details and password.</p>
 
       <div className="kt-profile-header">
-        <span className="kt-profile-avatar" aria-hidden="true">
-          {initialsFor(user.display_name || user.username)}
-        </span>
+        <Avatar userId={user.id} token={token} size={56} title={user.display_name || user.username} />
         <div>
           <span className="kt-profile-header-name">{user.display_name || user.username}</span>
           <span className="kt-profile-header-role">{ROLE_LABELS[user.role] || user.role}</span>
         </div>
       </div>
+
+      <h2 className="kt-panel-title">Profile picture</h2>
+      <AvatarSection user={user} token={token} onChanged={refreshUser} />
+
+      <h2 className="kt-panel-title">Signature</h2>
+      <SignatureSection user={user} token={token} onChanged={refreshUser} />
 
       <h2 className="kt-panel-title">Profile details</h2>
       <div className="kt-profile-card">

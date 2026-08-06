@@ -202,6 +202,60 @@ body.kt-sign-lock-scroll {
   margin-bottom: 8px;
 }
 
+.kt-sign-source-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.kt-sign-source-tab {
+  flex: 1;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 10px;
+  border: 1px solid var(--kt-border);
+  background: var(--kt-surface);
+  color: var(--kt-text-secondary);
+  cursor: pointer;
+}
+
+.kt-sign-source-tab:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.kt-sign-source-tab:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.kt-sign-source-tab.active {
+  background: var(--kt-primary);
+  border-color: var(--kt-primary);
+  color: #fff;
+}
+
+.kt-sign-saved-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 420px;
+  min-height: 90px;
+  padding: 12px;
+  /* Same rationale as .kt-sign-pad above — always a white, paper-like
+     background so the (often transparent-background) saved signature stays
+     legible regardless of app theme. */
+  background: #fff;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.kt-sign-saved-preview img {
+  max-width: 100%;
+  max-height: 100px;
+}
+
 .kt-sign-success {
   color: var(--kt-accent);
   background: rgba(var(--kt-accent-rgb), 0.1);

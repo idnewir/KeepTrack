@@ -195,6 +195,7 @@ export default function InvoiceDetailPage() {
         invoiceFilename={invoice.filename}
         file={signFile}
         token={token}
+        user={user}
         onSigned={handleSigned}
         onBack={handleBackFromSigning}
       />

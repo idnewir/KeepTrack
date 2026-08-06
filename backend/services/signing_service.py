@@ -37,12 +37,19 @@ def sign_invoice_pdf(
     y_pct: float,
     width_pct: float,
     height_pct: float,
+    signer_name: str,
     additional_text: str | None = None,
 ) -> str:
     """Return the path of a new signed copy of `original_path` with the
-    signature image and date overlaid at the given position on the given
-    page. Position/size are percentages of that page's width/height, so
-    they're independent of the resolution the frontend rendered at.
+    signature image, the signer's name, the date, and any additional text
+    stacked top-to-bottom inside the given placement box. Position/size are
+    percentages of that page's width/height, so they're independent of the
+    resolution the frontend rendered at.
+
+    signer_name is resolved by the caller (routers/invoices.py) from the
+    signing user's profile — display_name if set, otherwise username — not
+    taken from the request payload, so it can't be spoofed to claim a
+    signature belongs to someone else. See docs/decisions-log.md.
     """
     image_bytes = _decode_signature_image(signature_image)
 
@@ -66,34 +73,29 @@ def sign_invoice_pdf(
         box_x0 = max(0.0, min(box_x0, page_width - box_w))
         box_y0 = max(0.0, min(box_y0, page_height - box_h))
 
-        # Signature image takes the top ~72% of the box; the date caption
-        # sits in the remaining strip underneath it.
-        signature_height = box_h * 0.72
+        # Text rows below the signature image: name, date, and (if given)
+        # additional free text — one row each, stacked top to bottom per the
+        # required layout. More rows means less room needs to be reserved
+        # for each, so the signature image keeps a fixed share of the box
+        # (55%) and the text rows split whatever remains.
+        text_rows = [signer_name, f"Signed: {signed_date.isoformat()}"]
+        if additional_text:
+            text_rows.append(additional_text)
+
+        signature_height = box_h * 0.55
         signature_rect = fitz.Rect(box_x0, box_y0, box_x0 + box_w, box_y0 + signature_height)
         page.insert_image(signature_rect, stream=image_bytes, keep_proportion=True)
 
-        date_rect = fitz.Rect(box_x0, box_y0 + signature_height, box_x0 + box_w, box_y0 + box_h)
-        page.insert_textbox(
-            date_rect,
-            f"Signed: {signed_date.isoformat()}",
-            fontsize=9,
-            align=fitz.TEXT_ALIGN_CENTER,
-        )
-
-        if additional_text:
-            # Stamped directly below the signature/date box, at the same
-            # horizontal position (x0/width) as the box itself.
-            text_height = box_h * 0.4
-            text_y0 = box_y0 + box_h
-            text_y1 = min(text_y0 + text_height, page_height)
-            if text_y1 > text_y0:
-                text_rect = fitz.Rect(box_x0, text_y0, box_x0 + box_w, text_y1)
-                page.insert_textbox(
-                    text_rect,
-                    additional_text,
-                    fontsize=9,
-                    align=fitz.TEXT_ALIGN_CENTER,
-                )
+        row_height = (box_h - signature_height) / len(text_rows)
+        for i, line in enumerate(text_rows):
+            row_y0 = box_y0 + signature_height + i * row_height
+            row_rect = fitz.Rect(box_x0, row_y0, box_x0 + box_w, row_y0 + row_height)
+            page.insert_textbox(
+                row_rect,
+                line,
+                fontsize=9,
+                align=fitz.TEXT_ALIGN_CENTER,
+            )
 
         today = date_type.today()
         target_dir = os.path.join(

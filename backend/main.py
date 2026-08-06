@@ -18,13 +18,14 @@ from routers.financial_years import router as financial_years_router
 from routers.imports import router as imports_router
 from routers.invoices import router as invoices_router
 from routers.logs import router as logs_router
+from routers.profile import router as profile_router
 from routers.projects import router as projects_router
 from routers.reconciliation import router as reconciliation_router
 from routers.reports import router as reports_router
 from routers.settings import router as settings_router
 from routers.storage import router as storage_router
 from routers.system import router as system_router
-from services import backup_service, error_service, maintenance_service, storage_service
+from services import backup_service, error_service, maintenance_service, profile_service, storage_service
 from services.auth_service import ensure_superadmin
 from version import APP_VERSION
 
@@ -141,6 +142,7 @@ app.include_router(financial_years_router)
 app.include_router(imports_router)
 app.include_router(invoices_router)
 app.include_router(logs_router)
+app.include_router(profile_router)
 app.include_router(projects_router)
 app.include_router(reconciliation_router)
 app.include_router(reports_router)
@@ -200,6 +202,7 @@ def on_startup():
     db = SessionLocal()
     try:
         storage_service.ensure_storage_dirs(db)
+        profile_service.ensure_storage_dirs()
         ensure_superadmin(db)
     finally:
         db.close()

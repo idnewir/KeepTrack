@@ -17,6 +17,10 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 pyotp==2.9.0
 qrcode[pil]==7.4.2
+# Pinned explicitly (not just pulled in transitively via qrcode[pil] above)
+# since services/profile_service.py imports it directly for avatar/signature
+# processing — 10.1+ needed for ImageFont.load_default(size=...).
+Pillow==10.4.0
 # 0.0.9 had several known multipart-parsing CVEs (malformed
 # Content-Type/boundary handling); this app's invoice and backup-restore
 # uploads both go through it. See docs/security.md.

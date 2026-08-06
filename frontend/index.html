@@ -11,12 +11,17 @@
       (returned as a base64 PNG), the signature pad's canvas output, and
       invoice preview thumbnails (fetched as a Blob and shown via an object
       URL) — see utils/api.js and components/ReviewCard.jsx/SigningPanel.jsx.
+      img-src also allows any https: origin — the Profile page's avatar-URL
+      preview (AvatarSection.jsx) is a plain <img src> pointed at whatever
+      URL the user types (Gravatar, DiceBear, or any other direct image
+      link), which by definition isn't known in advance and can't be
+      allowlisted by domain. See docs/decisions-log.md.
       connect-src is widened to the configured API origin below since the
       frontend and backend can run on different hosts/ports.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' %VITE_API_BASE_URL%; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' %VITE_API_BASE_URL%; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     />
   </head>
   <body>

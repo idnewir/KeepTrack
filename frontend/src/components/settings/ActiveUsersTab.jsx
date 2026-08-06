@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/AuthContext.jsx'
 import { usePaginationState, perPageParam } from '../../hooks/usePaginationState.js'
 import { authApi, triggerBlobDownload } from '../../utils/api.js'
 import { formatDate, formatRelativeTime } from '../../utils/format.js'
+import Avatar from '../Avatar.jsx'
 import Modal from '../Modal.jsx'
 import PaginationBar from '../PaginationBar.jsx'
 
@@ -168,8 +169,13 @@ export default function ActiveUsersTab({ token }) {
                 return (
                   <tr key={u.id} className={u.is_active ? '' : 'kt-users-row-inactive'}>
                     <td>
-                      <span className="kt-users-name">{u.display_name || u.username}</span>
-                      <span className="kt-users-username">@{u.username}</span>
+                      <div className="kt-users-name-cell">
+                        <Avatar userId={u.id} token={token} size={32} title={u.display_name || u.username} />
+                        <div>
+                          <span className="kt-users-name">{u.display_name || u.username}</span>
+                          <span className="kt-users-username">@{u.username}</span>
+                        </div>
+                      </div>
                     </td>
                     <td>{u.email}</td>
                     <td>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { invoicesApi } from '../utils/api.js'
+import { Link } from 'react-router-dom'
+import { invoicesApi, profileApi } from '../utils/api.js'
 import { loadPdfDocument, renderPdfPage } from '../utils/pdf.js'
 
 const PAGE_GAP = 16
@@ -29,7 +30,7 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url)
 }
 
-export default function SigningPanel({ invoiceId, invoiceFilename, file, token, onSigned, onBack }) {
+export default function SigningPanel({ invoiceId, invoiceFilename, file, token, user, onSigned, onBack }) {
   const scrollRef = useRef(null)
   const canvasRefs = useRef([])
   const sigCanvasRef = useRef(null)
@@ -65,6 +66,46 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   const [signatureDataUrl, setSignatureDataUrl] = useState(null)
   const [dateValue, setDateValue] = useState(todayIso())
   const [additionalText, setAdditionalText] = useState('')
+
+  // Signature source — defaults to the user's saved signature when they
+  // have one, since that's the faster path; "Draw signature" switches back
+  // to the canvas below. See docs/decisions-log.md.
+  const hasSavedSignature = Boolean(user?.has_signature)
+  const [signatureMode, setSignatureMode] = useState(hasSavedSignature ? 'saved' : 'draw')
+  const [savedSignatureDataUrl, setSavedSignatureDataUrl] = useState(null)
+  const [loadingSavedSignature, setLoadingSavedSignature] = useState(false)
+  const usingSaved = signatureMode === 'saved' && hasSavedSignature
+  const effectiveSignatureDataUrl = usingSaved ? savedSignatureDataUrl : signatureDataUrl
+  const effectiveHasSignature = usingSaved ? Boolean(savedSignatureDataUrl) : hasSignature
+
+  useEffect(() => {
+    if (!hasSavedSignature) return undefined
+    let cancelled = false
+    setLoadingSavedSignature(true)
+    profileApi
+      .getSignatureBlob(user.id, token)
+      .then(
+        (blob) =>
+          new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(blob)
+          })
+      )
+      .then((dataUrl) => {
+        if (!cancelled) setSavedSignatureDataUrl(dataUrl)
+      })
+      .catch(() => {
+        if (!cancelled) setSavedSignatureDataUrl(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSavedSignature(false)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasSavedSignature, user?.id, token])
 
   const [viewPage, setViewPage] = useState(0) // 0-indexed page currently scrolled into view
   const [drawerOpen, setDrawerOpen] = useState(true) // mobile bottom-drawer expanded state
@@ -415,8 +456,12 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
 
   const handlePlace = async () => {
     setPlaceError('')
-    if (!hasSignature || !signatureDataUrl) {
-      setPlaceError('Please draw your signature in the box below first')
+    if (!effectiveHasSignature || !effectiveSignatureDataUrl) {
+      setPlaceError(
+        usingSaved
+          ? 'Your saved signature could not be loaded'
+          : 'Please draw your signature in the box below first'
+      )
       return
     }
     if (!dateValue) {
@@ -430,7 +475,7 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
       await invoicesApi.sign(
         invoiceId,
         {
-          signature_image: signatureDataUrl,
+          signature_image: effectiveSignatureDataUrl,
           date: dateValue,
           page: box.page + 1,
           x: box.xPct,
@@ -482,8 +527,8 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
                   onPointerDown={startDragBox}
                 >
                   <div className="kt-sign-box-content">
-                    {signatureDataUrl ? (
-                      <img src={signatureDataUrl} alt="Your signature" className="kt-sign-box-image" />
+                    {effectiveSignatureDataUrl ? (
+                      <img src={effectiveSignatureDataUrl} alt="Your signature" className="kt-sign-box-image" />
                     ) : (
                       <span className="kt-sign-box-placeholder">Signature</span>
                     )}
@@ -519,19 +564,68 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
         <div className="kt-sign-toolbar-content">
           <div className="kt-field">
             <label>Your signature</label>
-            <canvas
-              ref={sigCanvasRef}
-              width={420}
-              height={150}
-              className="kt-sign-pad"
-              onPointerDown={startDraw}
-              onPointerMove={draw}
-              onPointerUp={endDraw}
-              onPointerLeave={endDraw}
-            />
-            <button type="button" className="kt-category-link-button" onClick={clearSignature}>
-              Clear signature
-            </button>
+
+            {hasSavedSignature && (
+              <div className="kt-sign-source-tabs" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={usingSaved}
+                  className={`kt-sign-source-tab${usingSaved ? ' active' : ''}`}
+                  onClick={() => setSignatureMode('saved')}
+                >
+                  Use saved signature
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={!usingSaved}
+                  className={`kt-sign-source-tab${!usingSaved ? ' active' : ''}`}
+                  onClick={() => setSignatureMode('draw')}
+                >
+                  Draw signature
+                </button>
+              </div>
+            )}
+
+            {usingSaved ? (
+              <div className="kt-sign-saved-preview">
+                {loadingSavedSignature ? (
+                  <span className="kt-field-note">Loading your saved signature…</span>
+                ) : savedSignatureDataUrl ? (
+                  <img src={savedSignatureDataUrl} alt="Your saved signature" />
+                ) : (
+                  <span className="kt-field-note">Could not load your saved signature.</span>
+                )}
+              </div>
+            ) : (
+              <>
+                <canvas
+                  ref={sigCanvasRef}
+                  width={420}
+                  height={150}
+                  className="kt-sign-pad"
+                  onPointerDown={startDraw}
+                  onPointerMove={draw}
+                  onPointerUp={endDraw}
+                  onPointerLeave={endDraw}
+                />
+                <button type="button" className="kt-category-link-button" onClick={clearSignature}>
+                  Clear signature
+                </button>
+              </>
+            )}
+
+            {!hasSavedSignature && (
+              <span className="kt-field-note">
+                Save a signature in your <Link to="/profile">profile</Link> for faster signing.
+              </span>
+            )}
+
+            <span className="kt-field-note">
+              Your name ({user?.display_name || user?.username}) will be added below your signature
+              automatically.
+            </span>
           </div>
 
           <div className="kt-field">

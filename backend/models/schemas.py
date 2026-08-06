@@ -39,6 +39,13 @@ class UserOut(BaseModel):
     is_active: bool = True
     must_change_password: bool = False
     has_seen_welcome: bool = False
+    # External avatar URL, straight off the users row. has_avatar/
+    # has_signature are computed from avatar_path/signature_path via
+    # properties on the User model (see models/user.py) rather than exposing
+    # the raw storage paths themselves.
+    avatar_url: str | None = None
+    has_avatar: bool = False
+    has_signature: bool = False
     # Both computed server-side per-request in GET /auth/me — not columns on
     # User itself. See docs/decisions-log.md.
     session_timeout_minutes: int | None = None
@@ -132,6 +139,13 @@ class ForcePasswordChangeRequest(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     display_name: str | None = Field(default=None, max_length=150)
     email: EmailStr
+    # Falsy (omitted/null/empty string) clears it, same convention as
+    # display_name above — the frontend always sends the field's current
+    # value (blank if unset), so "not present" and "cleared" are the same
+    # thing here. Setting a non-empty URL also clears any uploaded
+    # avatar_path (see routers/auth.py.update_my_profile) since the two are
+    # mutually exclusive. See docs/decisions-log.md.
+    avatar_url: str | None = Field(default=None, max_length=1000)
 
 
 class PasswordChangeRequest(BaseModel):

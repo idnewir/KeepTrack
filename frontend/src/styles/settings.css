@@ -287,20 +287,6 @@
   margin-bottom: 28px;
 }
 
-.kt-profile-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--kt-avatar-bg);
-  color: var(--kt-avatar-text);
-  font-size: 18px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
 .kt-profile-header-name {
   display: block;
   font-size: 17px;
@@ -335,6 +321,97 @@
   padding: 10px 12px;
   font-size: 13px;
   font-weight: 500;
+}
+
+/* Profile picture + signature sections */
+
+.kt-avatar-card,
+.kt-signature-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kt-avatar-current {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.kt-avatar-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kt-avatar-tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.kt-avatar-tab-actions .kt-auth-button {
+  width: auto;
+  margin-top: 0;
+  padding: 9px 18px;
+}
+
+.kt-dropzone-compact {
+  padding: 24px 20px;
+}
+
+.kt-avatar-preview-img {
+  display: block;
+  max-width: 96px;
+  max-height: 96px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.kt-avatar-url-preview {
+  display: flex;
+  justify-content: center;
+}
+
+.kt-avatar-url-preview img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--kt-avatar-bg);
+}
+
+.kt-signature-current {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Signatures are usually drawn/photographed in dark ink on white — an
+   always-white frame keeps them legible against both light and dark theme
+   page backgrounds, and matches the transparent-PNG signature's intended
+   real-world use (stamped onto a light PDF page). */
+.kt-signature-preview-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 320px;
+  min-height: 100px;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.kt-signature-preview-frame img {
+  max-width: 100%;
+  max-height: 120px;
 }
 
 .kt-settings-list {
@@ -642,6 +719,12 @@
 
 .kt-users-table tr.kt-users-row-inactive td {
   opacity: 0.6;
+}
+
+.kt-users-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .kt-users-name {

@@ -471,6 +471,7 @@ def sign_invoice(
             y_pct=payload.y,
             width_pct=payload.width,
             height_pct=payload.height,
+            signer_name=user.display_name or user.username,
             additional_text=payload.additional_text,
         )
     except ValueError as exc:

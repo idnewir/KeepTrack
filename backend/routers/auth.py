@@ -35,7 +35,14 @@ from models.schemas import (
 )
 from models.setting import Setting
 from models.user import User
-from services import ai_provider_service, audit_service, error_service, mfa_remember_service, rate_limit_service
+from services import (
+    ai_provider_service,
+    audit_service,
+    error_service,
+    mfa_remember_service,
+    profile_service,
+    rate_limit_service,
+)
 from services.ai_provider_service import DEFAULT_MODEL_FOR_PROVIDER, SUPPORTED_PROVIDERS
 from services.auth_service import (
     build_otpauth_uri,
@@ -730,6 +737,19 @@ def update_my_profile(
 
     user.display_name = payload.display_name.strip() if payload.display_name else None
     user.email = payload.email
+
+    new_avatar_url = payload.avatar_url.strip() if payload.avatar_url else None
+    if new_avatar_url:
+        user.avatar_url = new_avatar_url
+        # Mutually exclusive with an uploaded picture — see
+        # docs/decisions-log.md. Removes the now-orphaned file from disk,
+        # not just the DB pointer to it.
+        if user.avatar_path:
+            profile_service.remove_avatar(user.id)
+            user.avatar_path = None
+    else:
+        user.avatar_url = None
+
     db.commit()
     db.refresh(user)
     return user
