@@ -559,12 +559,19 @@ function ClearAllModal({ token, totalCount, onClose, onCleared }) {
           </div>
 
           <div className="kt-modal-actions">
-            <button type="button" className="kt-auth-button-secondary" onClick={onClose} disabled={busy}>
+            <button
+              type="button"
+              className="kt-auth-button kt-auth-button-secondary"
+              style={{ marginTop: 0 }}
+              onClick={onClose}
+              disabled={busy}
+            >
               Cancel
             </button>
             <button
               type="button"
               className="kt-auth-button kt-danger-reset-button"
+              style={{ marginTop: 0 }}
               onClick={handleConfirm}
               disabled={!matches || busy}
             >
