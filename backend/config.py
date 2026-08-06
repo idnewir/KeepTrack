@@ -20,7 +20,10 @@ class Settings(BaseSettings):
     jwt_expiry_minutes: int = 480  # 8 hours, per security requirements
     jwt_mfa_expiry_minutes: int = 5  # short-lived pre-MFA token
 
-    totp_issuer: str = "Keep Track"
+    # No space — a space-containing issuer ("Keep Track") was fuzzy-matched
+    # by Authy to an unrelated third-party app ("KeepUp") and shown under
+    # the wrong icon. See docs/decisions-log.md.
+    totp_issuer: str = "KeepTrack"
     # Fernet key encrypting mfa_secret at rest — generate with:
     # python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     mfa_encryption_key: str = ""

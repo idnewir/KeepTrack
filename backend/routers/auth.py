@@ -41,12 +41,13 @@ from services.auth_service import (
     build_otpauth_uri,
     generate_mfa_secret,
     generate_qr_code_base64,
+    mfa_account_name,
     no_setup_users_exist,
     sole_setup_admin,
     verify_totp_code,
 )
 from services.date_service import APP_START_DATE_KEY
-from services.settings_service import FINANCIAL_YEAR_START_MONTH_KEY
+from services.settings_service import FINANCIAL_YEAR_START_MONTH_KEY, get_site_name
 from utils.crypto import decrypt_secret, encrypt_secret
 from utils.csv_export import csv_response
 from utils.deps import get_current_user, require_admin
@@ -102,7 +103,7 @@ def setup(payload: SetupRequest, db: Session = Depends(get_db)):
         user_id=user.id, affected_table="users", affected_record_id=user.id,
     )
 
-    otpauth_uri = build_otpauth_uri(secret, user.email)
+    otpauth_uri = build_otpauth_uri(secret, mfa_account_name(user.username, get_site_name(db)))
     return SetupResponse(
         user=UserOut.model_validate(user),
         mfa_secret=secret,
@@ -388,7 +389,7 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     # Shown once, now, since there is no other point in the registration flow
     # where the user will see it — they need it set up before an Admin
     # approval makes their account usable for login.
-    otpauth_uri = build_otpauth_uri(secret, user.email)
+    otpauth_uri = build_otpauth_uri(secret, mfa_account_name(user.username, get_site_name(db)))
     return RegisterResponse(
         message="Account created. An Admin must approve it before you can log in.",
         user=UserOut.model_validate(user),

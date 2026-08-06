@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from config import settings
 from models.user import User
+from services.settings_service import get_site_name
 from utils.crypto import encrypt_secret
 from utils.security import hash_password
 
@@ -18,6 +19,16 @@ logger = logging.getLogger("keep_track.auth")
 
 def generate_mfa_secret() -> str:
     return pyotp.random_base32()
+
+
+def mfa_account_name(username: str, site_name: str) -> str:
+    """The label an authenticator app shows under the issuer, e.g. 'KHOC
+    (richard)'. Falls back to the issuer name itself when site_name hasn't
+    been customised, so a default install still reads 'KeepTrack (richard)'
+    rather than repeating 'Keep Track (richard)'."""
+    if site_name and site_name != "Keep Track":
+        return f"{site_name} ({username})"
+    return f"{settings.totp_issuer} ({username})"
 
 
 def build_otpauth_uri(secret: str, account_name: str) -> str:
@@ -85,7 +96,7 @@ def ensure_superadmin(db: Session) -> None:
     db.add(user)
     db.commit()
 
-    otpauth_uri = build_otpauth_uri(secret, settings.superadmin_email)
+    otpauth_uri = build_otpauth_uri(secret, mfa_account_name(settings.superadmin_username, get_site_name(db)))
     logger.warning(
         "Superadmin account '%s' created from environment variables. "
         "Scan this URI with an authenticator app now — it will not be shown again: %s",
