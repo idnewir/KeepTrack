@@ -236,8 +236,10 @@ body.kt-sign-lock-scroll {
 
 .kt-sign-saved-preview {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   width: 100%;
   max-width: 420px;
   min-height: 90px;
@@ -249,6 +251,15 @@ body.kt-sign-lock-scroll {
   border: 1px solid var(--kt-border);
   border-radius: 8px;
   margin-bottom: 8px;
+}
+
+.kt-sign-saved-preview-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6b6b66;
+  align-self: flex-start;
 }
 
 .kt-sign-saved-preview img {

@@ -173,6 +173,7 @@ export default function ReviewCard({ invoice, file, categories, projects = [], s
         invoiceFilename={invoice.filename}
         file={file}
         token={token}
+        user={user}
         onSigned={handleSigned}
         onBack={() => setStage('fields')}
       />

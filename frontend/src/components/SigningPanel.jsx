@@ -74,6 +74,11 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
   const [signatureMode, setSignatureMode] = useState(hasSavedSignature ? 'saved' : 'draw')
   const [savedSignatureDataUrl, setSavedSignatureDataUrl] = useState(null)
   const [loadingSavedSignature, setLoadingSavedSignature] = useState(false)
+  // True once the authenticated fetch of the saved signature has failed —
+  // distinct from "no saved signature at all" so the draw-canvas fallback
+  // can show a message specific to "we had one but couldn't load it" rather
+  // than the generic "save one in your profile" hint. See docs/decisions-log.md.
+  const [savedSignatureFailed, setSavedSignatureFailed] = useState(false)
   const usingSaved = signatureMode === 'saved' && hasSavedSignature
   const effectiveSignatureDataUrl = usingSaved ? savedSignatureDataUrl : signatureDataUrl
   const effectiveHasSignature = usingSaved ? Boolean(savedSignatureDataUrl) : hasSignature
@@ -96,7 +101,13 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
         if (!cancelled) setSavedSignatureDataUrl(dataUrl)
       })
       .catch(() => {
-        if (!cancelled) setSavedSignatureDataUrl(null)
+        if (cancelled) return
+        // Falls back to the draw canvas automatically rather than leaving
+        // the user stuck on a "saved signature" tab that can never show
+        // anything — see docs/decisions-log.md.
+        setSavedSignatureDataUrl(null)
+        setSavedSignatureFailed(true)
+        setSignatureMode('draw')
       })
       .finally(() => {
         if (!cancelled) setLoadingSavedSignature(false)
@@ -593,7 +604,10 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
                 {loadingSavedSignature ? (
                   <span className="kt-field-note">Loading your saved signature…</span>
                 ) : savedSignatureDataUrl ? (
-                  <img src={savedSignatureDataUrl} alt="Your saved signature" />
+                  <>
+                    <span className="kt-sign-saved-preview-label">Your saved signature</span>
+                    <img src={savedSignatureDataUrl} alt="Your saved signature" />
+                  </>
                 ) : (
                   <span className="kt-field-note">Could not load your saved signature.</span>
                 )}
@@ -614,6 +628,10 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
                   Clear signature
                 </button>
               </>
+            )}
+
+            {savedSignatureFailed && !usingSaved && (
+              <span className="kt-auth-error">Could not load saved signature — please draw below</span>
             )}
 
             {!hasSavedSignature && (
