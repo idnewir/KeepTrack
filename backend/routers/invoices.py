@@ -96,10 +96,16 @@ def _filtered_invoices_query(
     # this used to be a client-side post-filter over the whole unpaginated
     # list, which no longer works once the list itself is paginated
     # server-side, so it's now a real query filter with the same semantics.
+    # Historical invoices were imported without PDFs and are never eligible
+    # for signing, so "unsigned" excludes them (see docs/decisions-log.md).
     if signed == "signed":
         query = query.filter(Invoice.signed.is_(True))
     elif signed == "unsigned":
-        query = query.filter(Invoice.reviewed.is_(True), Invoice.signed.is_(False))
+        query = query.filter(
+            Invoice.reviewed.is_(True),
+            Invoice.signed.is_(False),
+            Invoice.is_historical.is_(False),
+        )
 
     # "unlinked" is a sentinel (like signed's "signed"/"unsigned" above)
     # rather than overloading project_id=None, since None already means "no
@@ -236,7 +242,7 @@ def export_invoices_csv(
             f"{inv.amount:.2f}",
             categories.get(inv.category_id, "Uncategorised"),
             "Yes" if inv.reviewed else "No",
-            "Yes" if inv.signed else "No",
+            "N/A" if inv.is_historical else ("Yes" if inv.signed else "No"),
             "Yes" if inv.duplicate_flag else "No",
             inv.notes or "",
         ]
@@ -273,7 +279,7 @@ def export_invoices_pdf(
             f"£{inv.amount:,.2f}",
             categories.get(inv.category_id, "Uncategorised"),
             "Yes" if inv.reviewed else "No",
-            "Yes" if inv.signed else "No",
+            "N/A" if inv.is_historical else ("Yes" if inv.signed else "No"),
             inv.notes or "",
         ]
         for inv in invoices

@@ -113,6 +113,7 @@ def get_notifications(
                 Invoice.reviewed.is_(True),
                 Invoice.signed.is_(False),
                 Invoice.deleted.is_(False),
+                Invoice.is_historical.is_(False),
             )
             .count()
         )

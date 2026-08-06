@@ -288,7 +288,9 @@ export default function InvoicesPage() {
                     )}
                   </td>
                   <td>
-                    {invoice.signed ? (
+                    {invoice.is_historical ? (
+                      <em>N/A</em>
+                    ) : invoice.signed ? (
                       <span className="kt-status-badge kt-status-signed">Signed</span>
                     ) : (
                       invoice.reviewed && (
