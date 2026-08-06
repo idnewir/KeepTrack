@@ -43,7 +43,10 @@ export default function ReconciliationPage() {
   const [history, setHistory] = useState([])
   const [historyPagination, setHistoryPagination] = useState(null)
   const [historyLoading, setHistoryLoading] = useState(true)
+  const [historyFilter, setHistoryFilter] = useState('all') // 'all' | 'stale' | 'ok'
   const { page, perPage, setPage, setPerPage } = usePaginationState('reconciliation')
+
+  const [staleDetailOpen, setStaleDetailOpen] = useState(false)
 
   const appStartDate = useAppStartDate(token)
   // Phantom months before app_start_date are filtered for display here
@@ -86,7 +89,8 @@ export default function ReconciliationPage() {
   const loadHistory = async () => {
     setHistoryLoading(true)
     try {
-      const res = await reconciliationApi.list({ page, perPage: perPageParam(perPage) }, token)
+      const isStale = historyFilter === 'all' ? undefined : historyFilter === 'stale'
+      const res = await reconciliationApi.list({ page, perPage: perPageParam(perPage), isStale }, token)
       setHistory(res.data)
       setHistoryPagination(res.pagination)
     } catch (err) {
@@ -99,7 +103,12 @@ export default function ReconciliationPage() {
   useEffect(() => {
     loadHistory()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, perPage, token])
+  }, [page, perPage, historyFilter, token])
+
+  const handleHistoryFilterChange = (value) => {
+    setHistoryFilter(value)
+    setPage(1)
+  }
 
   const handleHistoryExportCsv = async () => {
     const blob = await reconciliationApi.exportCsv(null, token)
@@ -132,6 +141,7 @@ export default function ReconciliationPage() {
     setActualBalanceInput(selected?.reconciliation ? String(selected.reconciliation.actual_balance) : '')
     setNotesInput(selected?.reconciliation?.discrepancy_notes || '')
     setAdminEdit(null)
+    setStaleDetailOpen(false)
   }, [selected])
 
   const todayKey = useMemo(() => {
@@ -272,19 +282,20 @@ export default function ReconciliationPage() {
 
       <div className="kt-month-tiles">
         {visibleMonths.map((m) => {
-          const tone = discrepancyTone(m.reconciliation?.suggested_reason)
+          const isStale = Boolean(m.reconciliation?.is_stale)
+          const tone = isStale ? 'stale' : discrepancyTone(m.reconciliation?.suggested_reason)
           const isSelected = selected && m.year === selected.year && m.month === selected.month
           const isOverdue = !m.reconciled && m.year * 100 + m.month < todayKey
           return (
             <button
               type="button"
               key={`${m.year}-${m.month}`}
-              className={`kt-month-tile${isSelected ? ' selected' : ''}${m.reconciled ? ' reconciled' : ''}${isOverdue ? ' overdue' : ''}`}
+              className={`kt-month-tile${isSelected ? ' selected' : ''}${m.reconciled ? ' reconciled' : ''}${isOverdue ? ' overdue' : ''}${isStale ? ' stale' : ''}`}
               onClick={() => setSelected(m)}
             >
               <span className="kt-month-tile-label">{m.month_label}</span>
               <span className={`kt-month-tile-status kt-tone-${tone || (m.reconciled ? 'zero' : 'pending')}`}>
-                {m.reconciled ? 'Reconciled' : isOverdue ? 'Overdue' : 'Not reconciled'}
+                {isStale ? 'Reconciled — stale' : m.reconciled ? 'Reconciled' : isOverdue ? 'Overdue' : 'Not reconciled'}
               </span>
             </button>
           )
@@ -341,9 +352,39 @@ export default function ReconciliationPage() {
             <>
               <p className="kt-suggested-reason">{selected.reconciliation.suggested_reason}</p>
 
+              {selected.reconciliation.is_stale && (
+                <div className="kt-stale-banner">
+                  <button
+                    type="button"
+                    className="kt-stale-banner-toggle"
+                    onClick={() => setStaleDetailOpen((prev) => !prev)}
+                    title="This reconciliation may no longer be accurate. Click for details."
+                  >
+                    ⚠ Data changed since reconciliation
+                  </button>
+                  {staleDetailOpen && (
+                    <p className="kt-stale-banner-detail">
+                      This reconciliation may no longer be accurate. {selected.reconciliation.stale_reason} on{' '}
+                      {selected.reconciliation.stale_since
+                        ? new Date(selected.reconciliation.stale_since).toLocaleString('en-GB')
+                        : 'an unknown date'}
+                      . Edit this reconciliation to bring it up to date.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {isAdmin && !adminEdit && (
-                <button type="button" className="kt-category-link-button" onClick={openAdminEdit}>
-                  Edit (Admin)
+                <button
+                  type="button"
+                  className={
+                    selected.reconciliation.is_stale
+                      ? 'kt-auth-button kt-stale-edit-button'
+                      : 'kt-category-link-button'
+                  }
+                  onClick={openAdminEdit}
+                >
+                  {selected.reconciliation.is_stale ? 'Edit now — bring up to date' : 'Edit (Admin)'}
                 </button>
               )}
 
@@ -449,13 +490,27 @@ export default function ReconciliationPage() {
         </div>
       )}
 
-      <h2 className="kt-panel-title" style={{ marginTop: 32 }}>
-        Reconciliation history
-      </h2>
+      <div className="kt-history-header" style={{ marginTop: 32 }}>
+        <h2 className="kt-panel-title" style={{ margin: 0 }}>
+          Reconciliation history
+        </h2>
+        <div className="kt-field kt-history-filter">
+          <label htmlFor="history-filter">Show</label>
+          <select
+            id="history-filter"
+            value={historyFilter}
+            onChange={(e) => handleHistoryFilterChange(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="stale">Stale only</option>
+            <option value="ok">Up to date</option>
+          </select>
+        </div>
+      </div>
       {historyLoading ? (
         <p className="kt-page-subtitle">Loading history…</p>
       ) : history.length === 0 ? (
-        <div className="kt-categories-empty">No reconciliations recorded yet.</div>
+        <div className="kt-categories-empty">No reconciliations found.</div>
       ) : (
         <div className="kt-table-scroll">
           <table className="kt-invoices-table">
@@ -465,18 +520,28 @@ export default function ReconciliationPage() {
                 <th>Calculated Balance</th>
                 <th>Actual Balance</th>
                 <th>Discrepancy</th>
+                <th>Status</th>
                 <th>Reconciled By</th>
                 <th>Reconciled At</th>
               </tr>
             </thead>
             <tbody>
               {history.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.id} className={r.is_stale ? 'kt-history-row-stale' : ''}>
                   <td>{new Date(`${r.month}T00:00:00`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</td>
                   <td>{formatCurrency(r.calculated_balance)}</td>
                   <td>{formatCurrency(r.actual_balance)}</td>
                   <td className={`kt-tone-${discrepancyTone(r.suggested_reason)}`}>
                     {formatCurrency(r.discrepancy)}
+                  </td>
+                  <td>
+                    {r.is_stale ? (
+                      <span className="kt-month-tile-status kt-tone-stale" title={r.stale_reason || ''}>
+                        Stale
+                      </span>
+                    ) : (
+                      <span className="kt-month-tile-status kt-tone-zero">Up to date</span>
+                    )}
                   </td>
                   <td>{r.reconciled_by_username || 'someone'}</td>
                   <td>{new Date(r.reconciled_at).toLocaleString('en-GB')}</td>

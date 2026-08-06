@@ -28,12 +28,14 @@ from utils.pagination import paginate
 router = APIRouter(prefix="/reconciliation", tags=["reconciliation"])
 
 
-def _filtered_reconciliations_query(db: Session, financial_year_id: int | None):
+def _filtered_reconciliations_query(db: Session, financial_year_id: int | None, is_stale: bool | None = None):
     query = db.query(MonthlyReconciliation).filter(
         MonthlyReconciliation.month >= get_effective_start_date(db)
     )
     if financial_year_id is not None:
         query = query.filter(MonthlyReconciliation.financial_year_id == financial_year_id)
+    if is_stale is not None:
+        query = query.filter(MonthlyReconciliation.is_stale.is_(is_stale))
     return query.order_by(MonthlyReconciliation.month.desc())
 
 
@@ -56,18 +58,22 @@ def _to_out(db: Session, row: MonthlyReconciliation) -> dict:
         "edited_by_username": editor.username if editor else None,
         "edited_at": row.edited_at,
         "edit_reason": row.edit_reason,
+        "is_stale": row.is_stale,
+        "stale_reason": row.stale_reason,
+        "stale_since": row.stale_since,
     }
 
 
 @router.get("", response_model=PaginatedResponse[ReconciliationOut])
 def list_reconciliations(
     financial_year_id: int | None = None,
+    is_stale: bool | None = None,
     page: int = 1,
     per_page: int = 25,
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    query = _filtered_reconciliations_query(db, financial_year_id)
+    query = _filtered_reconciliations_query(db, financial_year_id, is_stale)
     items, pagination = paginate(query, page, per_page)
     return {"data": [_to_out(db, row) for row in items], "pagination": pagination}
 
@@ -254,6 +260,11 @@ def update_reconciliation(
         reconciliation.edited_by = user.id
         reconciliation.edited_at = datetime.now(timezone.utc)
         reconciliation.edit_reason = payload.edit_reason
+        # The Admin has now acknowledged and corrected the figures, so the
+        # staleness flag (if any) no longer applies. See docs/decisions-log.md.
+        reconciliation.is_stale = False
+        reconciliation.stale_reason = None
+        reconciliation.stale_since = None
 
     if payload.discrepancy_notes is not None:
         reconciliation.discrepancy_notes = payload.discrepancy_notes

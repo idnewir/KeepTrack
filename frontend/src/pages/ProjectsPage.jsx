@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
-import { financialYearsApi, projectsApi } from '../utils/api.js'
+import { projectsApi } from '../utils/api.js'
 import { MONTH_NAMES, formatCurrency, formatMonthYear, projectUrgency, singularize } from '../utils/format.js'
 
 const DESCRIPTION_TRUNCATE_LENGTH = 140
@@ -20,6 +20,14 @@ function yearOptions() {
   return Array.from({ length: YEAR_OPTIONS_AHEAD + 1 }, (_, i) => currentYear + i)
 }
 
+const FY_OPTION_LABELS = ['Current', 'Next', 'Year after next']
+
+function fyLabelFor(financialYears, financialYearId) {
+  if (financialYearId == null) return null
+  const match = financialYears.find((y) => y.id === financialYearId)
+  return match ? match.label : `FY #${financialYearId}`
+}
+
 export default function ProjectsPage() {
   const { user } = useAuth()
   const token = user?.token
@@ -29,7 +37,7 @@ export default function ProjectsPage() {
   const projectsLower = termProjects.toLowerCase()
   const projectSingularLower = singularize(projectsLower)
 
-  const [fy, setFy] = useState(null)
+  const [financialYears, setFinancialYears] = useState([])
   const [projects, setProjects] = useState([])
   const [completedProjects, setCompletedProjects] = useState([])
   const [loading, setLoading] = useState(true)
@@ -53,11 +61,11 @@ export default function ProjectsPage() {
     setLoading(true)
     setError('')
     try {
-      const [currentFy, activeProjects] = await Promise.all([
-        financialYearsApi.current(token),
+      const [projectFinancialYears, activeProjects] = await Promise.all([
+        projectsApi.financialYears(token),
         projectsApi.list(token),
       ])
-      setFy(currentFy)
+      setFinancialYears(projectFinancialYears)
       setProjects(activeProjects)
 
       if (isAdmin) {
@@ -339,7 +347,16 @@ export default function ProjectsPage() {
               onChange={(e) => setForm((f) => ({ ...f, financialYearId: e.target.value }))}
             >
               <option value="">Unassigned</option>
-              {fy && <option value={fy.id}>{fy.label}</option>}
+              {financialYears.map((y, idx) => (
+                <option key={y.id} value={y.id}>
+                  {FY_OPTION_LABELS[idx] || y.label} — {y.label}
+                </option>
+              ))}
+              {editingId &&
+                form.financialYearId &&
+                !financialYears.some((y) => String(y.id) === form.financialYearId) && (
+                  <option value={form.financialYearId}>{fyLabelFor(financialYears, Number(form.financialYearId))}</option>
+                )}
             </select>
           </div>
           <button className="kt-auth-button" type="submit" disabled={saving}>
@@ -358,7 +375,7 @@ export default function ProjectsPage() {
             <ProjectCard
               key={project.id}
               project={project}
-              fy={fy}
+              financialYears={financialYears}
               expanded={expandedIds.has(project.id)}
               onToggleExpanded={() => toggleExpanded(project.id)}
               canManage={canManage}
@@ -385,7 +402,7 @@ export default function ProjectsPage() {
                 <ProjectCard
                   key={project.id}
                   project={project}
-                  fy={fy}
+                  financialYears={financialYears}
                   expanded={expandedIds.has(project.id)}
                   onToggleExpanded={() => toggleExpanded(project.id)}
                   canManage={false}
@@ -484,7 +501,7 @@ export default function ProjectsPage() {
 
 function ProjectCard({
   project,
-  fy,
+  financialYears,
   expanded,
   onToggleExpanded,
   canManage,
@@ -538,7 +555,7 @@ function ProjectCard({
           </span>
           <span>Expected {formatMonthYear(project.expected_month)}</span>
           {project.financial_year_id != null && (
-            <span>{fy && fy.id === project.financial_year_id ? fy.label : `FY #${project.financial_year_id}`}</span>
+            <span>{fyLabelFor(financialYears, project.financial_year_id)}</span>
           )}
         </div>
       </div>

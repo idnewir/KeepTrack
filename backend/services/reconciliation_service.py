@@ -8,7 +8,7 @@ it stood at the end of that month, not the current running balance.
 """
 from calendar import monthrange
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from models.contribution import Contribution
 from models.financial_year import FinancialYear
 from models.invoice import Invoice
+from models.monthly_reconciliation import MonthlyReconciliation
 from services.financial_year_service import month_sequence
 
 # A round-number threshold separating a "small" discrepancy (bank
@@ -63,3 +64,36 @@ def suggest_reason(discrepancy: Decimal) -> str:
         return "Small negative discrepancy — possible bank charge or unrecorded invoice."
 
     return "Large discrepancy — likely a missing invoice or contribution. Worth checking closely."
+
+
+def calendar_month_date(fy: FinancialYear, month_number: int) -> date:
+    """First-of-month date for a bare 1-12 month number within fy's own month
+    sequence. Contributions only store a month number, not a calendar year,
+    so the year has to be derived from which financial year it belongs to."""
+    for (year, month) in month_sequence(fy):
+        if month == month_number:
+            return date(year, month, 1)
+    raise ValueError(f"Month {month_number} is not part of financial year {fy.id}")
+
+
+def mark_reconciliation_stale(db: Session, month: date, financial_year_id: int, reason: str) -> None:
+    """Flags the reconciliation for this month (if one exists and isn't
+    already stale) as out of date, because a contribution or invoice that
+    feeds its calculated balance changed after it was submitted. No-ops if
+    nothing has been reconciled for that month yet — there's nothing to flag."""
+    month_start = date(month.year, month.month, 1)
+    reconciliation = (
+        db.query(MonthlyReconciliation)
+        .filter(
+            MonthlyReconciliation.financial_year_id == financial_year_id,
+            MonthlyReconciliation.month == month_start,
+        )
+        .first()
+    )
+    if reconciliation is None or reconciliation.is_stale:
+        return
+
+    reconciliation.is_stale = True
+    reconciliation.stale_reason = reason
+    reconciliation.stale_since = datetime.now(timezone.utc)
+    db.commit()

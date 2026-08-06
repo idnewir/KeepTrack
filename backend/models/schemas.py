@@ -404,6 +404,9 @@ class ReconciliationOut(BaseModel):
     edited_by_username: str | None = None
     edited_at: datetime | None = None
     edit_reason: str | None = None
+    is_stale: bool = False
+    stale_reason: str | None = None
+    stale_since: datetime | None = None
 
 
 class ProjectOut(BaseModel):

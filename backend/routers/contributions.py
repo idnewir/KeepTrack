@@ -20,7 +20,7 @@ from models.user import User
 from services import audit_service, financial_year_service as fy_service
 from services.date_service import get_effective_start_date
 from services.export_pdf_service import generate_table_export_pdf
-from services.reconciliation_service import calculated_balance_for_month
+from services.reconciliation_service import calculated_balance_for_month, calendar_month_date, mark_reconciliation_stale
 from services.settings_service import get_site_name
 from utils.csv_export import csv_response
 from utils.deps import get_current_user, require_admin, require_standard
@@ -218,6 +218,11 @@ def create_contribution(
     db.commit()
     db.refresh(contribution)
 
+    mark_reconciliation_stale(
+        db, calendar_month_date(fy, contribution.month), contribution.financial_year_id,
+        "Contribution added after reconciliation",
+    )
+
     audit_service.log_action(
         db, "contribution.created", f"Recorded contribution of £{contribution.amount} from '{contribution.group_name}'",
         user_id=user.id, affected_table="contributions", affected_record_id=contribution.id,
@@ -236,6 +241,8 @@ def update_contribution(
     if contribution is None or contribution.deleted:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Contribution not found")
 
+    old_month = contribution.month
+
     changed_fields: dict = {}
     if payload.month is not None and payload.month != contribution.month:
         changed_fields["month"] = {"before": contribution.month, "after": payload.month}
@@ -251,6 +258,17 @@ def update_contribution(
     db.refresh(contribution)
 
     if changed_fields:
+        fy = db.get(FinancialYear, contribution.financial_year_id)
+        mark_reconciliation_stale(
+            db, calendar_month_date(fy, contribution.month), contribution.financial_year_id,
+            "Contribution edited after reconciliation",
+        )
+        if "month" in changed_fields:
+            mark_reconciliation_stale(
+                db, calendar_month_date(fy, old_month), contribution.financial_year_id,
+                "Contribution edited after reconciliation",
+            )
+
         audit_service.log_action(
             db, "contribution.edited", f"Edited contribution from '{contribution.group_name}' ({', '.join(changed_fields)})",
             user_id=user.id, affected_table="contributions", affected_record_id=contribution.id,
@@ -272,6 +290,12 @@ def delete_contribution(
     contribution.deleted = True
     db.commit()
     db.refresh(contribution)
+
+    fy = db.get(FinancialYear, contribution.financial_year_id)
+    mark_reconciliation_stale(
+        db, calendar_month_date(fy, contribution.month), contribution.financial_year_id,
+        "Contribution deleted after reconciliation",
+    )
 
     audit_service.log_action(
         db, "contribution.deleted", f"Deleted contribution from '{contribution.group_name}'",

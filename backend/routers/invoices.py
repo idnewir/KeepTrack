@@ -13,11 +13,12 @@ from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
 from models.schemas import InvoiceOut, InvoiceSignRequest, InvoiceUpdate, PaginatedResponse
 from models.user import User
-from services import audit_service, error_service
+from services import audit_service, error_service, financial_year_service as fy_service
 from services.ai_provider_service import extract_invoice_data
 from services.ai_service import check_duplicate
 from services.export_pdf_service import generate_table_export_pdf
 from services.preview_service import render_pdf_first_page_png
+from services.reconciliation_service import mark_reconciliation_stale
 from services.settings_service import get_site_name, is_signing_enabled
 from services.signing_service import sign_invoice_pdf
 from services.storage_service import save_invoice_pdf
@@ -249,6 +250,7 @@ def update_invoice(
     if invoice is None or invoice.deleted:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
 
+    old_invoice_date = invoice.invoice_date
     changed_fields: dict = {}
 
     if payload.invoice_date is not None and payload.invoice_date != invoice.invoice_date:
@@ -271,6 +273,16 @@ def update_invoice(
     db.refresh(invoice)
 
     if changed_fields:
+        # Only a reviewed (confirmed) invoice counts toward any month's
+        # calculated balance, so an edit to one still awaiting review can't
+        # have made a past reconciliation stale.
+        if invoice.reviewed:
+            old_fy = fy_service.get_or_create_financial_year(db, old_invoice_date)
+            mark_reconciliation_stale(db, old_invoice_date, old_fy.id, "Invoice edited after reconciliation")
+            if invoice.invoice_date != old_invoice_date:
+                new_fy = fy_service.get_or_create_financial_year(db, invoice.invoice_date)
+                mark_reconciliation_stale(db, invoice.invoice_date, new_fy.id, "Invoice edited after reconciliation")
+
         audit_service.log_action(
             db, "invoice.edited", f"Edited invoice '{invoice.filename}' ({', '.join(changed_fields)})",
             user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
@@ -292,6 +304,9 @@ def confirm_invoice(
     invoice.reviewed = True
     db.commit()
     db.refresh(invoice)
+
+    fy = fy_service.get_or_create_financial_year(db, invoice.invoice_date)
+    mark_reconciliation_stale(db, invoice.invoice_date, fy.id, "Invoice confirmed after reconciliation")
 
     # This app has a single review/confirm step (there is no separate
     # "reviewed" vs. "confirmed" state in the data model — both describe the
@@ -474,6 +489,10 @@ def delete_invoice(
     invoice.deleted = True
     db.commit()
     db.refresh(invoice)
+
+    if invoice.reviewed:
+        fy = fy_service.get_or_create_financial_year(db, invoice.invoice_date)
+        mark_reconciliation_stale(db, invoice.invoice_date, fy.id, "Invoice deleted after reconciliation")
 
     audit_service.log_action(
         db, "invoice.deleted", f"Deleted invoice '{invoice.filename}'",

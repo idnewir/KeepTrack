@@ -230,6 +230,7 @@ export const contributionsApi = {
 export const projectsApi = {
   list: (token) => request('/projects', { token }),
   listAll: (token) => request('/projects/all', { token }),
+  financialYears: (token) => request('/projects/financial-years', { token }),
   get: (id, token) => request(`/projects/${id}`, { token }),
   create: (payload, token) => request('/projects', { method: 'POST', body: payload, token }),
   update: (id, payload, token) => request(`/projects/${id}`, { method: 'PUT', body: payload, token }),
@@ -241,6 +242,7 @@ export const reconciliationApi = {
   list: (filters = {}, token) => {
     const params = new URLSearchParams()
     if (filters.financialYearId) params.set('financial_year_id', filters.financialYearId)
+    if (filters.isStale !== undefined && filters.isStale !== null) params.set('is_stale', filters.isStale)
     if (filters.page) params.set('page', filters.page)
     if (filters.perPage !== undefined) params.set('per_page', filters.perPage)
     const qs = params.toString()

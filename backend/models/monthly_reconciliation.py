@@ -6,7 +6,7 @@ documented in docs/database-schema.md, and `notes` is split into
 rather than the doc's single `notes` column — both required by this task's
 brief. See docs/decisions-log.md.
 """
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, Numeric, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Numeric, Text, UniqueConstraint, func
 
 from database import Base
 
@@ -33,3 +33,10 @@ class MonthlyReconciliation(Base):
     edited_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     edited_at = Column(DateTime(timezone=True), nullable=True)
     edit_reason = Column(Text, nullable=True)
+    # Set when a contribution/invoice affecting this month changes after the
+    # reconciliation was submitted, and cleared when an Admin corrects the
+    # reconciliation (see services/reconciliation_service.mark_reconciliation_stale
+    # and docs/decisions-log.md).
+    is_stale = Column(Boolean, nullable=False, default=False, server_default="false")
+    stale_reason = Column(Text, nullable=True)
+    stale_since = Column(DateTime(timezone=True), nullable=True)

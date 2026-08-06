@@ -247,6 +247,81 @@
   padding: 9px 18px;
 }
 
+/* Staleness — a reconciled month whose contributions/invoices changed
+   afterwards, so its figures may no longer match reality. */
+
+.kt-tone-stale {
+  color: var(--kt-amber);
+  background: rgba(var(--kt-amber-rgb), 0.14);
+}
+
+.kt-month-tile.stale {
+  border-color: rgba(var(--kt-amber-rgb), 0.5);
+}
+
+.kt-stale-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid rgba(var(--kt-amber-rgb), 0.4);
+  border-radius: 8px;
+  background: rgba(var(--kt-amber-rgb), 0.1);
+}
+
+.kt-stale-banner-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kt-amber);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.kt-stale-banner-detail {
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+  margin: 0;
+}
+
+.kt-stale-edit-button {
+  width: auto;
+  margin: 0 0 16px;
+  padding: 9px 18px;
+  background: var(--kt-amber-strong);
+}
+
+.kt-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kt-history-filter {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.kt-history-filter select {
+  width: auto;
+}
+
+.kt-history-row-stale td {
+  background: rgba(var(--kt-amber-rgb), 0.06);
+}
+
 @media (max-width: 640px) {
   .kt-opening-balance-prompt {
     flex-direction: column;

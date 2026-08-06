@@ -1,5 +1,5 @@
 """Planned project endpoints: log, edit, complete, and deactivate future planned spend."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -7,12 +7,31 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.financial_year import FinancialYear
 from models.planned_project import PlannedProject
-from models.schemas import ProjectCreate, ProjectOut, ProjectUpdate
+from models.schemas import FinancialYearOut, ProjectCreate, ProjectOut, ProjectUpdate
 from models.user import User
-from services import audit_service
+from services import audit_service, financial_year_service as fy_service
 from utils.deps import get_current_user, require_admin, require_standard
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+
+# Not in the original endpoint list — added so the planned-project form's
+# financial year dropdown can always offer the current year plus the next
+# two, even before anything else (dashboard, contributions, reconciliation)
+# has ever referenced them. Auto-creates the next two years quietly (no
+# audit log entry) the same way get_or_create_financial_year already does
+# for the current year. See docs/decisions-log.md.
+@router.get("/financial-years", response_model=list[FinancialYearOut])
+def list_project_financial_years(
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    current = fy_service.get_or_create_financial_year(db)
+    next_start = date(current.start_date.year + 1, current.start_date.month, 1)
+    year_after_start = date(current.start_date.year + 2, current.start_date.month, 1)
+    next_fy = fy_service.get_or_create_financial_year(db, next_start)
+    year_after_fy = fy_service.get_or_create_financial_year(db, year_after_start)
+    return [current, next_fy, year_after_fy]
 
 
 @router.get("", response_model=list[ProjectOut])
