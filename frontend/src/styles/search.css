@@ -1,0 +1,337 @@
+/* Header search bar */
+
+.kt-header-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Fills the space between the brand and .kt-header-user (which keeps its
+     own margin-left: auto), rather than competing for flex auto-margins
+     with that element — the search field itself is centred within this
+     flex-grown region via justify-content, so it ends up centred in the
+     header regardless of how wide the brand or user area happen to be. */
+  flex: 1;
+  min-width: 0;
+}
+
+.kt-header-search-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--kt-text-secondary);
+  cursor: pointer;
+}
+
+.kt-header-search-toggle:hover {
+  background: var(--kt-background);
+  color: var(--kt-text);
+}
+
+.kt-header-search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 300px;
+  padding: 7px 12px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-background);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.kt-header-search-field:focus-within {
+  border-color: var(--kt-primary);
+  background: var(--kt-surface);
+}
+
+.kt-header-search-field-icon {
+  flex-shrink: 0;
+  color: var(--kt-text-muted);
+}
+
+.kt-header-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--kt-text);
+  padding: 0;
+}
+
+.kt-header-search-input:focus {
+  outline: none;
+}
+
+.kt-header-search-input::placeholder {
+  color: var(--kt-text-muted);
+}
+
+/* Instant results dropdown */
+
+.kt-search-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  z-index: 40;
+  overflow: hidden;
+}
+
+.kt-search-dropdown-empty {
+  padding: 16px;
+  font-size: 13px;
+  color: var(--kt-text-muted);
+  text-align: center;
+}
+
+.kt-search-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.kt-search-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.kt-search-dropdown-item:hover {
+  background: var(--kt-background);
+}
+
+.kt-search-dropdown-item-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kt-search-dropdown-item-supplier {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kt-text);
+}
+
+.kt-search-dropdown-item-date {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--kt-text-muted);
+}
+
+.kt-search-dropdown-item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--kt-text-secondary);
+}
+
+.kt-search-dropdown-item-amount {
+  font-weight: 600;
+  color: var(--kt-text);
+}
+
+.kt-search-dropdown-see-all {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-top: 1px solid var(--kt-border);
+  background: var(--kt-background);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kt-primary);
+  text-align: center;
+  cursor: pointer;
+}
+
+.kt-search-dropdown-see-all:hover {
+  background: rgba(var(--kt-primary-rgb), 0.08);
+}
+
+/* Search-term highlighting — shared by the instant dropdown (not currently
+   highlighted, results are short enough not to need it) and the full
+   results page's snippets. A background tint rather than bold/underline
+   alone, so it's visually obvious scanning a page of otherwise-plain text
+   in both themes. */
+mark.kt-search-highlight {
+  background: rgba(var(--kt-primary-rgb), 0.25);
+  color: var(--kt-text);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 600;
+}
+
+/* Full results page (/search) */
+
+.kt-search-state-message {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--kt-text-secondary);
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+}
+
+.kt-search-empty-state {
+  padding: 48px 16px;
+  text-align: center;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+}
+
+.kt-search-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--kt-text);
+  margin: 0 0 6px;
+}
+
+.kt-search-empty-hint {
+  font-size: 13px;
+  color: var(--kt-text-muted);
+  margin: 0;
+}
+
+.kt-search-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.kt-search-section-count {
+  font-weight: 400;
+  color: var(--kt-text-muted);
+  font-size: 14px;
+}
+
+.kt-search-snippet-cell {
+  max-width: 280px;
+  font-size: 12px;
+  color: var(--kt-text-secondary);
+}
+
+.kt-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--kt-border);
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.kt-search-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--kt-surface);
+  text-decoration: none;
+  color: inherit;
+}
+
+.kt-search-list-item:hover {
+  background: var(--kt-background);
+}
+
+.kt-search-list-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.kt-search-list-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--kt-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kt-search-list-item-sub {
+  font-size: 12px;
+  color: var(--kt-text-muted);
+  flex-shrink: 0;
+}
+
+.kt-search-list-item-amount {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kt-text-secondary);
+}
+
+@media (max-width: 720px) {
+  .kt-header-search-toggle {
+    display: flex;
+  }
+
+  .kt-header-search-field {
+    width: 0;
+    padding: 0;
+    border-color: transparent;
+    background: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: width 0.15s ease, opacity 0.15s ease, padding 0.15s ease;
+  }
+
+  /* The header has nowhere near enough width at a phone viewport for the
+     brand, an expanded search field, and the profile button all at once —
+     rather than an expanded field fighting the brand for space (and
+     visually overlapping it, confirmed live), the brand hides entirely
+     while search is active (kt-header-search-active, set by Header.jsx)
+     and the field takes up the freed space instead. See
+     docs/decisions-log.md. */
+  .kt-header-search-active .kt-brand {
+    display: none;
+  }
+
+  .kt-header-search-expanded .kt-header-search-field {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    border-color: var(--kt-border);
+    background: var(--kt-background);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .kt-search-dropdown {
+    left: -40px;
+    right: -8px;
+  }
+}

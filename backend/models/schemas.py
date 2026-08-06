@@ -799,3 +799,65 @@ class ImportBatchDeleteResult(BaseModel):
     dry_run: bool
     deleted_count: int
     protected_count: int
+
+
+class SearchInvoiceResult(BaseModel):
+    id: int
+    invoice_date: date
+    supplier: str
+    amount: Decimal
+    category_name: str | None = None
+    category_colour: str | None = None
+    reviewed: bool
+    signed: bool
+    is_historical: bool
+    project_name: str | None = None
+    # "Field: ...matched text..." — see services/search_service.py. None
+    # only if a row somehow matched with nothing to show a snippet for.
+    snippet: str | None = None
+    relevance: float
+
+
+class SearchContributionResult(BaseModel):
+    id: int
+    financial_year_id: int
+    month: int
+    group_name: str
+    amount: Decimal
+    snippet: str | None = None
+
+
+class SearchProjectResult(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    estimated_cost: Decimal
+    status: str | None = None
+    snippet: str | None = None
+
+
+class SearchInvoicesSection(BaseModel):
+    total: int
+    results: list[SearchInvoiceResult]
+    # Only the invoices section is paginated on the full results page —
+    # contributions/projects are capped, unpaginated top-matches lists. See
+    # docs/decisions-log.md.
+    pagination: PaginationMeta
+
+
+class SearchContributionsSection(BaseModel):
+    total: int
+    results: list[SearchContributionResult]
+
+
+class SearchProjectsSection(BaseModel):
+    total: int
+    results: list[SearchProjectResult]
+
+
+class SearchResponse(BaseModel):
+    invoices: SearchInvoicesSection
+    contributions: SearchContributionsSection
+    projects: SearchProjectsSection
+    query: str
+    total: int

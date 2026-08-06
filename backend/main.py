@@ -22,6 +22,7 @@ from routers.profile import router as profile_router
 from routers.projects import router as projects_router
 from routers.reconciliation import router as reconciliation_router
 from routers.reports import router as reports_router
+from routers.search import router as search_router
 from routers.settings import router as settings_router
 from routers.storage import router as storage_router
 from routers.system import router as system_router
@@ -146,6 +147,7 @@ app.include_router(profile_router)
 app.include_router(projects_router)
 app.include_router(reconciliation_router)
 app.include_router(reports_router)
+app.include_router(search_router)
 app.include_router(settings_router)
 app.include_router(storage_router)
 app.include_router(system_router)

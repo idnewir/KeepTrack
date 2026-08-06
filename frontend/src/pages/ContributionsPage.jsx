@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useAppStartDate, isMonthVisible } from '../hooks/useAppStartDate.js'
 import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js'
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { contributionsApi, financialYearsApi, triggerBlobDownload } from '../utils/api.js'
-import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
+import { formatCurrency, monthsInFinancialYear, MONTH_NAMES } from '../utils/format.js'
 import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
 
@@ -16,6 +17,14 @@ export default function ContributionsPage() {
   // Full terminology support (letting an org rename "Contributions" to
   // "Income", "Donations", etc.) — see docs/decisions-log.md.
   const { term_income: INCOME_LABEL } = useTerminology()
+
+  // A search result (see SearchResultsPage.jsx) can deep-link here with
+  // ?month=N to jump straight to that month's entries in the "All entries"
+  // list below — only meaningful within the current financial year (the
+  // only one this page ever loads), so a match from an older FY won't be
+  // visible here even filtered. See docs/decisions-log.md.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const monthFilter = searchParams.get('month')
 
   const [fy, setFy] = useState(null)
   const [summary, setSummary] = useState(null)
@@ -58,9 +67,22 @@ export default function ContributionsPage() {
     return map
   }, [fy])
   const visibleContributions = useMemo(
-    () => contributions.filter((c) => isMonthVisible(monthYearByNumber[c.month], c.month, appStartDate)),
-    [contributions, monthYearByNumber, appStartDate]
+    () =>
+      contributions.filter(
+        (c) =>
+          isMonthVisible(monthYearByNumber[c.month], c.month, appStartDate) &&
+          (!monthFilter || String(c.month) === monthFilter)
+      ),
+    [contributions, monthYearByNumber, appStartDate, monthFilter]
   )
+
+  const clearMonthFilter = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('month')
+      return next
+    })
+  }
 
   const loadAll = async () => {
     setLoading(true)
@@ -424,6 +446,14 @@ export default function ContributionsPage() {
       <h2 className="kt-panel-title" style={{ marginTop: 32 }}>
         All entries
       </h2>
+      {monthFilter && (
+        <p className="kt-page-subtitle">
+          Filtered to {MONTH_NAMES[Number(monthFilter) - 1] || `month ${monthFilter}`}.{' '}
+          <button type="button" className="kt-category-link-button" onClick={clearMonthFilter}>
+            Clear filter
+          </button>
+        </p>
+      )}
       {entriesLoading ? (
         <p className="kt-page-subtitle">Loading entries…</p>
       ) : visibleContributions.length === 0 ? (

@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/AuthContext.jsx'
 import { useSiteName } from '../context/SiteNameContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import Avatar from './Avatar.jsx'
+import HeaderSearch from './HeaderSearch.jsx'
 import Logo from './Logo.jsx'
 
 const THEME_LABELS = {
@@ -73,6 +74,9 @@ export default function Header({ onMenuClick }) {
 
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
+  // Lifted out of HeaderSearch so the brand can be hidden at mobile widths
+  // while search is expanded — see HeaderSearch.jsx's doc comment.
+  const [searchExpanded, setSearchExpanded] = useState(false)
 
   useEffect(() => {
     if (!menuOpen) return undefined
@@ -92,7 +96,7 @@ export default function Header({ onMenuClick }) {
   }
 
   return (
-    <header className="kt-header">
+    <header className={`kt-header${searchExpanded ? ' kt-header-search-active' : ''}`}>
       <button
         className="kt-menu-button"
         onClick={onMenuClick}
@@ -118,6 +122,8 @@ export default function Header({ onMenuClick }) {
           </span>
         )}
       </Link>
+
+      {user && <HeaderSearch expanded={searchExpanded} onExpandedChange={setSearchExpanded} />}
 
       {user && (
         <div className="kt-header-user" ref={menuRef}>

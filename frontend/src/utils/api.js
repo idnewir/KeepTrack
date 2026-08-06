@@ -463,6 +463,17 @@ export const importsApi = {
     request(`/imports/${batchId}${dryRun ? '?dry_run=true' : ''}`, { method: 'DELETE', token }),
 }
 
+export const searchApi = {
+  search: ({ q, type, page, perPage } = {}, token) => {
+    const params = new URLSearchParams()
+    params.set('q', q)
+    if (type) params.set('type', type)
+    if (page) params.set('page', page)
+    if (perPage) params.set('per_page', perPage)
+    return request(`/search?${params.toString()}`, { token })
+  },
+}
+
 export const storageApi = {
   status: (token) => request('/storage/status', { token }),
   changePath: (payload, token) => request('/storage/path', { method: 'PUT', body: payload, token }),
