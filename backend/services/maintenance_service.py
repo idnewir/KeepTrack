@@ -15,6 +15,12 @@ implemented as a live dashboard notification shown for a short window after
 last_audit_archive_run, following this app's existing pattern of computing
 dashboard notifications live rather than storing them — see
 docs/decisions-log.md's 2026-08-04 main dashboard build entry).
+
+The summary `AuditLogArchive` row written by `archive_old_audit_logs` always
+records that the task ran (`entries_archived` in `extra_metadata`), even
+when zero entries were archived — but routers/dashboard.py only turns that
+row into a dashboard notification when the count is greater than zero, so
+an empty run stays silent on the dashboard. See docs/decisions-log.md.
 """
 import logging
 import threading
@@ -83,6 +89,7 @@ def archive_old_audit_logs(db: Session) -> int:
     db.add(AuditLogArchive(
         action_type="audit_log.archived",
         description=f"audit_log.archived: {count} entries archived on {today.isoformat()}",
+        extra_metadata={"entries_archived": count},
     ))
 
     _set_setting(db, LAST_ARCHIVE_RUN_KEY, datetime.now(timezone.utc).isoformat())

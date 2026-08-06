@@ -159,14 +159,19 @@ def get_notifications(
         # of computing dashboard notifications live rather than storing them
         # (see the 2026-08-04 main dashboard build entry). Reuses the archive
         # event's own description (already has the entry count and date)
-        # rather than recomputing it here.
+        # rather than recomputing it here. Suppressed entirely when the run
+        # archived zero entries — a notification with nothing to report is
+        # just dashboard noise; the run itself is still recorded via the
+        # AuditLogArchive row regardless of count. See docs/decisions-log.md.
         last_archive_event = (
             db.query(AuditLogArchive)
             .filter(AuditLogArchive.action_type == "audit_log.archived")
             .order_by(AuditLogArchive.created_at.desc())
             .first()
         )
-        if last_archive_event is not None:
+        entries_archived = (last_archive_event.extra_metadata or {}).get("entries_archived", 0) \
+            if last_archive_event is not None else 0
+        if last_archive_event is not None and entries_archived > 0:
             archive_cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
             event_created_at = last_archive_event.created_at
             if event_created_at.tzinfo is None:
