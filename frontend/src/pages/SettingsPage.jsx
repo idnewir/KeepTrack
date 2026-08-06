@@ -11,7 +11,7 @@ import ComingSoonSettings from '../components/settings/ComingSoonSettings.jsx'
 import StorageBackupSettings from '../components/settings/StorageBackupSettings.jsx'
 import ImportSettings from '../components/settings/ImportSettings.jsx'
 import LogsSettings from '../components/settings/LogsSettings.jsx'
-import DangerZoneSettings from '../components/settings/DangerZoneSettings.jsx'
+import SystemResetSettings from '../components/settings/SystemResetSettings.jsx'
 
 export default function SettingsPage() {
   const { user } = useAuth()
@@ -51,8 +51,6 @@ export default function SettingsPage() {
               {activeCategory === 'terminology' && <TerminologySettings token={token} />}
               {activeCategory === 'signing' && <SigningExportSettings token={token} />}
               {activeCategory === 'ai' && <AISettings token={token} />}
-              {activeCategory === 'storage' && <StorageBackupSettings token={token} />}
-              {activeCategory === 'import' && <ImportSettings token={token} />}
               {activeCategory === 'users' && <UsersSettings token={token} />}
               {activeCategory === 'notifications' && (
                 <ComingSoonSettings
@@ -61,7 +59,9 @@ export default function SettingsPage() {
                 />
               )}
               {activeCategory === 'logs' && <LogsSettings token={token} initialTab={searchParams.get('tab')} />}
-              {activeCategory === 'danger' && <DangerZoneSettings />}
+              {activeCategory === 'import' && <ImportSettings token={token} />}
+              {activeCategory === 'storage' && <StorageBackupSettings token={token} />}
+              {activeCategory === 'system-reset' && <SystemResetSettings />}
             </div>
           </div>
         </div>

@@ -14,7 +14,7 @@ const DELETION_LIST = [
   'All categories (reset to defaults)',
 ]
 
-export default function DangerZoneSettings() {
+export default function SystemResetSettings() {
   const { user, logout } = useAuth()
   const token = user?.token
   const isSuperadmin = user?.role === 'superadmin'
@@ -53,7 +53,7 @@ export default function DangerZoneSettings() {
   if (!isSuperadmin) {
     return (
       <div>
-        <h2 className="kt-panel-title kt-danger-title">Danger Zone</h2>
+        <h2 className="kt-panel-title kt-danger-title">System Reset</h2>
         <p className="kt-panel-subtitle">Irreversible, whole-system actions. Use with care.</p>
         <div className="kt-settings-coming-soon kt-danger-box">
           System reset is only available to the Superadmin account.
@@ -64,7 +64,7 @@ export default function DangerZoneSettings() {
 
   return (
     <div>
-      <h2 className="kt-panel-title kt-danger-title">Danger Zone</h2>
+      <h2 className="kt-panel-title kt-danger-title">System Reset</h2>
       <p className="kt-panel-subtitle">Irreversible, whole-system actions. Use with care.</p>
 
       <div className="kt-danger-warning">
