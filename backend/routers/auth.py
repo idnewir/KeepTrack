@@ -620,6 +620,22 @@ def me(user: User = Depends(get_current_user)):
     return user
 
 
+@router.post("/welcome/dismiss", response_model=UserOut)
+def dismiss_welcome(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Marks the one-off first-login welcome overlay as seen. Idempotent —
+    dismissing an already-dismissed welcome is a no-op, not an error, since
+    the frontend may call this from more than one dismissal path (Get
+    started, a quick-start card, or "Don't show this again")."""
+    if not user.has_seen_welcome:
+        user.has_seen_welcome = True
+        db.commit()
+        db.refresh(user)
+    return user
+
+
 @router.put("/me/profile", response_model=UserOut)
 def update_my_profile(
     payload: ProfileUpdateRequest,

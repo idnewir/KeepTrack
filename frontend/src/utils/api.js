@@ -41,6 +41,7 @@ export const authApi = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   me: (token) => request('/auth/me', { token }),
   logout: (token) => request('/auth/logout', { method: 'POST', token }),
+  dismissWelcome: (token) => request('/auth/welcome/dismiss', { method: 'POST', token }),
   updateProfile: (payload, token) =>
     request('/auth/me/profile', { method: 'PUT', body: payload, token }),
   changePassword: (payload, token) =>

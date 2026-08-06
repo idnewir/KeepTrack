@@ -1,0 +1,242 @@
+/* First-login welcome overlay — see components/WelcomeOverlay.jsx and
+   docs/decisions-log.md. Deliberately not built on the shared .kt-modal
+   classes (settings.css): unlike that reusable dismiss-on-overlay-click
+   modal, this one must never close except through its own buttons. */
+
+.kt-welcome-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 18, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+  animation: kt-welcome-overlay-in 0.25s ease;
+}
+
+.kt-welcome-overlay.closing {
+  animation: kt-welcome-overlay-out 0.2s ease forwards;
+}
+
+@keyframes kt-welcome-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes kt-welcome-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.kt-welcome-card {
+  background: var(--kt-surface);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: kt-welcome-card-in 0.25s ease;
+}
+
+.kt-welcome-overlay.closing .kt-welcome-card {
+  animation: kt-welcome-card-out 0.2s ease forwards;
+}
+
+@keyframes kt-welcome-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes kt-welcome-card-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+.kt-welcome-header {
+  text-align: center;
+  padding: 32px 32px 4px;
+}
+
+.kt-welcome-logo-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.kt-welcome-title {
+  margin: 0 0 6px;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--kt-text);
+}
+
+.kt-welcome-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--kt-text-secondary);
+}
+
+.kt-welcome-body {
+  padding: 20px 32px 4px;
+}
+
+.kt-welcome-greeting {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--kt-text);
+}
+
+.kt-welcome-message {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--kt-text-secondary);
+}
+
+.kt-welcome-quickstart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.kt-welcome-quickstart-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  font-family: inherit;
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.kt-welcome-quickstart-card:hover {
+  border-color: var(--kt-primary);
+  background: rgba(var(--kt-primary-rgb), 0.06);
+  transform: translateY(-1px);
+}
+
+.kt-welcome-quickstart-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(var(--kt-primary-rgb), 0.12);
+  color: var(--kt-primary);
+}
+
+.kt-welcome-quickstart-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kt-welcome-quickstart-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--kt-text);
+}
+
+.kt-welcome-quickstart-desc {
+  font-size: 12.5px;
+  color: var(--kt-text-secondary);
+  line-height: 1.35;
+}
+
+.kt-welcome-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 32px 32px;
+  text-align: center;
+}
+
+.kt-welcome-help {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--kt-text-muted);
+}
+
+.kt-welcome-cta {
+  font-family: inherit;
+  width: 100%;
+  max-width: 280px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--kt-primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.kt-welcome-cta:hover {
+  opacity: 0.92;
+}
+
+.kt-welcome-dismiss-link {
+  font-family: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--kt-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.kt-welcome-dismiss-link:hover {
+  color: var(--kt-text-secondary);
+}
+
+@media (max-width: 560px) {
+  .kt-welcome-header {
+    padding: 24px 20px 4px;
+  }
+
+  .kt-welcome-body {
+    padding: 16px 20px 4px;
+  }
+
+  .kt-welcome-footer {
+    padding: 20px 20px 24px;
+  }
+
+  .kt-welcome-quickstart-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -96,6 +96,18 @@ export function AuthProvider({ children }) {
     setUser({ ...freshUser, token: access_token })
   }
 
+  // Best-effort, same fire-and-forget shape as logout() below: the local
+  // flag flips immediately (so the overlay can't flash back on a later
+  // re-render or the next login this session) regardless of whether the
+  // network call succeeds. If it fails, GET /auth/me will simply say
+  // has_seen_welcome=false again next login and the overlay reappears —
+  // acceptable graceful degradation for a one-off dismiss action.
+  const dismissWelcome = () => {
+    if (!user || user.has_seen_welcome) return
+    setUser((u) => (u ? { ...u, has_seen_welcome: true } : u))
+    authApi.dismissWelcome(user.token).catch(() => {})
+  }
+
   const logout = () => {
     // Best-effort audit hook — JWTs are stateless, so logging out is really
     // just discarding the local token; the request just records the event
@@ -121,6 +133,7 @@ export function AuthProvider({ children }) {
       markSetupComplete,
       refreshUser,
       applyPasswordChange,
+      dismissWelcome,
       logout,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -36,3 +36,6 @@ class User(Base):
     # pattern already used for the global JWT_INVALIDATE_BEFORE_KEY setting
     # (see docs/decisions-log.md), but scoped to one user instead of everyone.
     token_invalid_before = Column(DateTime(timezone=True), nullable=True)
+    # Flips to true the first time this user dismisses the one-off welcome
+    # overlay shown after their first login — see docs/decisions-log.md.
+    has_seen_welcome = Column(Boolean, nullable=False, default=False, server_default="false")

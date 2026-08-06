@@ -20,6 +20,7 @@ import './styles/signing.css'
 import './styles/pagination.css'
 import './styles/logs.css'
 import './styles/imports.css'
+import './styles/welcome.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

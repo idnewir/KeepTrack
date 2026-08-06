@@ -38,6 +38,7 @@ class UserOut(BaseModel):
     last_login: datetime | None = None
     is_active: bool = True
     must_change_password: bool = False
+    has_seen_welcome: bool = False
 
     model_config = {"from_attributes": True}
 
