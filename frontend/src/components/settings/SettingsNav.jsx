@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 
 export const SETTINGS_CATEGORIES = [
   { key: 'general', label: 'General' },
-  { key: 'terminology', label: 'Terminology' },
-  { key: 'signing', label: 'Signing & Export' },
+  { key: 'appearance', label: 'Appearance' },
+  { key: 'security', label: 'Security' },
   { key: 'ai', label: 'AI & Extraction' },
-  { key: 'users', label: 'Users', badge: 'Admin' },
-  { key: 'notifications', label: 'Notifications' },
-  { key: 'logs', label: 'Logs', badge: 'Admin' },
+  { key: 'users', label: 'Users & Access', badge: 'Admin' },
+  // Key stays 'logs' (not e.g. 'notifications-logs') so existing dashboard
+  // deep links — /settings?section=logs[&tab=errors], sent by
+  // critical_errors_detected/audit_log_archived notifications — keep working
+  // without a backend change.
+  { key: 'logs', label: 'Notifications & Logs', badge: 'Admin' },
   {
     key: 'data',
     label: 'Data',

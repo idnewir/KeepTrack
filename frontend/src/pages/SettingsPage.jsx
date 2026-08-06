@@ -3,14 +3,13 @@ import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import SettingsNav from '../components/settings/SettingsNav.jsx'
 import GeneralSettings from '../components/settings/GeneralSettings.jsx'
-import TerminologySettings from '../components/settings/TerminologySettings.jsx'
-import SigningExportSettings from '../components/settings/SigningExportSettings.jsx'
+import AppearanceSettings from '../components/settings/AppearanceSettings.jsx'
+import SecuritySettings from '../components/settings/SecuritySettings.jsx'
 import AISettings from '../components/settings/AISettings.jsx'
 import UsersSettings from '../components/settings/UsersSettings.jsx'
-import ComingSoonSettings from '../components/settings/ComingSoonSettings.jsx'
+import NotificationsLogsSettings from '../components/settings/NotificationsLogsSettings.jsx'
 import StorageBackupSettings from '../components/settings/StorageBackupSettings.jsx'
 import ImportSettings from '../components/settings/ImportSettings.jsx'
-import LogsSettings from '../components/settings/LogsSettings.jsx'
 import SystemResetSettings from '../components/settings/SystemResetSettings.jsx'
 
 export default function SettingsPage() {
@@ -48,17 +47,13 @@ export default function SettingsPage() {
             </button>
             <div className="kt-settings-content" key={activeCategory}>
               {activeCategory === 'general' && <GeneralSettings token={token} />}
-              {activeCategory === 'terminology' && <TerminologySettings token={token} />}
-              {activeCategory === 'signing' && <SigningExportSettings token={token} />}
+              {activeCategory === 'appearance' && <AppearanceSettings token={token} />}
+              {activeCategory === 'security' && <SecuritySettings token={token} />}
               {activeCategory === 'ai' && <AISettings token={token} />}
               {activeCategory === 'users' && <UsersSettings token={token} />}
-              {activeCategory === 'notifications' && (
-                <ComingSoonSettings
-                  title="Notifications"
-                  description="Choose which alerts you and your team receive, and when."
-                />
+              {activeCategory === 'logs' && (
+                <NotificationsLogsSettings token={token} initialTab={searchParams.get('tab')} />
               )}
-              {activeCategory === 'logs' && <LogsSettings token={token} initialTab={searchParams.get('tab')} />}
               {activeCategory === 'import' && <ImportSettings token={token} />}
               {activeCategory === 'storage' && <StorageBackupSettings token={token} />}
               {activeCategory === 'system-reset' && <SystemResetSettings />}

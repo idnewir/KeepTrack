@@ -12,8 +12,6 @@ export default function LogsSettings({ token, initialTab }) {
 
   return (
     <div>
-      <h2 className="kt-panel-title">Logs</h2>
-
       <div className="kt-logs-info-box">
         Keep Track automatically manages your logs to keep the app fast and your data clean. Audit
         logs are archived every 90 days — archived entries are kept permanently and can be exported

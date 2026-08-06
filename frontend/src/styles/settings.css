@@ -165,6 +165,17 @@
   background: var(--kt-surface);
 }
 
+.kt-settings-info-box {
+  border: 1px solid var(--kt-border);
+  background: var(--kt-background);
+  color: var(--kt-text-secondary);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
 .kt-danger-title {
   color: var(--kt-danger);
 }

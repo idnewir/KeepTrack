@@ -12,7 +12,7 @@ export default function UsersSettings({ token }) {
 
   return (
     <div>
-      <h2 className="kt-panel-title">Users</h2>
+      <h2 className="kt-panel-title">Users & Access</h2>
 
       <div className="kt-users-tabs" role="tablist">
         {TABS.map((t) => (
