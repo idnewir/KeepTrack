@@ -141,15 +141,23 @@ def get_notifications(
         critical_cutoff = datetime.now(timezone.utc) - timedelta(days=7)
         critical_count = (
             db.query(ErrorLog)
-            .filter(ErrorLog.severity == "critical", ErrorLog.created_at >= critical_cutoff)
+            .filter(
+                ErrorLog.severity == "critical",
+                ErrorLog.resolved.is_(False),
+                ErrorLog.created_at >= critical_cutoff,
+            )
             .count()
         )
         if critical_count:
+            noun = "error" if critical_count == 1 else "errors"
             notifications.append({
                 "id": "critical_errors_detected",
                 "type": "critical_errors_detected",
                 "severity": "urgent",
-                "message": "Critical errors detected — please review the error log in Settings.",
+                "message": (
+                    f"{critical_count} unresolved critical {noun} detected — please review the "
+                    "error log in Settings."
+                ),
                 "link": "/settings?section=logs&tab=errors",
             })
 

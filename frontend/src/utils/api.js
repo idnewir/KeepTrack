@@ -131,6 +131,7 @@ function errorLogQuery(filters = {}) {
   if (filters.source) params.set('source', filters.source)
   if (filters.dateFrom) params.set('date_from', filters.dateFrom)
   if (filters.dateTo) params.set('date_to', filters.dateTo)
+  if (filters.resolved) params.set('resolved', filters.resolved)
   return params
 }
 
@@ -162,6 +163,21 @@ export const logsApi = {
     return requestBlob(`/logs/errors/export/csv${qs ? `?${qs}` : ''}`, { token })
   },
   status: (token) => request('/logs/status', { token }),
+  resolveError: (id, resolvedNote, token) =>
+    request(`/logs/errors/${id}/resolve`, {
+      method: 'PUT',
+      body: { resolved_note: resolvedNote || null },
+      token,
+    }),
+  unresolveError: (id, token) => request(`/logs/errors/${id}/unresolve`, { method: 'PUT', token }),
+  clearAllErrors: (confirmationPhrase, token) =>
+    request('/logs/errors/clear-all', {
+      method: 'DELETE',
+      body: { confirmation_phrase: confirmationPhrase },
+      token,
+    }),
+  clearSelectedErrors: (ids, token) =>
+    request('/logs/errors/clear-selected', { method: 'DELETE', body: { ids }, token }),
 }
 
 export const terminologyApi = {
@@ -388,6 +404,7 @@ export const storageApi = {
     request(`/storage/backup/${encodeURIComponent(filename)}`, { method: 'DELETE', token }),
   setSchedule: (payload, token) =>
     request('/storage/backup/schedule', { method: 'POST', body: payload, token }),
+  runScheduledBackup: (token) => request('/storage/backup/run-scheduled', { method: 'POST', token }),
   previewRestore: (file, token) => {
     const formData = new FormData()
     formData.append('file', file)

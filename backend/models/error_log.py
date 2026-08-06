@@ -3,7 +3,7 @@
 Auto-deleted after 90 days by services/maintenance_service.py. See
 docs/decisions-log.md.
 """
-from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, String, Text, func
 
 from database import Base
 
@@ -24,3 +24,7 @@ class ErrorLog(Base):
     request_path = Column(String(255), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    resolved = Column(Boolean, nullable=False, server_default="false")
+    resolved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_note = Column(String(500), nullable=True)

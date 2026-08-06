@@ -9,14 +9,29 @@ from sqlalchemy.orm import Query, Session
 from database import get_db
 from models.audit_log import AuditLog, AuditLogArchive
 from models.error_log import ErrorLog
-from models.schemas import ArchiveNowOut, AuditLogOut, ErrorLogOut, LogsStatusOut, PaginatedResponse
+from models.schemas import (
+    ArchiveNowOut,
+    AuditLogOut,
+    ErrorClearAllRequest,
+    ErrorClearSelectedRequest,
+    ErrorLogClearResult,
+    ErrorLogOut,
+    ErrorResolveRequest,
+    LogsStatusOut,
+    PaginatedResponse,
+)
 from models.user import User
-from services import maintenance_service
+from services import audit_service, maintenance_service
 from utils.csv_export import csv_response
 from utils.deps import require_admin
 from utils.pagination import paginate
 
 router = APIRouter(prefix="/logs", tags=["logs"])
+
+# The literal phrase clear-all requires typing to confirm — mirrors the
+# same "type an exact phrase" precedent as system.py's RESET_CONFIRMATION_PHRASE
+# for another irreversible, bulk-delete action. See docs/decisions-log.md.
+CLEAR_ERROR_LOG_CONFIRMATION_PHRASE = "CLEAR ERROR LOG"
 
 
 def _day_bounds(date_from: date | None, date_to: date | None) -> tuple[datetime | None, datetime | None]:
@@ -139,12 +154,37 @@ def export_audit_log_csv(
     )
 
 
+def _error_log_names(db: Session, rows: list) -> dict[int, str]:
+    ids = {r.user_id for r in rows if r.user_id} | {r.resolved_by for r in rows if r.resolved_by}
+    return _user_display_names(db, ids)
+
+
+def _error_to_out(r, names: dict[int, str]) -> dict:
+    return {
+        "id": r.id,
+        "severity": r.severity,
+        "source": r.source,
+        "message": r.message,
+        "stack_trace": r.stack_trace,
+        "request_path": r.request_path,
+        "user_id": r.user_id,
+        "user_display_name": names.get(r.user_id) if r.user_id else None,
+        "created_at": r.created_at,
+        "resolved": r.resolved,
+        "resolved_by": r.resolved_by,
+        "resolved_by_display_name": names.get(r.resolved_by) if r.resolved_by else None,
+        "resolved_at": r.resolved_at,
+        "resolved_note": r.resolved_note,
+    }
+
+
 @router.get("/errors", response_model=PaginatedResponse[ErrorLogOut])
 def list_error_log(
     severity: str | None = None,
     source: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    resolved: str = "all",
     page: int = 1,
     per_page: int = 25,
     db: Session = Depends(get_db),
@@ -160,25 +200,107 @@ def list_error_log(
         query = query.filter(ErrorLog.created_at >= start)
     if end is not None:
         query = query.filter(ErrorLog.created_at <= end)
+    if resolved == "unresolved":
+        query = query.filter(ErrorLog.resolved.is_(False))
+    elif resolved == "resolved":
+        query = query.filter(ErrorLog.resolved.is_(True))
     query = query.order_by(ErrorLog.created_at.desc())
 
     items, pagination = paginate(query, page, per_page)
-    names = _user_display_names(db, {r.user_id for r in items if r.user_id})
-    data = [
-        {
-            "id": r.id,
-            "severity": r.severity,
-            "source": r.source,
-            "message": r.message,
-            "stack_trace": r.stack_trace,
-            "request_path": r.request_path,
-            "user_id": r.user_id,
-            "user_display_name": names.get(r.user_id) if r.user_id else None,
-            "created_at": r.created_at,
-        }
-        for r in items
-    ]
+    names = _error_log_names(db, items)
+    data = [_error_to_out(r, names) for r in items]
     return {"data": data, "pagination": pagination}
+
+
+@router.put("/errors/{error_id}/resolve", response_model=ErrorLogOut)
+def resolve_error(
+    error_id: int,
+    payload: ErrorResolveRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    entry = db.get(ErrorLog, error_id)
+    if entry is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Error log entry not found")
+
+    entry.resolved = True
+    entry.resolved_by = admin.id
+    entry.resolved_at = datetime.now(timezone.utc)
+    entry.resolved_note = payload.resolved_note
+    db.commit()
+    db.refresh(entry)
+
+    audit_service.log_action(
+        db, "error_log.resolved", f"Error log entry #{entry.id} marked resolved",
+        user_id=admin.id, affected_table="error_log", affected_record_id=entry.id,
+    )
+
+    names = _error_log_names(db, [entry])
+    return _error_to_out(entry, names)
+
+
+@router.put("/errors/{error_id}/unresolve", response_model=ErrorLogOut)
+def unresolve_error(
+    error_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    entry = db.get(ErrorLog, error_id)
+    if entry is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Error log entry not found")
+
+    entry.resolved = False
+    entry.resolved_by = None
+    entry.resolved_at = None
+    entry.resolved_note = None
+    db.commit()
+    db.refresh(entry)
+
+    names = _error_log_names(db, [entry])
+    return _error_to_out(entry, names)
+
+
+@router.delete("/errors/clear-all", response_model=ErrorLogClearResult)
+def clear_all_errors(
+    payload: ErrorClearAllRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    if payload.confirmation_phrase != CLEAR_ERROR_LOG_CONFIRMATION_PHRASE:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Confirmation phrase does not match. Type '{CLEAR_ERROR_LOG_CONFIRMATION_PHRASE}' exactly.",
+        )
+
+    count = db.query(ErrorLog).count()
+    db.query(ErrorLog).delete()
+    db.commit()
+
+    audit_service.log_action(
+        db, "error_log.cleared", f"All error log entries cleared — {count} entries deleted",
+        user_id=admin.id, affected_table="error_log",
+    )
+    return {"deleted_count": count}
+
+
+@router.delete("/errors/clear-selected", response_model=ErrorLogClearResult)
+def clear_selected_errors(
+    payload: ErrorClearSelectedRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    count = (
+        db.query(ErrorLog)
+        .filter(ErrorLog.id.in_(payload.ids))
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+
+    audit_service.log_action(
+        db, "error_log.cleared", f"Selected error log entries cleared — {count} entries deleted",
+        user_id=admin.id, affected_table="error_log", metadata={"ids": payload.ids},
+    )
+    return {"deleted_count": count}
 
 
 @router.get("/errors/export/csv")

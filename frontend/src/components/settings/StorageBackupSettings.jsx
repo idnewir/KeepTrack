@@ -248,6 +248,10 @@ function BackupSection({ token, status, onChanged }) {
   const [scheduleError, setScheduleError] = useState('')
   const [scheduleSaved, setScheduleSaved] = useState(false)
 
+  const [runningNow, setRunningNow] = useState(false)
+  const [runResult, setRunResult] = useState(null)
+  const [runError, setRunError] = useState('')
+
   useEffect(() => {
     if (status) {
       setScheduleInput(status.backup_schedule)
@@ -296,6 +300,21 @@ function BackupSection({ token, status, onChanged }) {
     }
   }
 
+  const handleRunNow = async () => {
+    setRunError('')
+    setRunResult(null)
+    setRunningNow(true)
+    try {
+      const result = await storageApi.runScheduledBackup(token)
+      setRunResult(result)
+      onChanged()
+    } catch (err) {
+      setRunError(err.message || 'Scheduled backup failed')
+    } finally {
+      setRunningNow(false)
+    }
+  }
+
   return (
     <div className="kt-settings-list" style={{ marginBottom: 28 }}>
       <div className="kt-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
@@ -316,7 +335,7 @@ function BackupSection({ token, status, onChanged }) {
 
         <div>
           <button type="button" className="kt-auth-button" onClick={handleManualBackup} disabled={creating}>
-            {creating ? 'Creating backup — this may take a while…' : 'Create manual backup'}
+            {creating ? 'Creating backup — this may take a while…' : 'Create backup'}
           </button>
         </div>
       </div>
@@ -338,6 +357,17 @@ function BackupSection({ token, status, onChanged }) {
         {scheduleSaved && (
           <p className="kt-profile-success" style={{ marginBottom: 12 }}>
             Schedule saved.
+          </p>
+        )}
+        {runError && (
+          <div className="kt-auth-error" style={{ marginBottom: 12 }}>
+            {runError}
+          </div>
+        )}
+        {runResult && (
+          <p className="kt-profile-success" style={{ marginBottom: 12 }}>
+            Scheduled backup saved to {runResult.file_path} ({runResult.file_size_human}, took{' '}
+            {runResult.duration_seconds}s).
           </p>
         )}
 
@@ -381,9 +411,18 @@ function BackupSection({ token, status, onChanged }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button type="button" className="kt-auth-button" onClick={handleSaveSchedule} disabled={savingSchedule}>
             {savingSchedule ? 'Saving…' : 'Save schedule'}
+          </button>
+          <button
+            type="button"
+            className="kt-auth-button-secondary"
+            onClick={handleRunNow}
+            disabled={!status?.backup_path || runningNow}
+            title={!status?.backup_path ? 'Configure a backup destination path first' : undefined}
+          >
+            {runningNow ? 'Running scheduled backup…' : 'Run scheduled backup now'}
           </button>
         </div>
       </div>

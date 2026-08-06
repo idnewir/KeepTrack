@@ -14,6 +14,7 @@ docs/decisions-log.md.
 import os
 import shutil
 import tempfile
+import time
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
@@ -28,6 +29,7 @@ from models.schemas import (
     BackupScheduleOut,
     BackupScheduleRequest,
     RestoreResultOut,
+    ScheduledBackupRunOut,
     StoragePathChangeRequest,
     StoragePathChangeResponse,
     StorageStatusOut,
@@ -235,6 +237,63 @@ def set_backup_schedule(
         backup_path=backup_service.get_backup_path(db),
         backup_retention_count=backup_service.get_backup_retention_count(db),
         next_scheduled_backup=backup_service.next_scheduled_run(db),
+    )
+
+
+@router.post("/backup/run-scheduled", response_model=ScheduledBackupRunOut)
+def run_scheduled_backup_now(db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    """Runs a real "scheduled"-type backup immediately, on demand — lets an
+    Admin verify the configured backup_path actually works without waiting
+    for the schedule to fire. Reuses backup_service.perform_backup (the same
+    function the background scheduler calls) rather than a separate code
+    path, so a successful "Run now" is a genuine test of the real scheduled
+    path. See docs/decisions-log.md.
+    """
+    if not backup_service.get_backup_path(db):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "No backup path configured. Please set a backup destination in "
+            "Settings → Storage & Backup first.",
+        )
+
+    started = time.perf_counter()
+    try:
+        result = backup_service.perform_backup(db, "scheduled", admin.id, admin.username)
+    except RuntimeError as exc:
+        error_service.log_error(
+            db, "critical", "scheduled_backup",
+            f"Manually-triggered scheduled backup failed: {exc}", user_id=admin.id,
+        )
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Backup failed: {exc}") from exc
+    duration_seconds = time.perf_counter() - started
+
+    # Unlike POST /storage/backup, this endpoint saves to backup_path rather
+    # than streaming a download — the temp zip perform_backup leaves behind
+    # has already been copied there and isn't needed.
+    if os.path.exists(result["zip_path"]):
+        os.remove(result["zip_path"])
+
+    retention_deleted = backup_service.apply_retention(db)
+
+    audit_service.log_action(
+        db, "backup.scheduled_manual_trigger",
+        f"Scheduled backup manually triggered by '{admin.username}' ('{result['filename']}', "
+        f"{storage_service.human_readable_size(result['size_bytes'])})"
+        + (f", {retention_deleted} old backup(s) removed under retention" if retention_deleted else ""),
+        user_id=admin.id,
+        metadata={
+            "filename": result["filename"],
+            "size_bytes": result["size_bytes"],
+            "retention_deleted": retention_deleted,
+        },
+    )
+
+    return ScheduledBackupRunOut(
+        success=True,
+        file_path=result["saved_path"],
+        file_size_bytes=result["size_bytes"],
+        file_size_human=storage_service.human_readable_size(result["size_bytes"]),
+        duration_seconds=round(duration_seconds, 2),
     )
 
 

@@ -506,6 +506,27 @@ class ErrorLogOut(BaseModel):
     user_id: int | None
     user_display_name: str | None
     created_at: datetime
+    resolved: bool
+    resolved_by: int | None
+    resolved_by_display_name: str | None
+    resolved_at: datetime | None
+    resolved_note: str | None
+
+
+class ErrorResolveRequest(BaseModel):
+    resolved_note: str | None = Field(default=None, max_length=500)
+
+
+class ErrorClearAllRequest(BaseModel):
+    confirmation_phrase: str
+
+
+class ErrorClearSelectedRequest(BaseModel):
+    ids: list[int] = Field(min_length=1)
+
+
+class ErrorLogClearResult(BaseModel):
+    deleted_count: int
 
 
 class LogsStatusOut(BaseModel):
@@ -585,6 +606,14 @@ class BackupScheduleOut(BaseModel):
     backup_path: str | None
     backup_retention_count: int
     next_scheduled_backup: datetime | None
+
+
+class ScheduledBackupRunOut(BaseModel):
+    success: bool
+    file_path: str
+    file_size_bytes: int
+    file_size_human: str
+    duration_seconds: float
 
 
 class BackupManifestPreview(BaseModel):
