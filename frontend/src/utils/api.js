@@ -8,12 +8,13 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path, { method = 'GET', body, token } = {}) {
+async function request(path, { method = 'GET', body, token, headers } = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
@@ -36,11 +37,24 @@ async function request(path, { method = 'GET', body, token } = {}) {
 export const authApi = {
   setupStatus: () => request('/auth/setup-status'),
   setup: (payload) => request('/auth/setup', { method: 'POST', body: payload }),
-  login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
+  // rememberToken (if present and not locally expired) is sent so the
+  // backend can skip MFA when it's still valid — see docs/decisions-log.md.
+  login: (payload, rememberToken) =>
+    request('/auth/login', {
+      method: 'POST',
+      body: payload,
+      headers: rememberToken ? { 'X-MFA-Remember-Token': rememberToken } : undefined,
+    }),
   verifyMfa: (payload) => request('/auth/verify-mfa', { method: 'POST', body: payload }),
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   me: (token) => request('/auth/me', { token }),
-  logout: (token) => request('/auth/logout', { method: 'POST', token }),
+  logout: (token, rememberToken) =>
+    request('/auth/logout', {
+      method: 'POST',
+      token,
+      headers: rememberToken ? { 'X-MFA-Remember-Token': rememberToken } : undefined,
+    }),
+  revokeMfaRemember: (token) => request('/auth/mfa-remember', { method: 'DELETE', token }),
   dismissWelcome: (token) => request('/auth/welcome/dismiss', { method: 'POST', token }),
   updateProfile: (payload, token) =>
     request('/auth/me/profile', { method: 'PUT', body: payload, token }),

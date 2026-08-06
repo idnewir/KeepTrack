@@ -16,6 +16,10 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 _VALID_MONTHS = {str(m) for m in range(1, 13)}
 
+# 0 means "Never" (no inactivity timeout) — see docs/decisions-log.md.
+_VALID_SESSION_TIMEOUT_MINUTES = {"0", "30", "60", "120", "240", "480"}
+_VALID_MFA_REMEMBER_HOURS = {"4", "8", "12", "24", "48", "168"}
+
 
 @router.get("", response_model=list[SettingOut])
 def list_settings(
@@ -90,6 +94,18 @@ def update_setting(
 
     if key == "reserve_months" and payload.value not in _VALID_MONTHS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Reserve months must be between 1 and 12")
+
+    if key == "session_timeout_minutes" and payload.value not in _VALID_SESSION_TIMEOUT_MINUTES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Session timeout must be one of: {', '.join(sorted(_VALID_SESSION_TIMEOUT_MINUTES, key=int))} minutes",
+        )
+
+    if key == "mfa_remember_hours" and payload.value not in _VALID_MFA_REMEMBER_HOURS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"MFA remember duration must be one of: {', '.join(sorted(_VALID_MFA_REMEMBER_HOURS, key=int))} hours",
+        )
 
     if key == "reserve_manual_amount":
         try:

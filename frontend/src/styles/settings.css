@@ -803,6 +803,15 @@
   margin-top: 20px;
 }
 
+.kt-session-timeout-countdown {
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  margin: 16px 0 4px;
+  color: var(--kt-text);
+}
+
 .kt-confirm-phrase-box {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 14px;

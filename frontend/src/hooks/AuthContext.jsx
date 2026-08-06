@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { authApi } from '../utils/api.js'
+import { clearMfaRememberToken, getMfaRememberToken, storeMfaRememberToken } from '../utils/mfaRemember.js'
 
 const TOKEN_KEY = 'kt_access_token'
 const AuthContext = createContext(null)
@@ -7,6 +8,7 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [tempToken, setTempToken] = useState(null)
+  const [mfaRememberHours, setMfaRememberHours] = useState(null)
   const [setupRequired, setSetupRequired] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -39,27 +41,44 @@ export function AuthProvider({ children }) {
     const me = await authApi.me(accessToken)
     setUser({ ...me, token: accessToken })
     setTempToken(null)
+    setMfaRememberHours(null)
     return me
   }
 
-  // Password step. The backend decides whether MFA is required (false only
-  // for the Superadmin break-glass account, based on its stored role) — the
-  // frontend just follows whatever `mfa_required` says.
+  // Password step. The backend decides whether MFA is required — false for
+  // the Superadmin break-glass account (based on its stored role), or for
+  // any other user whose browser presents a still-valid MFA remember token.
+  // The frontend just follows whatever `mfa_required` says.
   const login = async (username, password) => {
-    const data = await authApi.login({ username, password })
+    const rememberToken = getMfaRememberToken()
+    const data = await authApi.login({ username, password }, rememberToken)
     if (!data.mfa_required) {
       await finishLogin(data.access_token)
       return { mfaRequired: false }
     }
+    // We offered a remember token but the backend still wants MFA — it must
+    // be expired/revoked server-side even though it looked valid locally.
+    // Drop it so we stop offering it on future attempts.
+    if (rememberToken) {
+      clearMfaRememberToken()
+    }
     setTempToken(data.temp_token)
+    setMfaRememberHours(data.mfa_remember_hours ?? null)
     return { mfaRequired: true }
   }
 
-  const verifyMfa = async (code) => {
+  const verifyMfa = async (code, rememberSession) => {
     if (!tempToken) {
       throw new Error('Login session expired — please sign in again.')
     }
-    const data = await authApi.verifyMfa({ temp_token: tempToken, code })
+    const data = await authApi.verifyMfa({
+      temp_token: tempToken,
+      code,
+      remember_session: Boolean(rememberSession),
+    })
+    if (data.mfa_remember_token) {
+      storeMfaRememberToken(data.mfa_remember_token, data.mfa_remember_expires_at)
+    }
     return finishLogin(data.access_token)
   }
 
@@ -112,10 +131,24 @@ export function AuthProvider({ children }) {
     // Best-effort audit hook — JWTs are stateless, so logging out is really
     // just discarding the local token; the request just records the event
     // and is never allowed to block or fail the actual client-side logout.
+    // Also revokes this browser's MFA remember token server-side (if any)
+    // so a deliberate logout can't be followed by an MFA-skipped login.
     if (user?.token) {
-      authApi.logout(user.token).catch(() => {})
+      authApi.logout(user.token, getMfaRememberToken()).catch(() => {})
     }
     localStorage.removeItem(TOKEN_KEY)
+    clearMfaRememberToken()
+    setUser(null)
+    setTempToken(null)
+  }
+
+  // Clears local auth state without calling POST /auth/logout — used by
+  // useSessionTimeout's inactivity path, which revokes the MFA remember
+  // token itself via DELETE /auth/mfa-remember (not the logout endpoint's
+  // header-based revoke) before calling this. See docs/decisions-log.md.
+  const forceLogout = () => {
+    localStorage.removeItem(TOKEN_KEY)
+    clearMfaRememberToken()
     setUser(null)
     setTempToken(null)
   }
@@ -126,6 +159,7 @@ export function AuthProvider({ children }) {
       loading,
       setupRequired,
       hasPendingMfa: Boolean(tempToken),
+      mfaRememberHours,
       login,
       verifyMfa,
       register,
@@ -135,9 +169,10 @@ export function AuthProvider({ children }) {
       applyPasswordChange,
       dismissWelcome,
       logout,
+      forceLogout,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, loading, setupRequired, tempToken]
+    [user, loading, setupRequired, tempToken, mfaRememberHours]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

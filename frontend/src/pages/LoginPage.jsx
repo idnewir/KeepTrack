@@ -1,15 +1,17 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import AuthCard from '../components/AuthCard.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 
 export default function LoginPage() {
   const { login, setupRequired } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const inactivityLogout = Boolean(location.state?.inactivityLogout)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -41,6 +43,11 @@ export default function LoginPage() {
       )}
 
       <form className="kt-auth-form" onSubmit={handleSubmit}>
+        {inactivityLogout && !error && (
+          <div className="kt-auth-notice">
+            You were logged out due to inactivity. Please log in again.
+          </div>
+        )}
         {error && <div className="kt-auth-error">{error}</div>}
 
         <div className="kt-field">

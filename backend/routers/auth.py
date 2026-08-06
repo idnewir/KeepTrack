@@ -3,7 +3,7 @@ import secrets
 import string
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from config import settings
@@ -35,7 +35,7 @@ from models.schemas import (
 )
 from models.setting import Setting
 from models.user import User
-from services import ai_provider_service, audit_service, error_service, rate_limit_service
+from services import ai_provider_service, audit_service, error_service, mfa_remember_service, rate_limit_service
 from services.ai_provider_service import DEFAULT_MODEL_FOR_PROVIDER, SUPPORTED_PROVIDERS
 from services.auth_service import (
     build_otpauth_uri,
@@ -193,7 +193,12 @@ def set_setup_ai_config(payload: AIConfigUpdate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
+def login(
+    payload: LoginRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    x_mfa_remember_token: str | None = Header(default=None, alias="X-MFA-Remember-Token"),
+):
     ip_address = _client_ip(request)
 
     # Brute-force protection: capped per source IP (not per username, which
@@ -266,6 +271,32 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
             expires_in_minutes=settings.jwt_expiry_minutes,
         )
 
+    # A valid remember token from an earlier "remember this session" MFA
+    # verification (POST /auth/verify-mfa, remember_session=true) lets this
+    # browser skip MFA and go straight to a full access token — password
+    # verification above still has to succeed first. See docs/decisions-log.md.
+    remember_token = mfa_remember_service.find_valid_token(db, user.id, x_mfa_remember_token)
+    if remember_token is not None:
+        remember_token.last_used_at = datetime.now(timezone.utc)
+        user.last_login = datetime.now(timezone.utc)
+        db.commit()
+        audit_service.log_action(
+            db, "user.login_mfa_remembered", f"Successful login for '{user.username}' (MFA remembered)",
+            user_id=user.id, ip_address=ip_address,
+        )
+
+        access_token = create_token(
+            subject=user.id,
+            scope=SCOPE_ACCESS,
+            expiry_minutes=settings.jwt_expiry_minutes,
+            extra_claims={"role": user.role},
+        )
+        return LoginResponse(
+            mfa_required=False,
+            access_token=access_token,
+            expires_in_minutes=settings.jwt_expiry_minutes,
+        )
+
     temp_token = create_token(
         subject=user.id, scope=SCOPE_MFA, expiry_minutes=settings.jwt_mfa_expiry_minutes
     )
@@ -273,6 +304,7 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
         mfa_required=True,
         temp_token=temp_token,
         expires_in_minutes=settings.jwt_mfa_expiry_minutes,
+        mfa_remember_hours=mfa_remember_service.get_mfa_remember_hours(db),
     )
 
 
@@ -325,23 +357,52 @@ def verify_mfa(payload: MFAVerifyRequest, request: Request, db: Session = Depend
         user_id=user.id, ip_address=ip_address,
     )
 
+    remember_raw_token: str | None = None
+    remember_expires_at = None
+    if payload.remember_session:
+        remember_raw_token, remember_expires_at = mfa_remember_service.create_token(db, user.id)
+        audit_service.log_action(
+            db, "user.mfa_verified_with_remember", f"MFA verified for '{user.username}' (session remembered)",
+            user_id=user.id, ip_address=ip_address,
+        )
+    else:
+        audit_service.log_action(
+            db, "user.mfa_verified", f"MFA verified for '{user.username}'",
+            user_id=user.id, ip_address=ip_address,
+        )
+
     access_token = create_token(
         subject=user.id,
         scope=SCOPE_ACCESS,
         expiry_minutes=settings.jwt_expiry_minutes,
         extra_claims={"role": user.role},
     )
-    return TokenResponse(access_token=access_token, expires_in_minutes=settings.jwt_expiry_minutes)
+    return TokenResponse(
+        access_token=access_token,
+        expires_in_minutes=settings.jwt_expiry_minutes,
+        mfa_remember_token=remember_raw_token,
+        mfa_remember_expires_at=remember_expires_at,
+    )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
+    x_mfa_remember_token: str | None = Header(default=None, alias="X-MFA-Remember-Token"),
 ):
     """Purely an audit hook — JWTs are stateless, so there is no server-side
     session to actually invalidate; the frontend just discards its token.
-    See docs/decisions-log.md."""
+    See docs/decisions-log.md.
+
+    Also revokes this browser's MFA remember token (if the frontend sends
+    one via X-MFA-Remember-Token, same header as POST /auth/login) so a
+    deliberate logout can't be followed by an MFA-skipped login — see
+    docs/decisions-log.md."""
+    remember_token = mfa_remember_service.find_valid_token(db, user.id, x_mfa_remember_token)
+    if remember_token is not None:
+        mfa_remember_service.revoke_token(db, remember_token)
+
     audit_service.log_action(
         db, "user.logout", f"'{user.username}' logged out", user_id=user.id,
     )
@@ -616,8 +677,29 @@ def reject_user(
 
 
 @router.get("/me", response_model=UserOut)
-def me(user: User = Depends(get_current_user)):
-    return user
+def me(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return UserOut.model_validate(user).model_copy(
+        update={
+            "session_timeout_minutes": mfa_remember_service.get_session_timeout_minutes(db),
+            "mfa_remember_active": mfa_remember_service.has_active_token(db, user.id),
+        }
+    )
+
+
+@router.delete("/mfa-remember", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_mfa_remember(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Revokes every active MFA remember token for the current user —
+    available to any logged-in user, e.g. from the Profile page's "Revoke"
+    button, to force a full MFA check on their next login regardless of
+    which device the remembered session lives on. See docs/decisions-log.md."""
+    mfa_remember_service.revoke_all_for_user(db, user.id)
+    audit_service.log_action(
+        db, "user.mfa_remember_revoked", f"'{user.username}' revoked their remembered MFA session",
+        user_id=user.id,
+    )
 
 
 @router.post("/welcome/dismiss", response_model=UserOut)

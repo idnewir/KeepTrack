@@ -39,6 +39,10 @@ class UserOut(BaseModel):
     is_active: bool = True
     must_change_password: bool = False
     has_seen_welcome: bool = False
+    # Both computed server-side per-request in GET /auth/me — not columns on
+    # User itself. See docs/decisions-log.md.
+    session_timeout_minutes: int | None = None
+    mfa_remember_active: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -70,17 +74,28 @@ class LoginResponse(BaseModel):
     expires_in_minutes: int
     temp_token: str | None = None
     access_token: str | None = None
+    # Only set alongside mfa_required=true — lets the MFA page render "Remember
+    # this session for [X] hours" without needing a full access token to call
+    # GET /settings. See docs/decisions-log.md.
+    mfa_remember_hours: int | None = None
 
 
 class MFAVerifyRequest(BaseModel):
     temp_token: str
     code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    # Opt-in (default False) — see docs/decisions-log.md.
+    remember_session: bool = False
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in_minutes: int
+    # Present only when the request had remember_session=true. The raw
+    # value is returned exactly once, here — mfa_remember_tokens stores
+    # only its SHA-256 hash and cannot reproduce it. See docs/decisions-log.md.
+    mfa_remember_token: str | None = None
+    mfa_remember_expires_at: datetime | None = None
 
 
 class RegisterRequest(BaseModel):

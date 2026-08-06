@@ -5,7 +5,9 @@ import { auditActionColor, formatDateTime } from '../../utils/format.js'
 import PaginationBar from '../PaginationBar.jsx'
 
 const ACTION_TYPES = [
-  'user.login', 'user.login_failed', 'user.logout', 'user.mfa_failed',
+  'user.login', 'user.login_failed', 'user.login_mfa_remembered', 'user.logout',
+  'user.mfa_failed', 'user.mfa_verified', 'user.mfa_verified_with_remember',
+  'user.mfa_remember_revoked',
   'user.created', 'user.approved', 'user.rejected', 'user.role_changed',
   'user.deactivated', 'user.reactivated', 'user.password_reset', 'user.password_changed',
   'invoice.uploaded', 'invoice.reviewed', 'invoice.signed', 'invoice.resigned',

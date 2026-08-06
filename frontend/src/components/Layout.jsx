@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import Header from './Header.jsx'
+import SessionTimeoutWarning from './SessionTimeoutWarning.jsx'
 import Sidebar from './Sidebar.jsx'
 import WelcomeOverlay from './WelcomeOverlay.jsx'
+import { useSessionTimeout } from '../hooks/useSessionTimeout.js'
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { secondsRemaining, stayLoggedIn } = useSessionTimeout()
 
   return (
     <div className="kt-app">
@@ -17,6 +20,7 @@ export default function Layout() {
         </main>
       </div>
       <WelcomeOverlay />
+      <SessionTimeoutWarning secondsRemaining={secondsRemaining} onStayLoggedIn={stayLoggedIn} />
     </div>
   )
 }

@@ -4,9 +4,10 @@ import AuthCard from '../components/AuthCard.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 
 export default function MFAPage() {
-  const { hasPendingMfa, verifyMfa } = useAuth()
+  const { hasPendingMfa, verifyMfa, mfaRememberHours } = useAuth()
   const navigate = useNavigate()
   const [code, setCode] = useState('')
+  const [rememberSession, setRememberSession] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -19,7 +20,7 @@ export default function MFAPage() {
     setError('')
     setSubmitting(true)
     try {
-      await verifyMfa(code)
+      await verifyMfa(code, rememberSession)
       navigate('/')
     } catch (err) {
       setError(err.message || 'Invalid code')
@@ -52,6 +53,18 @@ export default function MFAPage() {
             autoFocus
           />
         </div>
+
+        <label className="kt-auth-checkbox-row">
+          <input
+            type="checkbox"
+            checked={rememberSession}
+            onChange={(e) => setRememberSession(e.target.checked)}
+          />
+          <span>
+            Remember this session for {mfaRememberHours ?? 12} hour
+            {mfaRememberHours === 1 ? '' : 's'}
+          </span>
+        </label>
 
         <button
           className="kt-auth-button"

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { authApi } from '../utils/api.js'
+import { clearMfaRememberToken, getMfaRememberExpiry } from '../utils/mfaRemember.js'
 
 const ROLE_LABELS = {
   superadmin: 'Superadmin',
@@ -21,6 +22,23 @@ function formatMemberSince(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+function formatDateTime(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function formatSessionTimeout(minutes) {
+  if (!minutes) return 'Never'
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  const parts = []
+  if (hours) parts.push(`${hours} hour${hours === 1 ? '' : 's'}`)
+  if (mins) parts.push(`${mins} minute${mins === 1 ? '' : 's'}`)
+  return parts.join(' ') || '0 minutes'
+}
+
 export default function ProfilePage() {
   const { user, refreshUser, applyPasswordChange } = useAuth()
   const token = user?.token
@@ -37,6 +55,9 @@ export default function ProfilePage() {
   const [savingPassword, setSavingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState('')
+
+  const [revokingMfaRemember, setRevokingMfaRemember] = useState(false)
+  const [mfaRememberError, setMfaRememberError] = useState('')
 
   const handleSaveProfile = async (e) => {
     e.preventDefault()
@@ -82,6 +103,20 @@ export default function ProfilePage() {
       setPasswordError(err.message || 'Failed to change password')
     } finally {
       setSavingPassword(false)
+    }
+  }
+
+  const handleRevokeMfaRemember = async () => {
+    setMfaRememberError('')
+    setRevokingMfaRemember(true)
+    try {
+      await authApi.revokeMfaRemember(token)
+      clearMfaRememberToken()
+      await refreshUser()
+    } catch (err) {
+      setMfaRememberError(err.message || 'Failed to revoke remembered MFA session')
+    } finally {
+      setRevokingMfaRemember(false)
     }
   }
 
@@ -176,6 +211,45 @@ export default function ProfilePage() {
             {savingPassword ? 'Saving…' : 'Save'}
           </button>
         </form>
+      </div>
+
+      <h2 className="kt-panel-title">Session security</h2>
+      <div className="kt-settings-list">
+        {mfaRememberError && <div className="kt-auth-error" style={{ margin: '12px 16px 0' }}>{mfaRememberError}</div>}
+        <div className="kt-settings-row">
+          <div className="kt-settings-row-text">
+            <span className="kt-settings-row-title">Session timeout</span>
+          </div>
+          <span className="kt-settings-row-status">{formatSessionTimeout(user.session_timeout_minutes)}</span>
+        </div>
+        {user.role !== 'superadmin' && (
+          <div className="kt-settings-row">
+            <div className="kt-settings-row-text">
+              <span className="kt-settings-row-title">MFA remember status</span>
+              <p className="kt-settings-row-description">
+                {user.mfa_remember_active
+                  ? getMfaRememberExpiry()
+                    ? `MFA verification remembered — expires ${formatDateTime(getMfaRememberExpiry())}`
+                    : 'MFA verification remembered on this account.'
+                  : 'MFA required on next login.'}
+              </p>
+            </div>
+            {user.mfa_remember_active && (
+              <button
+                type="button"
+                className="kt-category-link-button kt-category-danger"
+                onClick={handleRevokeMfaRemember}
+                disabled={revokingMfaRemember}
+              >
+                {revokingMfaRemember ? 'Revoking…' : 'Revoke'}
+              </button>
+            )}
+          </div>
+        )}
+        <p className="kt-settings-row-description" style={{ padding: '12px 16px' }}>
+          Session timeout and MFA remember duration are configured by your Administrator in
+          Settings → Security.
+        </p>
       </div>
 
       <h2 className="kt-panel-title">Account info</h2>

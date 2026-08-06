@@ -93,6 +93,21 @@
   font-weight: 600;
 }
 
+.kt-auth-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--kt-text-secondary);
+  cursor: pointer;
+}
+
+.kt-auth-checkbox-row input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
 .kt-auth-button {
   margin-top: 4px;
   padding: 11px 16px;
@@ -125,6 +140,15 @@
   background: var(--kt-danger-bg);
   color: var(--kt-danger);
   border: 1px solid var(--kt-danger-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.kt-auth-notice {
+  background: rgba(var(--kt-primary-rgb), 0.08);
+  color: var(--kt-text);
+  border: 1px solid rgba(var(--kt-primary-rgb), 0.25);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 13px;
