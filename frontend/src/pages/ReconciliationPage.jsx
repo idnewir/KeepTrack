@@ -319,8 +319,10 @@ export default function ReconciliationPage() {
                   <span className="kt-metric-value">{formatCurrency(selected.reconciliation.actual_balance)}</span>
                 </div>
                 <div className={`kt-metric-card kt-tone-${discrepancyTone(selected.reconciliation.suggested_reason)}`}>
-                  <span className="kt-metric-label">Discrepancy</span>
-                  <span className="kt-metric-value">{formatCurrency(selected.reconciliation.discrepancy)}</span>
+                  <span className="kt-metric-label">
+                    {selected.reconciliation.is_stale ? 'Current discrepancy' : 'Discrepancy'}
+                  </span>
+                  <span className="kt-metric-value">{formatCurrency(selected.reconciliation.current_discrepancy)}</span>
                 </div>
               </>
             ) : canReconcile ? (
@@ -363,13 +365,32 @@ export default function ReconciliationPage() {
                     ⚠ Data changed since reconciliation
                   </button>
                   {staleDetailOpen && (
-                    <p className="kt-stale-banner-detail">
-                      This reconciliation may no longer be accurate. {selected.reconciliation.stale_reason} on{' '}
-                      {selected.reconciliation.stale_since
-                        ? new Date(selected.reconciliation.stale_since).toLocaleString('en-GB')
-                        : 'an unknown date'}
-                      . Edit this reconciliation to bring it up to date.
-                    </p>
+                    <div className="kt-stale-banner-detail">
+                      <p>
+                        This reconciliation may no longer be accurate. {selected.reconciliation.stale_reason} on{' '}
+                        {selected.reconciliation.stale_since
+                          ? new Date(selected.reconciliation.stale_since).toLocaleString('en-GB')
+                          : 'an unknown date'}
+                        . Edit this reconciliation to bring it up to date.
+                      </p>
+                      <ul className="kt-stale-banner-figures">
+                        <li>
+                          Original balance when reconciled:{' '}
+                          {formatCurrency(selected.reconciliation.original_calculated_balance)}
+                        </li>
+                        <li>
+                          Current calculated balance: {formatCurrency(selected.reconciliation.current_calculated_balance)}
+                        </li>
+                        <li>Current discrepancy: {formatCurrency(selected.reconciliation.current_discrepancy)}</li>
+                        <li>
+                          Change since reconciliation:{' '}
+                          {formatCurrency(
+                            Number(selected.reconciliation.current_calculated_balance) -
+                              Number(selected.reconciliation.original_calculated_balance)
+                          )}
+                        </li>
+                      </ul>
+                    </div>
                   )}
                 </div>
               )}
@@ -529,10 +550,10 @@ export default function ReconciliationPage() {
               {history.map((r) => (
                 <tr key={r.id} className={r.is_stale ? 'kt-history-row-stale' : ''}>
                   <td>{new Date(`${r.month}T00:00:00`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</td>
-                  <td>{formatCurrency(r.calculated_balance)}</td>
+                  <td>{formatCurrency(r.current_calculated_balance)}</td>
                   <td>{formatCurrency(r.actual_balance)}</td>
                   <td className={`kt-tone-${discrepancyTone(r.suggested_reason)}`}>
-                    {formatCurrency(r.discrepancy)}
+                    {formatCurrency(r.current_discrepancy)}
                   </td>
                   <td>
                     {r.is_stale ? (

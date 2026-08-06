@@ -287,9 +287,23 @@
 }
 
 .kt-stale-banner-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   font-size: 13px;
   color: var(--kt-text-secondary);
+}
+
+.kt-stale-banner-detail p {
   margin: 0;
+}
+
+.kt-stale-banner-figures {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding-left: 18px;
 }
 
 .kt-stale-edit-button {

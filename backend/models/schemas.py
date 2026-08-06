@@ -407,6 +407,14 @@ class ReconciliationOut(BaseModel):
     is_stale: bool = False
     stale_reason: str | None = None
     stale_since: datetime | None = None
+    # For a stale reconciliation, current_* is recalculated live against
+    # today's contributions/invoices while original_* is what was stored at
+    # submission time; for a non-stale one they're identical to
+    # calculated_balance/discrepancy. See docs/decisions-log.md.
+    original_calculated_balance: Decimal
+    current_calculated_balance: Decimal
+    original_discrepancy: Decimal
+    current_discrepancy: Decimal
 
 
 class ProjectOut(BaseModel):

@@ -42,6 +42,19 @@ def _filtered_reconciliations_query(db: Session, financial_year_id: int | None, 
 def _to_out(db: Session, row: MonthlyReconciliation) -> dict:
     reconciler = db.get(User, row.reconciled_by)
     editor = db.get(User, row.edited_by) if row.edited_by is not None else None
+
+    # A stale reconciliation's stored calculated_balance/discrepancy are
+    # frozen from submission time — recompute them live against today's
+    # contributions/invoices so the displayed figures actually reflect what
+    # changed. A non-stale reconciliation's stored figures are still current
+    # by definition, so skip the extra query. See docs/decisions-log.md.
+    if row.is_stale:
+        fy = db.get(FinancialYear, row.financial_year_id)
+        current_calculated_balance = calculated_balance_for_month(db, fy, row.month)
+    else:
+        current_calculated_balance = row.calculated_balance
+    current_discrepancy = row.actual_balance - current_calculated_balance
+
     return {
         "id": row.id,
         "financial_year_id": row.financial_year_id,
@@ -61,6 +74,10 @@ def _to_out(db: Session, row: MonthlyReconciliation) -> dict:
         "is_stale": row.is_stale,
         "stale_reason": row.stale_reason,
         "stale_since": row.stale_since,
+        "original_calculated_balance": row.calculated_balance,
+        "current_calculated_balance": current_calculated_balance,
+        "original_discrepancy": row.discrepancy,
+        "current_discrepancy": current_discrepancy,
     }
 
 
