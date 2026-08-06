@@ -544,12 +544,12 @@ function ClearAllModal({ token, totalCount, onClose, onCleared }) {
           )}
 
           <div className="kt-field" style={{ marginBottom: 16 }}>
-            <label htmlFor="clear-all-phrase">
-              Type <code>{CLEAR_ALL_PHRASE}</code> to confirm
-            </label>
+            <label htmlFor="clear-all-phrase">Type the phrase below to confirm</label>
+            <div className="kt-confirm-phrase-box">{CLEAR_ALL_PHRASE}</div>
             <input
               id="clear-all-phrase"
               type="text"
+              className="kt-confirm-phrase-input"
               value={phrase}
               onChange={(e) => setPhrase(e.target.value)}
               disabled={busy}

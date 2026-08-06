@@ -743,6 +743,24 @@
   margin-top: 20px;
 }
 
+.kt-confirm-phrase-box {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--kt-text);
+  user-select: all;
+}
+
+.kt-confirm-phrase-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .kt-temp-password-box {
   display: flex;
   align-items: center;
