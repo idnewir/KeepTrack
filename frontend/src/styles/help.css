@@ -1,0 +1,241 @@
+/* Help section */
+
+.kt-help-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 14px;
+  color: var(--kt-text-muted);
+}
+
+.kt-help-search input {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--kt-text);
+  background: none;
+  border: none;
+  outline: none;
+}
+
+.kt-help-search input::placeholder {
+  color: var(--kt-text-muted);
+}
+
+.kt-help-search-clear {
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--kt-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+}
+
+.kt-help-search-clear:hover {
+  color: var(--kt-text);
+}
+
+.kt-help-no-results {
+  font-size: 13px;
+  color: var(--kt-text-muted);
+  padding: 8px 14px;
+}
+
+.kt-help-content-scroll {
+  position: relative;
+  max-height: calc(100vh - var(--kt-header-height) - 200px);
+  min-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.kt-help-content {
+  max-width: 720px;
+  color: var(--kt-text);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.kt-help-content > *:first-child {
+  margin-top: 0;
+}
+
+.kt-help-content h1,
+.kt-help-content h2 {
+  color: var(--kt-primary);
+  line-height: 1.3;
+}
+
+.kt-help-content h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.kt-help-content h2 {
+  font-size: 19px;
+  font-weight: 600;
+  margin: 32px 0 12px;
+}
+
+.kt-help-content h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--kt-text);
+  margin: 24px 0 10px;
+}
+
+.kt-help-content p {
+  margin: 0 0 14px;
+}
+
+.kt-help-content ul,
+.kt-help-content ol {
+  margin: 0 0 14px;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kt-help-content li {
+  margin: 0;
+}
+
+.kt-help-content strong {
+  font-weight: 600;
+  color: var(--kt-text);
+}
+
+.kt-help-content em {
+  font-style: italic;
+}
+
+.kt-help-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  border-radius: 4px;
+  padding: 2px 5px;
+}
+
+.kt-help-content pre {
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 0 0 14px;
+}
+
+.kt-help-content pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.kt-help-content a {
+  color: var(--kt-primary);
+  text-decoration: underline;
+  text-decoration-color: rgba(var(--kt-primary-rgb), 0.4);
+}
+
+.kt-help-content a:hover {
+  text-decoration-color: var(--kt-primary);
+}
+
+.kt-help-content blockquote {
+  margin: 0 0 14px;
+  padding: 4px 16px;
+  border-left: 3px solid var(--kt-border);
+  color: var(--kt-text-secondary);
+}
+
+.kt-help-content hr {
+  border: none;
+  border-top: 1px solid var(--kt-border);
+  margin: 24px 0;
+}
+
+.kt-help-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.kt-help-content th,
+.kt-help-content td {
+  text-align: left;
+  padding: 8px 12px;
+  border: 1px solid var(--kt-border);
+}
+
+.kt-help-content th {
+  background: var(--kt-background);
+  font-weight: 600;
+}
+
+.kt-help-back-to-top {
+  position: sticky;
+  bottom: 16px;
+  left: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kt-primary);
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transform: translateX(-100%);
+}
+
+.kt-help-back-to-top:hover {
+  border-color: var(--kt-primary);
+}
+
+/* Quick help icon on page headers */
+
+.kt-page-header {
+  position: relative;
+  padding-right: 36px;
+}
+
+.kt-help-quick-link {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--kt-text-muted);
+  border: 1px solid var(--kt-border);
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.kt-help-quick-link:hover {
+  color: var(--kt-primary);
+  border-color: var(--kt-primary);
+  background: rgba(var(--kt-primary-rgb), 0.08);
+}

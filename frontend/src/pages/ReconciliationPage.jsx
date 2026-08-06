@@ -5,6 +5,7 @@ import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { financialYearsApi, reconciliationApi, triggerBlobDownload } from '../utils/api.js'
 import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
+import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
 
 function discrepancyTone(reason) {
@@ -245,11 +246,14 @@ export default function ReconciliationPage() {
 
   return (
     <div>
-      <h1 className="kt-page-title">{termReconciliation}</h1>
-      <p className="kt-page-subtitle">
-        Compare the calculated balance against the actual bank balance for each month
-        {fy ? ` of financial year ${fy.label}` : ''}.
-      </p>
+      <div className="kt-page-header">
+        <h1 className="kt-page-title">{termReconciliation}</h1>
+        <p className="kt-page-subtitle">
+          Compare the calculated balance against the actual bank balance for each month
+          {fy ? ` of financial year ${fy.label}` : ''}.
+        </p>
+        <HelpIconLink topic="reconciliation-guide" />
+      </div>
 
       {error && (
         <div className="kt-auth-error" style={{ marginBottom: 20 }}>

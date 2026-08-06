@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import FinancialChart from '../components/FinancialChart.jsx'
+import HelpIconLink from '../components/HelpIconLink.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { dashboardApi } from '../utils/api.js'
@@ -165,11 +166,14 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <h1 className="kt-page-title">Dashboard</h1>
-      <p className="kt-page-subtitle">
-        Financial year {summary.financial_year.label} ({summary.financial_year.start_date} to{' '}
-        {summary.financial_year.end_date})
-      </p>
+      <div className="kt-page-header">
+        <h1 className="kt-page-title">Dashboard</h1>
+        <p className="kt-page-subtitle">
+          Financial year {summary.financial_year.label} ({summary.financial_year.start_date} to{' '}
+          {summary.financial_year.end_date})
+        </p>
+        <HelpIconLink topic="dashboard-guide" />
+      </div>
 
       {user?.role !== 'readonly' && (
         <div className="kt-quick-actions">

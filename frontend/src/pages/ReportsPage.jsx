@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js'
 import { categoriesApi, reportsApi, triggerBlobDownload } from '../utils/api.js'
+import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
 
 const REPORT_TYPES = [
@@ -164,10 +165,13 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <h1 className="kt-page-title">Reports</h1>
-      <p className="kt-page-subtitle">
-        Generate a professional, AI-summarised PDF report, and download anything you've generated before.
-      </p>
+      <div className="kt-page-header">
+        <h1 className="kt-page-title">Reports</h1>
+        <p className="kt-page-subtitle">
+          Generate a professional, AI-summarised PDF report, and download anything you've generated before.
+        </p>
+        <HelpIconLink topic="reports-guide" />
+      </div>
 
       {error && (
         <div className="kt-auth-error" style={{ marginBottom: 20 }}>

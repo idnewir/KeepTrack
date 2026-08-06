@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import HelpIconLink from '../components/HelpIconLink.jsx'
 import SettingsNav from '../components/settings/SettingsNav.jsx'
 import GeneralSettings from '../components/settings/GeneralSettings.jsx'
 import AppearanceSettings from '../components/settings/AppearanceSettings.jsx'
@@ -33,8 +34,11 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="kt-page-title">Settings</h1>
-      <p className="kt-page-subtitle">Configure how Keep Track behaves for everyone.</p>
+      <div className="kt-page-header">
+        <h1 className="kt-page-title">Settings</h1>
+        <p className="kt-page-subtitle">Configure how Keep Track behaves for everyone.</p>
+        <HelpIconLink topic="settings-guide" />
+      </div>
 
       <div className={`kt-settings-shell${mobileShowContent ? ' show-content' : ''}`}>
         <div className="kt-settings-track">

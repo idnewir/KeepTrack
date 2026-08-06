@@ -13,6 +13,7 @@ import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
 import ContributionsPage from './pages/ContributionsPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import ForecastBreakdownPage from './pages/ForecastBreakdownPage.jsx'
+import HelpPage from './pages/HelpPage.jsx'
 import ImportPage from './pages/ImportPage.jsx'
 import InvoiceDetailPage from './pages/InvoiceDetailPage.jsx'
 import InvoicesPage from './pages/InvoicesPage.jsx'
@@ -88,6 +89,7 @@ export default function App() {
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/:id" element={<ProjectDetailPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/help" element={<HelpPage />} />
             <Route
               path="/settings"
               element={

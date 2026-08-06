@@ -5,6 +5,7 @@ import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { contributionsApi, financialYearsApi, triggerBlobDownload } from '../utils/api.js'
 import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
+import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
 
 export default function ContributionsPage() {
@@ -228,11 +229,14 @@ export default function ContributionsPage() {
 
   return (
     <div>
-      <h1 className="kt-page-title">{INCOME_LABEL}</h1>
-      <p className="kt-page-subtitle">
-        Record monthly {INCOME_LABEL.toLowerCase()} by group or source
-        {fy ? ` for financial year ${fy.label}` : ''}.
-      </p>
+      <div className="kt-page-header">
+        <h1 className="kt-page-title">{INCOME_LABEL}</h1>
+        <p className="kt-page-subtitle">
+          Record monthly {INCOME_LABEL.toLowerCase()} by group or source
+          {fy ? ` for financial year ${fy.label}` : ''}.
+        </p>
+        <HelpIconLink topic="managing-contributions" />
+      </div>
 
       {error && (
         <div className="kt-auth-error" style={{ marginBottom: 20 }}>

@@ -270,6 +270,12 @@
   color: #fff;
 }
 
+.kt-nav-divider {
+  height: 1px;
+  background: var(--kt-border);
+  margin: 12px 14px;
+}
+
 .kt-main {
   flex: 1;
   padding: 24px 32px 32px;

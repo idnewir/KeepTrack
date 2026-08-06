@@ -5,6 +5,7 @@ import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { categoriesApi, invoicesApi, projectsApi, triggerBlobDownload } from '../utils/api.js'
 import { singularize } from '../utils/format.js'
+import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
 
 const REVIEWED_OPTIONS = [
@@ -140,7 +141,7 @@ export default function InvoicesPage() {
 
   return (
     <div>
-      <div className="kt-invoices-header">
+      <div className="kt-invoices-header kt-page-header">
         <div>
           <h1 className="kt-page-title">{termExpenses}</h1>
           <p className="kt-page-subtitle">Every {expenseSingularLower} on file, with its review status.</p>
@@ -150,6 +151,7 @@ export default function InvoicesPage() {
             + Upload {expenseSingularLower}
           </Link>
         )}
+        <HelpIconLink topic="uploading-invoices" />
       </div>
 
       <div className="kt-invoices-filters">
