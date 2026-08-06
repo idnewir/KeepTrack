@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { authApi, profileApi } from '../../utils/api.js'
 import Avatar, { invalidateAvatarCache } from '../Avatar.jsx'
 
@@ -23,6 +23,18 @@ export default function AvatarSection({ user, token, onChanged }) {
   const [urlValue, setUrlValue] = useState(user.avatar_url || '')
   const [savingUrl, setSavingUrl] = useState(false)
   const [urlError, setUrlError] = useState('')
+
+  // Keeps the URL field in sync when avatar_url changes from outside this
+  // component's own save/clear actions below — most notably, uploading a
+  // picture (the Upload image tab) clears avatar_url server-side, and
+  // without this the URL field would keep showing whatever was last typed
+  // here even though it no longer reflects the saved state. Only resyncs
+  // when the saved value actually changes, so it doesn't clobber the field
+  // while the user is still typing an unsaved edit.
+  useEffect(() => {
+    setUrlValue(user.avatar_url || '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.avatar_url])
 
   const afterChange = async () => {
     invalidateAvatarCache(user.id)

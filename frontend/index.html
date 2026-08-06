@@ -17,11 +17,18 @@
       link), which by definition isn't known in advance and can't be
       allowlisted by domain. See docs/decisions-log.md.
       connect-src is widened to the configured API origin below since the
-      frontend and backend can run on different hosts/ports.
+      frontend and backend can run on different hosts/ports, and also to any
+      https: origin for the same reason as img-src above: components/Avatar.jsx
+      loads an avatar via fetch() (not a plain <img src>, since GET
+      /profile/avatar/{id} requires an Authorization header) and that fetch
+      follows the backend's redirect straight through to the external
+      avatar_url host when one is set — connect-src (not img-src) governs
+      that redirected connection, since the request was initiated by script.
+      See docs/decisions-log.md.
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' %VITE_API_BASE_URL%; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' %VITE_API_BASE_URL% https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     />
   </head>
   <body>
