@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useModules } from '../context/ModulesContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import SigningPanel from '../components/SigningPanel.jsx'
 import { categoriesApi, invoicesApi, settingsApi } from '../utils/api.js'
@@ -13,6 +14,7 @@ export default function InvoiceDetailPage() {
   const navigate = useNavigate()
   const canEdit = user?.role !== 'readonly'
   const canDelete = user?.role === 'admin' || user?.role === 'superadmin'
+  const { isEnabled } = useModules()
   const { term_expenses: termExpenses } = useTerminology()
   const expensesLower = termExpenses.toLowerCase()
   const expenseSingular = singularize(termExpenses)
@@ -21,12 +23,18 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState(null)
   const [categories, setCategories] = useState([])
   const [signingEnabled, setSigningEnabled] = useState(true)
+  // Feature Modules is the authoritative toggle — Sign never appears once
+  // signing_export is disabled, regardless of the older app-wide
+  // signing_enabled setting above. Same combination ReviewCard.jsx already
+  // applies during the initial upload review — see docs/decisions-log.md.
+  const effectiveSigningEnabled = signingEnabled && isEnabled('signing_export')
   const [folderOutputAvailable, setFolderOutputAvailable] = useState(false)
   const [exportingToFolder, setExportingToFolder] = useState(false)
   const [exportResult, setExportResult] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [downloadingSigned, setDownloadingSigned] = useState(false)
@@ -107,6 +115,24 @@ export default function InvoiceDetailPage() {
       setError(err.message || 'Failed to save changes')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Confirms an invoice that landed in the system without ever going
+  // through UploadPage's ReviewCard flow (watched folder, or a manual
+  // upload the user navigated away from before confirming) — this is the
+  // only place those invoices can reach reviewed=true and become eligible
+  // for signing. See docs/decisions-log.md.
+  const handleConfirm = async () => {
+    setError('')
+    setConfirming(true)
+    try {
+      const updated = await invoicesApi.confirm(invoice.id, token)
+      setInvoice(updated)
+    } catch (err) {
+      setError(err.message || 'Failed to confirm invoice')
+    } finally {
+      setConfirming(false)
     }
   }
 
@@ -243,7 +269,15 @@ export default function InvoiceDetailPage() {
         {invoice.signed ? ' · Signed' : ''}
       </p>
 
-      {canEdit && signingEnabled && invoice.reviewed && (
+      {canEdit && !invoice.reviewed && (
+        <p>
+          <button type="button" className="kt-auth-button" onClick={handleConfirm} disabled={confirming}>
+            {confirming ? 'Confirming…' : 'Confirm'}
+          </button>
+        </p>
+      )}
+
+      {canEdit && effectiveSigningEnabled && invoice.reviewed && (
         <p>
           <button
             type="button"
