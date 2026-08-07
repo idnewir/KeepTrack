@@ -35,6 +35,7 @@ services:
       - ./user-guides:/app/user-guides:ro
       - invoice_storage:/data/invoices
       - watched_folder:/data/watched
+      - output_folder:/data/output
       - report_storage:/data/reports
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -56,22 +57,15 @@ services:
     depends_on:
       - backend
 
-  watched-folder-watcher:
-    build:
-      context: ./backend
-    restart: unless-stopped
-    command: ["python", "-m", "services.folder_watcher"]
-    env_file:
-      - .env
-    volumes:
-      - ./backend:/app
-      - watched_folder:/data/watched
-      - invoice_storage:/data/invoices
-    depends_on:
-      - backend
-
 volumes:
   postgres_data:
   invoice_storage:
+  # Default local mount point for Folder Integration's input folder — set
+  # Settings -> Data -> Folder Integration's local path to /data/watched (or
+  # any other path bind-mounted here) to use it. See
+  # user-guides/folder-integration.md.
   watched_folder:
+  # Default local mount point for Folder Integration's output folder, same
+  # pattern as watched_folder above.
+  output_folder:
   report_storage:

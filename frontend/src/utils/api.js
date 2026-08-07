@@ -480,6 +480,28 @@ export const invoicesApi = {
   downloadSignedPdf: (id, token) => requestBlob(`/invoices/${id}/signed-pdf`, { token }),
   getOriginalPdf: (id, token) => requestBlob(`/invoices/${id}/original-pdf`, { token }),
   getPreview: (id, token) => requestBlob(`/invoices/${id}/preview`, { token }),
+  exportToFolder: (id, token) => request(`/invoices/${id}/export-to-folder`, { method: 'POST', token }),
+}
+
+export const folderApi = {
+  status: (token) => request('/folder/status', { token }),
+  log: (params = {}, token) => {
+    const query = new URLSearchParams()
+    if (params.status) query.set('log_status', params.status)
+    if (params.page) query.set('page', params.page)
+    if (params.perPage !== undefined) query.set('per_page', params.perPage)
+    const qs = query.toString()
+    return request(`/folder/log${qs ? `?${qs}` : ''}`, { token })
+  },
+  config: (token) => request('/folder/config', { token }),
+  updateInputConfig: (payload, token) =>
+    request('/folder/input-config', { method: 'PUT', body: payload, token }),
+  updateOutputConfig: (payload, token) =>
+    request('/folder/output-config', { method: 'PUT', body: payload, token }),
+  testInput: (token) => request('/folder/test-input', { method: 'POST', token }),
+  testOutput: (token) => request('/folder/test-output', { method: 'POST', token }),
+  overrideDuplicate: (filename, token) =>
+    request('/folder/override-duplicate', { method: 'POST', body: { filename }, token }),
 }
 
 export const importsApi = {

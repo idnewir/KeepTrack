@@ -31,7 +31,7 @@ COPY . .
 # reports, and backups (see docker-compose.yml's mounted volumes), so it
 # needs to be owned by the same user the app runs as.
 RUN groupadd --system keeptrack && useradd --system --gid keeptrack --home-dir /app keeptrack \
-    && mkdir -p /data/invoices /data/watched /data/reports \
+    && mkdir -p /data/invoices /data/watched /data/output /data/reports \
     && chown -R keeptrack:keeptrack /app /data
 USER keeptrack
 

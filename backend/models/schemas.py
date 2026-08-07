@@ -218,6 +218,7 @@ class InvoiceOut(BaseModel):
     project_name: str | None = None
     is_historical: bool = False
     import_batch_id: str | None = None
+    import_source: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -965,3 +966,106 @@ class FeatureModuleLabelUpdate(BaseModel):
     # that prompt writes back, so it gets its own narrow schema rather than
     # reusing FeatureModuleUpdate.
     label: str = Field(min_length=1, max_length=100)
+
+
+# ---------------------------------------------------------------------------
+# Folder Integration (backend/routers/folder.py)
+# ---------------------------------------------------------------------------
+
+class FolderSideConfigOut(BaseModel):
+    """One side (input or output) of GET /folder/config — never carries the
+    SMB password itself, only whether one is set, same pattern as
+    AIConfigOut.api_key_set."""
+    enabled: bool
+    type: str  # "local" | "smb"
+    path: str | None
+    smb_server: str | None
+    smb_share: str | None
+    smb_username: str | None
+    smb_password_set: bool
+    smb_guest: bool
+
+
+class FolderConfigOut(BaseModel):
+    input: FolderSideConfigOut
+    output: FolderSideConfigOut
+    poll_interval: int
+    output_behaviour: str
+
+
+class FolderInputConfigUpdate(BaseModel):
+    enabled: bool = False
+    type: str = Field(default="local", pattern="^(local|smb)$")
+    path: str | None = Field(default=None, max_length=500)
+    smb_server: str | None = Field(default=None, max_length=255)
+    smb_share: str | None = Field(default=None, max_length=255)
+    smb_username: str | None = Field(default=None, max_length=255)
+    # None/omitted = leave the stored password unchanged; "" clears it.
+    smb_password: str | None = Field(default=None, max_length=500)
+    smb_guest: bool = False
+    poll_interval: int = 60
+
+
+class FolderOutputConfigUpdate(BaseModel):
+    enabled: bool = False
+    type: str = Field(default="local", pattern="^(local|smb)$")
+    path: str | None = Field(default=None, max_length=500)
+    smb_server: str | None = Field(default=None, max_length=255)
+    smb_share: str | None = Field(default=None, max_length=255)
+    smb_username: str | None = Field(default=None, max_length=255)
+    smb_password: str | None = Field(default=None, max_length=500)
+    smb_guest: bool = False
+    behaviour: str = Field(default="both", pattern="^(browser_only|folder_only|both)$")
+
+
+class FolderTestResultOut(BaseModel):
+    success: bool
+    file_count: int | None = None
+    error: str | None = None
+
+
+class FolderWatcherLogOut(BaseModel):
+    id: int
+    event_type: str
+    filename: str
+    status: str
+    message: str | None
+    invoice_id: int | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class FolderSideStatusOut(BaseModel):
+    enabled: bool
+    type: str
+    configured: bool
+
+
+class FolderInputStatusOut(FolderSideStatusOut):
+    last_poll: datetime | None
+    next_poll: datetime | None
+    files_processed_today: int
+
+
+class FolderOutputStatusOut(FolderSideStatusOut):
+    files_written_today: int
+
+
+class FolderStatusOut(BaseModel):
+    input: FolderInputStatusOut
+    output: FolderOutputStatusOut
+    recent_log: list[FolderWatcherLogOut]
+
+
+class FolderOverrideDuplicateRequest(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+
+
+class FolderOutputWriteResultOut(BaseModel):
+    """POST /invoices/{id}/export-to-folder's response — the same shape
+    services/folder_watcher_service.write_to_output_folder returns
+    internally."""
+    written: bool
+    path: str | None
+    error: str | None

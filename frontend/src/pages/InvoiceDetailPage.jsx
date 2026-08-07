@@ -21,6 +21,9 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState(null)
   const [categories, setCategories] = useState([])
   const [signingEnabled, setSigningEnabled] = useState(true)
+  const [folderOutputAvailable, setFolderOutputAvailable] = useState(false)
+  const [exportingToFolder, setExportingToFolder] = useState(false)
+  const [exportResult, setExportResult] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -50,6 +53,18 @@ export default function InvoiceDetailPage() {
       .then((rows) => {
         const signing = rows.find((row) => row.key === 'signing_enabled')
         setSigningEnabled(signing ? signing.value === 'true' : true)
+
+        // "Export to output folder" only makes sense when the output folder
+        // is both enabled and not set to browser-only (see
+        // routers/invoices.py's POST /{id}/export-to-folder, which would
+        // otherwise just 400). Read off the same settings list every
+        // authenticated role can already fetch, rather than the Admin-only
+        // GET /folder/status.
+        const outputEnabled = rows.find((row) => row.key === 'folder_output_enabled')
+        const outputBehaviour = rows.find((row) => row.key === 'folder_output_behaviour')
+        setFolderOutputAvailable(
+          outputEnabled?.value === 'true' && outputBehaviour?.value !== 'browser_only'
+        )
       })
       .catch(() => setSigningEnabled(true))
   }, [token])
@@ -149,6 +164,19 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  const handleExportToFolder = async () => {
+    setExportResult(null)
+    setExportingToFolder(true)
+    try {
+      const result = await invoicesApi.exportToFolder(invoice.id, token)
+      setExportResult({ success: true, path: result.path })
+    } catch (err) {
+      setExportResult({ success: false, error: err.message || 'Failed to export to output folder' })
+    } finally {
+      setExportingToFolder(false)
+    }
+  }
+
   const handleUnlinkProject = async () => {
     setError('')
     setUnlinking(true)
@@ -242,6 +270,25 @@ export default function InvoiceDetailPage() {
           >
             {downloadingSigned ? 'Downloading…' : 'Download signed PDF'}
           </button>
+          {folderOutputAvailable && (
+            <button
+              type="button"
+              className="kt-category-link-button"
+              onClick={handleExportToFolder}
+              disabled={exportingToFolder}
+              style={{ marginLeft: 12 }}
+            >
+              {exportingToFolder ? 'Exporting…' : 'Export to output folder'}
+            </button>
+          )}
+        </p>
+      )}
+
+      {exportResult && (
+        <p className={exportResult.success ? 'kt-profile-success' : 'kt-auth-error'}>
+          {exportResult.success
+            ? `Saved to output folder: ${exportResult.path}`
+            : exportResult.error}
         </p>
       )}
 

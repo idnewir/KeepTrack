@@ -17,8 +17,8 @@ const SETUP_PROMPTS = {
   },
   folder_integration: {
     body: 'Configure your input and output folder paths.',
-    settingsPath: '/settings?section=storage',
-    settingsLabel: 'Go to Settings → Data → Storage & Backup',
+    settingsPath: '/settings?section=folder',
+    settingsLabel: 'Go to Settings → Data → Folder Integration',
   },
   debt_tracking: { renamable: true },
   budget_planning: { renamable: true },

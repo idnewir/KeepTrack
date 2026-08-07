@@ -11,6 +11,7 @@ import UsersSettings from '../components/settings/UsersSettings.jsx'
 import NotificationsLogsSettings from '../components/settings/NotificationsLogsSettings.jsx'
 import StorageBackupSettings from '../components/settings/StorageBackupSettings.jsx'
 import ImportSettings from '../components/settings/ImportSettings.jsx'
+import FolderIntegrationSettings from '../components/settings/FolderIntegrationSettings.jsx'
 import SystemResetSettings from '../components/settings/SystemResetSettings.jsx'
 
 export default function SettingsPage() {
@@ -66,6 +67,7 @@ export default function SettingsPage() {
                 <NotificationsLogsSettings token={token} initialTab={searchParams.get('tab')} />
               )}
               {activeCategory === 'import' && <ImportSettings token={token} />}
+              {activeCategory === 'folder' && <FolderIntegrationSettings token={token} />}
               {activeCategory === 'storage' && <StorageBackupSettings token={token} />}
               {activeCategory === 'system-reset' && <SystemResetSettings />}
             </div>

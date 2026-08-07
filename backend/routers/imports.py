@@ -72,6 +72,7 @@ def _invoice_to_out(db: Session, invoice: Invoice) -> dict:
         "project_name": project_name,
         "is_historical": invoice.is_historical,
         "import_batch_id": invoice.import_batch_id,
+        "import_source": invoice.import_source,
     }
 
 

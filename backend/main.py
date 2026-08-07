@@ -15,6 +15,7 @@ from routers.categories import router as categories_router
 from routers.contributions import router as contributions_router
 from routers.dashboard import router as dashboard_router
 from routers.financial_years import router as financial_years_router
+from routers.folder import router as folder_router
 from routers.help import router as help_router
 from routers.imports import router as imports_router
 from routers.invoices import router as invoices_router
@@ -29,7 +30,7 @@ from routers.search import router as search_router
 from routers.settings import router as settings_router
 from routers.storage import router as storage_router
 from routers.system import router as system_router
-from services import backup_service, error_service, maintenance_service, profile_service, storage_service
+from services import backup_service, error_service, folder_watcher_service, maintenance_service, profile_service, storage_service
 from services.auth_service import ensure_superadmin
 from version import APP_VERSION
 
@@ -143,6 +144,7 @@ app.include_router(categories_router)
 app.include_router(contributions_router)
 app.include_router(dashboard_router)
 app.include_router(financial_years_router)
+app.include_router(folder_router)
 app.include_router(help_router)
 app.include_router(imports_router)
 app.include_router(invoices_router)
@@ -225,6 +227,12 @@ def on_startup():
     # backup runs within a minute of 2am rather than needing separate
     # infrastructure (cron, Celery beat). See services/maintenance_service.py.
     maintenance_service.start_backup_scheduler()
+
+    # Folder Integration input watcher: polls the configured input folder
+    # (local or SMB) on its own interval, independent of the
+    # folder_integration feature module's enabled state — see
+    # services/folder_watcher_service.py and docs/decisions-log.md.
+    folder_watcher_service.start_watcher()
 
 
 @app.get("/health")

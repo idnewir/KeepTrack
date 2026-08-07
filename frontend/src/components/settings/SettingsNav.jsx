@@ -22,6 +22,7 @@ export const SETTINGS_CATEGORIES = [
       // when its module is disabled, per the "Import link hidden when
       // bulk_import disabled" requirement. See docs/decisions-log.md.
       { key: 'import', label: 'Import Data', moduleKey: 'bulk_import' },
+      { key: 'folder', label: 'Folder Integration', moduleKey: 'folder_integration' },
       { key: 'storage', label: 'Storage & Backup' },
       { key: 'system-reset', label: 'System Reset', danger: true },
     ],

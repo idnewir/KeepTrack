@@ -12,12 +12,20 @@ from models.category import Category
 from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
 from models.planned_project import PlannedProject
-from models.schemas import InvoiceConfirmRequest, InvoiceOut, InvoiceSignRequest, InvoiceUpdate, PaginatedResponse
+from models.schemas import (
+    FolderOutputWriteResultOut,
+    InvoiceConfirmRequest,
+    InvoiceOut,
+    InvoiceSignRequest,
+    InvoiceUpdate,
+    PaginatedResponse,
+)
 from models.user import User
 from services import audit_service, error_service, financial_year_service as fy_service
 from services.ai_provider_service import extract_invoice_data
 from services.ai_service import check_duplicate
 from services.export_pdf_service import generate_table_export_pdf
+from services.folder_watcher_service import write_to_output_folder
 from services.preview_service import render_pdf_first_page_png
 from services.reconciliation_service import mark_reconciliation_stale
 from services.settings_service import get_site_name, is_signing_enabled
@@ -62,6 +70,7 @@ def _invoice_to_out(db: Session, invoice: Invoice, project_names: dict[int, str]
         "project_name": project_name,
         "is_historical": invoice.is_historical,
         "import_batch_id": invoice.import_batch_id,
+        "import_source": invoice.import_source,
     }
 
 
@@ -504,6 +513,13 @@ def sign_invoice(
             db, "invoice.signed", f"Signed invoice '{invoice.filename}'",
             user_id=user.id, affected_table="invoices", affected_record_id=invoice.id,
         )
+
+    # No-ops internally (and never raises) when Folder Integration's output
+    # folder is disabled or set to browser-only, so it's safe to call
+    # unconditionally here rather than duplicating its enabled/behaviour
+    # check in this router. See services/folder_watcher_service.py.
+    write_to_output_folder(db, invoice.id, signed_path)
+
     return _invoice_to_out(db, invoice)
 
 
@@ -562,6 +578,31 @@ def get_invoice_preview(
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Could not render a preview of this PDF") from exc
 
     return Response(content=png_bytes, media_type="image/png")
+
+
+@router.post("/{invoice_id}/export-to-folder", response_model=FolderOutputWriteResultOut)
+def export_invoice_to_folder(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_standard),
+):
+    """Manual retry/export button on the invoice detail page — calls the
+    same writer POST /invoices/{id}/sign already calls automatically, for
+    an invoice already signed (e.g. after fixing a connection problem, or
+    for an invoice signed before the output folder was configured)."""
+    invoice = db.get(Invoice, invoice_id)
+    if invoice is None or invoice.deleted:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Invoice not found")
+    if not invoice.signed or not invoice.signed_pdf_path:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This invoice has not been signed")
+
+    result = write_to_output_folder(db, invoice.id, invoice.signed_pdf_path)
+    if not result["written"]:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            result["error"] or "The output folder is disabled or set to browser-only",
+        )
+    return result
 
 
 @router.get("/{invoice_id}/signed-pdf")

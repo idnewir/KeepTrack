@@ -2,7 +2,7 @@
 
 ## Overview
 
-Keep Track is a containerised web application with a React single-page frontend, a Python FastAPI backend, a PostgreSQL database, and a background folder-watcher process. All components run as Docker containers, orchestrated with docker-compose for development and deployable to a k3s cluster for production.
+Keep Track is a containerised web application with a React single-page frontend, a Python FastAPI backend (which also runs the folder-watcher and other background jobs as threads within it), and a PostgreSQL database. All components run as Docker containers, orchestrated with docker-compose for development and deployable to a k3s cluster for production.
 
 ```
 ┌────────────┐      HTTPS      ┌────────────┐        SQL        ┌────────────┐
@@ -12,9 +12,9 @@ Keep Track is a containerised web application with a React single-page frontend,
                                        │
                          ┌─────────────┼─────────────┐
                          ▼             ▼             ▼
-                  AI provider     Local filesystem   Watched folder
-                  (extraction &   (PDF storage:      watcher (inotify,
-                   report text)    original+signed)   SMB/NFS share)
+                  AI provider     Local filesystem   Folder watcher thread
+                  (extraction &   (PDF storage:      (polls local/SMB input
+                   report text)    original+signed)   + output folders)
 ```
 
 ## Frontend
@@ -74,7 +74,7 @@ Keep Track is a containerised web application with a React single-page frontend,
 
 ## Containerisation & Deployment
 
-- **Local/dev:** Docker + docker-compose (`docker-compose.yml` at the project root) — spins up `frontend`, `backend`, `postgres`, and `watched-folder-watcher` services.
+- **Local/dev:** Docker + docker-compose (`docker-compose.yml` at the project root) — spins up `frontend`, `backend`, and `postgres` services. The folder watcher runs as a background thread inside `backend` (see Watched Folder, below), not a separate container.
 - **Production:** deployable to a k3s cluster (e.g. self-hosted on Proxmox), using the same container images with Kubernetes manifests layered on top of the compose definitions.
 
 ## Storage
@@ -82,8 +82,8 @@ Keep Track is a containerised web application with a React single-page frontend,
 - **PDFs:** stored on the local filesystem of the backend host/container, in a mounted volume — original uploads and signed exports kept separately.
 - **Database:** structured data (users, invoices metadata, categories, contributions, reconciliations, projects, notifications) lives in PostgreSQL; the PDF files themselves are referenced by path, not stored as blobs in the database.
 
-## Watched Folder
+## Folder Integration
 
-- A separate lightweight service (`watched-folder-watcher`) uses inotify (Linux) to monitor a configured SMB/NFS-mounted folder for new PDF files.
-- When a new file appears, the watcher notifies the backend (via an internal API call or shared queue), which runs the same extraction/review pipeline as a manual upload.
-- The watched folder path is configurable from Settings (see [features.md](features.md#8-settings)).
+- A background thread inside the `backend` container (`services/folder_watcher_service.py`, started from `main.py`'s startup hook — the same plain `threading.Thread` + sleep-loop pattern as `services/maintenance_service.py`'s retention scheduler, not APScheduler) polls a configured **local** (Docker volume) or **SMB** (connected to directly via `smbclient`/`smbprotocol` — no OS-level mount) input folder on a configurable interval, and runs any PDF found through the same extraction/review pipeline as a manual upload. NFS shares are used by mounting them at the OS level and pointing the local-path option at the resulting mount (see `docs/decisions-log.md`).
+- A separate output writer (`folder_watcher_service.write_to_output_folder`) saves signed PDFs to a second configured folder, organised by financial year and month.
+- Both the input and output folders are configurable from **Settings → Data → Folder Integration** (see [features.md](features.md#11-folder-integration)), gated behind the `folder_integration` [feature module](features.md#9-feature-modules) — off by default. The watcher thread itself always runs regardless of the module's enabled state (see Feature Modules, above); only the configuration UI and API are gated.

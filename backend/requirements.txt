@@ -38,3 +38,9 @@ openai==1.51.0
 google-generativeai==0.8.3
 mistralai==1.1.0
 cohere==5.11.1
+
+# Folder Integration (services/folder_service.py) — connects directly to SMB
+# network shares over SMB2/3 (no OS-level mount point needed). Ships both
+# the low-level `smbprotocol` package and the high-level `smbclient`
+# (os/shutil-shaped) API this app actually calls.
+smbprotocol>=1.12.0

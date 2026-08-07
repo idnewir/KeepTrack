@@ -9,7 +9,7 @@ This document describes every feature area of Keep Track in detail. It is the re
 ### Getting invoices in
 - **Drag and drop** upload onto the Invoices page.
 - **Browse button** as a fallback for drag-and-drop.
-- **Watched folder** — a configured SMB/NFS network folder is monitored continuously; any PDF dropped there is picked up automatically and enters the same pipeline as a manual upload.
+- **Watched folder** — a configured local or SMB network folder is monitored continuously; any PDF dropped there is picked up automatically and enters the same pipeline as a manual upload. See [Folder Integration](#11-folder-integration), below.
 
 ### AI extraction
 - On upload, the backend sends the PDF (text and/or rendered image) to the Anthropic API, which extracts:
@@ -192,7 +192,7 @@ Accessible to Admins (and Superadmin); most settings are Admin-only, per [user-r
 - **Notification thresholds** — e.g. how many days an invoice can sit unconfirmed in review before it triggers a login notification.
 - **Category management** — add/edit/deactivate categories and their colours.
 - **User management** (Admin only) — approve pending users, assign/change roles, deactivate accounts.
-- **Watched folder path configuration** — set the SMB/NFS path the folder-watcher monitors.
+- **Folder Integration configuration** (Settings → Data → Folder Integration) — set up the watched input folder and the signed-PDF output folder. See [Folder Integration](#11-folder-integration), below.
 - **Financial year configuration** — set the start/end dates for financial years (default September–August) and manage the opening balance for a new year.
 
 ---
@@ -249,3 +249,32 @@ Every prompt has a "Skip for now" option — setup is never forced.
 - **Opening balance** for each month is carried forward automatically from the previous month's closing balance.
 - **Monthly reconciliation** against the actual bank balance, with discrepancy flagging and suggested reasons (see Financial Year & Balance, above).
 - **Total funds on hand** is always visible from the ledger view (and the dashboard).
+
+---
+
+## 11. Folder Integration
+
+A [feature module](#9-feature-modules), off by default. When enabled, gives Keep Track two independent, automatic file-handling flows on top of the manual upload/sign/export workflow — configured from **Settings → Data → Folder Integration**. Full walkthrough (including SMB/NFS setup) in [user-guides/folder-integration.md](../user-guides/folder-integration.md).
+
+### Input folder — automatic invoice import
+- A configured **local path** (a Docker volume mount) or **SMB network share** is polled on a configurable interval (30 seconds, 1 minute — default, 5 minutes, or 30 minutes).
+- Every PDF found directly in the folder's root (not inside `processed/`) is:
+  - Checked against a **filename-based duplicate history** — a file whose name has already been successfully imported is flagged (not reprocessed), with an Admin notification offering **View existing invoice** or **Process anyway**.
+  - Otherwise run through the same **AI extraction** pipeline as a manual upload, saved to the same original-PDF storage location, and turned into an invoice record.
+  - Classified as **historical** (added directly, marked reviewed, skips the review queue) or **needs review** (added to the review queue, same as a manual upload) by comparing its date against the [app start date setting](#8-settings) — see [decisions-log.md](decisions-log.md).
+  - Moved into a `processed/` subfolder of the input folder once successfully imported — never deleted.
+- A failure processing any individual file is logged, surfaced as an Admin notification, and the file is left in place (not moved to `processed/`) so the next poll retries it.
+- Every file the watcher sees — detected, completed, skipped, failed, duplicate-flagged, or duplicate-overridden — is recorded to a folder watcher log, visible as a live status panel (last poll, next poll, files processed today, recent activity) and a full paginated log view on the settings page.
+
+### Output folder — automatic signed PDF export
+- The same **local path** / **SMB network share** choice as the input folder, with its own independent configuration.
+- An **output behaviour** setting controls what happens when an invoice is signed: **browser download only** (the pre-existing behaviour), **save to folder only**, or **both** (the default once enabled).
+- Signed PDFs are written to `/FY{start year}-{end year}/{Month}/{supplier}_{invoice date}_{filename}.pdf` — e.g. `/FY2025-26/August/CoronaEnergy_2026-08-01_invoice.pdf`.
+- Writing happens automatically right after a successful sign (`POST /invoices/{id}/sign`), and can also be triggered manually from an already-signed invoice's detail page (**Export to output folder**) — useful as a retry after fixing a connection problem, or for an invoice signed before the output folder was configured.
+- A failed write is logged and surfaced as an Admin notification with a retry path (the manual export button above); it never blocks or undoes the signing action itself.
+
+### Connections
+- **Local** — a path mounted into the backend container as a Docker volume. Two default volumes (`watched_folder`, `output_folder`) ship in `docker-compose.yml`, mounted at `/data/watched` and `/data/output`; either can be bind-mounted to a real host path.
+- **SMB** — connected to directly (no OS-level mount needed), with optional guest access or a username/password (encrypted at rest). A connection timeout and automatic retry (3 attempts, 5 seconds apart) apply to every SMB connection attempt.
+- **NFS** — not connected to natively; mount the NFS share at the OS level and point Keep Track's **local path** option at the resulting mount instead. See the user guide for the Proxmox-specific note.
+- Both the input and output folder configuration screens have their own **Test connection** button, which reports success (with a file count, for input) or a specific error, without changing anything.

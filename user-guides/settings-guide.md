@@ -186,9 +186,11 @@ above.
 > automatically deleted. Store backups in a secure location — they contain all your data,
 > including user accounts.
 
-### Watched folder
+### Folder Integration
 
-Set the network folder path that Keep Track should watch for new invoice files (if your organisation uses this feature).
+To get there: **Settings → Data → Folder Integration** (Admin only; the [Folder Integration](feature-modules.md) module must be switched on first).
+
+Configure a watched input folder that Keep Track automatically imports new invoices from, and/or an output folder that signed PDFs are automatically saved to. Supports both local paths (Docker volumes) and SMB network shares, with connection testing, a live status panel, and an activity log. Full detail — including SMB and NFS setup steps, duplicate detection, and troubleshooting — is in the dedicated [Folder Integration](folder-integration.md) guide.
 
 ### Financial year
 

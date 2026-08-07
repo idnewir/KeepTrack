@@ -51,3 +51,8 @@ class Invoice(Base):
     # docs/decisions-log.md.
     is_historical = Column(Boolean, nullable=False, default=False, server_default="false")
     import_batch_id = Column(String(64), nullable=True, index=True)
+    # Set by services/folder_watcher_service.py to 'watched_folder' for
+    # invoices auto-imported from a watched input folder; null for manual
+    # uploads and bulk CSV/PDF imports (which already have import_batch_id).
+    # See docs/decisions-log.md.
+    import_source = Column(String(30), nullable=True)

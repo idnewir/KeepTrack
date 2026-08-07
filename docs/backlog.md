@@ -34,14 +34,6 @@ Things that are broken or incomplete in features that have already been built. T
 
 Features that have been designed and committed to for V1, but are not yet built. Unlike Section 1, these aren't broken — they simply don't exist yet. All of these are required before Keep Track goes to production.
 
-- **Folder Integration module:**
-  - Input watched folder — auto-import PDFs from a network folder.
-  - Output folder — auto-export signed PDFs when confirmed.
-  - Setup prompt on enable.
-  - Settings configuration in Settings → Data.
-  - Docker volume for folder mounts.
-  - User guide.
-
 - **Debt Tracking module** (toggleable, default OFF):
   - Flexible debt records (credit card, loan, mortgage, car finance, overdraft, BNPL, other).
   - Fields: name, type, current balance, credit limit, monthly payment, payment due date, start date, expected end date, interest rate, rate type (standard/promotional/0%), promotional end date, standard rate after promotion, notes.
@@ -99,6 +91,8 @@ Small improvements that make V1 feel complete and considered, but do not block l
 
 Longer-term ideas for future versions of Keep Track. These are explicitly out of scope for V1 — useful to keep visible so good ideas aren't lost, but none of them should be pulled into V1 scope without a deliberate decision to do so (and, if that happens, a note in [decisions-log.md](decisions-log.md) explaining why).
 
+- **Folder Integration housekeeping** — automated cleanup/archiving of the watched input folder's `processed/` subfolder (currently a manual task — see [user-guides/folder-integration.md](../user-guides/folder-integration.md)).
+- **Folder Integration output workflows** — beyond a raw filesystem/SMB write: email, Google Drive, SharePoint, or a webhook as additional (or alternative) output destinations for signed PDFs.
 - **Multi-account support** — track multiple bank accounts separately (current, savings, ISA, etc).
 - **SSL configuration in app** — Let's Encrypt auto-renewal and manual certificate upload via Settings.
 - **Secrets management** — move from `.env` to Docker secrets or k3s secrets.

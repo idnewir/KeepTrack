@@ -1,10 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
-import { notificationsApi } from '../utils/api.js'
+import { folderApi, notificationsApi } from '../utils/api.js'
 import { formatNotificationTime } from '../utils/format.js'
 
 const POLL_MS = 30000
+
+// This app's Notification model has no per-notification "actions" concept —
+// just a single `link`. Duplicate-detected notifications (see
+// services/folder_watcher_service.py's _duplicate_notification_link) pack
+// both the destination invoice (the link's path) and the original filename
+// (a duplicate_filename query param) into that one URL so this component can
+// render two buttons ("View existing invoice" / "Process anyway") from it
+// instead of navigating on click. See docs/decisions-log.md.
+function parseDuplicateLink(link) {
+  try {
+    const url = new URL(link || '', window.location.origin)
+    return { filename: url.searchParams.get('duplicate_filename') }
+  } catch {
+    return { filename: null }
+  }
+}
 
 function BellIcon() {
   return (
@@ -63,6 +79,8 @@ export default function NotificationBell() {
   const [shake, setShake] = useState(false)
   const wrapRef = useRef(null)
   const knownCountRef = useRef(0)
+  const [duplicateBusyId, setDuplicateBusyId] = useState(null)
+  const [duplicateErrors, setDuplicateErrors] = useState({})
 
   const fetchCount = useCallback(() => {
     if (!token) return
@@ -137,6 +155,27 @@ export default function NotificationBell() {
     notificationsApi.markAllRead(token).catch(() => {})
   }
 
+  const handleProcessAnyway = async (e, notification) => {
+    e.stopPropagation()
+    const { filename } = parseDuplicateLink(notification.link)
+    if (!filename) return
+    setDuplicateBusyId(notification.id)
+    setDuplicateErrors((prev) => ({ ...prev, [notification.id]: '' }))
+    try {
+      await folderApi.overrideDuplicate(filename, token)
+      setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
+      if (!notification.read) {
+        knownCountRef.current = Math.max(0, knownCountRef.current - 1)
+        setUnreadCount(knownCountRef.current)
+      }
+      notificationsApi.dismiss(notification.id, token).catch(() => {})
+    } catch (err) {
+      setDuplicateErrors((prev) => ({ ...prev, [notification.id]: err.message || 'Failed to process this file' }))
+    } finally {
+      setDuplicateBusyId(null)
+    }
+  }
+
   const handleDismissAll = () => {
     setNotifications([])
     knownCountRef.current = 0
@@ -197,6 +236,30 @@ export default function NotificationBell() {
                     </span>
                     <span className="kt-notification-row-message">{n.message}</span>
                     <span className="kt-notification-row-time">{formatNotificationTime(n.created_at)}</span>
+                    {n.type === 'folder_duplicate_detected' && (
+                      <span style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="kt-notification-panel-action"
+                          onClick={() => handleNotificationClick(n)}
+                        >
+                          View existing
+                        </button>
+                        <button
+                          type="button"
+                          className="kt-notification-panel-action"
+                          onClick={(e) => handleProcessAnyway(e, n)}
+                          disabled={duplicateBusyId === n.id}
+                        >
+                          {duplicateBusyId === n.id ? 'Processing…' : 'Process anyway'}
+                        </button>
+                        {duplicateErrors[n.id] && (
+                          <span className="kt-auth-error" style={{ margin: 0, flexBasis: '100%' }}>
+                            {duplicateErrors[n.id]}
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </span>
                   <button
                     type="button"

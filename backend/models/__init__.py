@@ -4,6 +4,7 @@ from models.contribution import Contribution
 from models.error_log import ErrorLog
 from models.feature_module import FeatureModule
 from models.financial_year import FinancialYear
+from models.folder_watcher_log import FolderWatcherLog
 from models.import_batch import ImportBatch
 from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
@@ -24,6 +25,7 @@ __all__ = [
     "ErrorLog",
     "FeatureModule",
     "FinancialYear",
+    "FolderWatcherLog",
     "ImportBatch",
     "Invoice",
     "InvoiceFile",
