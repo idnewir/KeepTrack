@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { AuthProvider } from './hooks/AuthContext.jsx'
 import { TerminologyProvider } from './context/TerminologyContext.jsx'
+import { DebtTerminologyProvider } from './context/DebtTerminologyContext.jsx'
 import { SiteNameProvider } from './context/SiteNameContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { ModulesProvider } from './context/ModulesContext.jsx'
@@ -25,6 +26,7 @@ import './styles/welcome.css'
 import './styles/help.css'
 import './styles/search.css'
 import './styles/notifications.css'
+import './styles/debts.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -33,9 +35,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <AuthProvider>
           <ModulesProvider>
             <TerminologyProvider>
-              <SiteNameProvider>
-                <App />
-              </SiteNameProvider>
+              <DebtTerminologyProvider>
+                <SiteNameProvider>
+                  <App />
+                </SiteNameProvider>
+              </DebtTerminologyProvider>
             </TerminologyProvider>
           </ModulesProvider>
         </AuthProvider>

@@ -14,7 +14,7 @@ from models.monthly_reconciliation import MonthlyReconciliation
 from models.planned_project import PlannedProject
 from models.schemas import DashboardNotification, DashboardSummary
 from models.user import User
-from services import date_service, financial_year_service as fy_service, notification_service
+from services import date_service, debt_service, financial_year_service as fy_service, modules_service, notification_service
 from services.settings_service import get_terminology, is_signing_enabled
 from utils.deps import get_current_user
 
@@ -63,7 +63,14 @@ def get_summary(
     db: Session = Depends(get_db),
     _user: User = Depends(get_current_user),
 ):
-    return fy_service.build_summary(db, date.today())
+    summary = fy_service.build_summary(db, date.today())
+    # Debt fields are only computed (and only visible on the schema — every
+    # field defaults to None/empty otherwise) when the module is enabled, so
+    # a deployment that never turns on Debt Tracking pays no extra query
+    # cost on every dashboard load. See docs/decisions-log.md.
+    if modules_service.is_enabled(db, "debt_tracking"):
+        summary.update(debt_service.build_dashboard_fields(db, date.today()))
+    return summary
 
 
 @router.get("/notifications", response_model=list[DashboardNotification])

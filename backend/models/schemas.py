@@ -359,6 +359,29 @@ class DashboardForecastCategory(BaseModel):
     remaining_months_total: Decimal
 
 
+class DashboardDebtPromoExpiring(BaseModel):
+    id: int
+    name: str
+    days_until_promo_ends: int
+    promotional_end_date: date
+    standard_rate_after_promo: Decimal | None
+
+
+class DashboardHighestInterestDebt(BaseModel):
+    id: int
+    name: str
+    interest_rate: Decimal
+
+
+class DashboardDebtSummaryItem(BaseModel):
+    id: int
+    name: str
+    current_balance: Decimal
+    interest_rate: Decimal
+    next_payment_date: date
+    promotional_end_date: date | None = None
+
+
 class DashboardSummary(BaseModel):
     financial_year: DashboardFinancialYear
     total_invoices_confirmed: int
@@ -376,6 +399,17 @@ class DashboardSummary(BaseModel):
     upcoming_expected_invoices: list[DashboardUpcomingInvoice]
     recent_activity: list[DashboardRecentActivity]
     forecast_by_category: list[DashboardForecastCategory]
+
+    # Present only when the debt_tracking module is enabled (routers/dashboard.py) —
+    # left at their defaults (None/empty) otherwise, the same "always on the
+    # schema, module state decides whether it's populated" approach already
+    # used for planned_projects. See docs/decisions-log.md.
+    total_debt: Decimal | None = None
+    monthly_debt_payments: Decimal | None = None
+    debts_with_promo_expiring: list[DashboardDebtPromoExpiring] = Field(default_factory=list)
+    highest_interest_debt: DashboardHighestInterestDebt | None = None
+    net_worth: Decimal | None = None
+    debts_summary: list[DashboardDebtSummaryItem] = Field(default_factory=list)
 
 
 class DashboardNotification(BaseModel):
@@ -1081,3 +1115,129 @@ class InvoiceSignResponseOut(BaseModel):
     invoice: InvoiceOut
     download: bool
     output_write: FolderOutputWriteResultOut
+
+
+# ---------------------------------------------------------------------------
+# Debt Tracking (backend/routers/debts.py)
+# ---------------------------------------------------------------------------
+
+class DebtPaymentOut(BaseModel):
+    id: int
+    debt_id: int
+    amount: Decimal
+    payment_date: date
+    notes: str | None
+    recorded_by: int
+    recorded_by_username: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class DebtPaymentCreate(BaseModel):
+    amount: Decimal = Field(gt=0)
+    payment_date: date
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class DebtMilestoneOut(BaseModel):
+    milestone_percent: int
+    notified_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class DebtCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    debt_type: str
+    custom_type_label: str | None = Field(default=None, max_length=100)
+    current_balance: Decimal = Field(ge=0)
+    credit_limit: Decimal | None = Field(default=None, ge=0)
+    monthly_payment: Decimal = Field(gt=0)
+    payment_due_day: int = Field(ge=1, le=31)
+    start_date: date
+    expected_end_date: date | None = None
+    interest_rate: Decimal = Field(ge=0)
+    rate_type: str = "standard"
+    promotional_end_date: date | None = None
+    standard_rate_after_promo: Decimal | None = Field(default=None, ge=0)
+    notes: str | None = None
+
+
+class DebtUpdate(BaseModel):
+    # None means "leave unchanged" on every field here — same convention as
+    # InvoiceUpdate/ProjectUpdate. See their docstrings for precedent.
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    debt_type: str | None = None
+    custom_type_label: str | None = None
+    current_balance: Decimal | None = Field(default=None, ge=0)
+    credit_limit: Decimal | None = Field(default=None, ge=0)
+    monthly_payment: Decimal | None = Field(default=None, gt=0)
+    payment_due_day: int | None = Field(default=None, ge=1, le=31)
+    start_date: date | None = None
+    expected_end_date: date | None = None
+    interest_rate: Decimal | None = Field(default=None, ge=0)
+    rate_type: str | None = None
+    promotional_end_date: date | None = None
+    standard_rate_after_promo: Decimal | None = None
+    notes: str | None = None
+
+
+class DebtOut(BaseModel):
+    id: int
+    name: str
+    debt_type: str
+    custom_type_label: str | None
+    current_balance: Decimal
+    original_balance: Decimal
+    credit_limit: Decimal | None
+    monthly_payment: Decimal
+    payment_due_day: int
+    start_date: date
+    expected_end_date: date | None
+    interest_rate: Decimal
+    rate_type: str
+    promotional_end_date: date | None
+    standard_rate_after_promo: Decimal | None
+    notes: str | None
+    is_paid_off: bool
+    paid_off_date: date | None
+    created_by: int
+    created_at: datetime
+    updated_at: datetime
+    active: bool
+
+    # Computed live by services/debt_service.py — never stored, so these can
+    # never drift from the debt's actual current_balance/interest_rate.
+    percent_paid: Decimal
+    months_remaining: int | None = None
+    total_interest_remaining: Decimal | None = None
+    total_to_pay: Decimal | None = None
+    payment_below_interest: bool = False
+    days_until_promo_ends: int | None = None
+    promo_expiring_soon: bool = False
+    next_payment_date: date
+    recent_payments: list[DebtPaymentOut] = Field(default_factory=list)
+
+
+class DebtDetailOut(DebtOut):
+    payments: list[DebtPaymentOut] = Field(default_factory=list)
+    milestones: list[DebtMilestoneOut] = Field(default_factory=list)
+    # services/debt_calculator.py's raw output — a single-scenario dict for a
+    # standard-rate debt, or {"current": {...}, "standard": {...}} for a
+    # promotional/0% debt. Left untyped since the two shapes genuinely
+    # differ and the frontend only ever consumes it as-is, never re-validates
+    # it. See docs/decisions-log.md.
+    payoff: dict
+
+
+class DebtTerminologyOut(BaseModel):
+    debt_term_module: str
+    debt_term_debt: str
+    debt_term_payment: str
+
+
+class DebtTerminologyUpdate(BaseModel):
+    debt_term_module: str | None = Field(default=None, min_length=1, max_length=100)
+    debt_term_debt: str | None = Field(default=None, min_length=1, max_length=100)
+    debt_term_payment: str | None = Field(default=None, min_length=1, max_length=100)

@@ -302,6 +302,20 @@ export const projectsApi = {
   complete: (id, token) => request(`/projects/${id}/complete`, { method: 'POST', token }),
 }
 
+export const debtsApi = {
+  list: (sort, token) => request(`/debts${sort ? `?sort=${sort}` : ''}`, { token }),
+  get: (id, token) => request(`/debts/${id}`, { token }),
+  create: (payload, token) => request('/debts', { method: 'POST', body: payload, token }),
+  update: (id, payload, token) => request(`/debts/${id}`, { method: 'PUT', body: payload, token }),
+  remove: (id, token) => request(`/debts/${id}`, { method: 'DELETE', token }),
+  markPaid: (id, token) => request(`/debts/${id}/mark-paid`, { method: 'POST', token }),
+  addPayment: (id, payload, token) => request(`/debts/${id}/payments`, { method: 'POST', body: payload, token }),
+  removePayment: (id, paymentId, token) =>
+    request(`/debts/${id}/payments/${paymentId}`, { method: 'DELETE', token }),
+  getTerminology: (token) => request('/debts/terminology', { token }),
+  updateTerminology: (payload, token) => request('/debts/terminology', { method: 'PUT', body: payload, token }),
+}
+
 export const reconciliationApi = {
   list: (filters = {}, token) => {
     const params = new URLSearchParams()

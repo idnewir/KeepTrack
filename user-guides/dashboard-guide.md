@@ -94,6 +94,37 @@ Each panel shows a friendly message instead of an empty box when there's
 nothing to show yet — this is normal on a fresh install and fills in as you
 use the app.
 
+## Personal Finance mode
+
+If your Administrator has switched on the [Debt Tracking](debt-tracking.md)
+module, the Dashboard automatically switches to **Personal Finance mode** —
+this isn't a separate setting, it happens the moment the module is turned
+on, and switches back the moment it's turned off. In this mode:
+
+- The four metric cards across the top change to **Net worth** (your
+  available funds minus your total debt — red if negative, green if
+  positive), **Total debt** (red), **Monthly payments due** (amber), and
+  **Available funds**.
+- A **Debt summary** panel lists every active debt with its balance, rate,
+  and next payment date, with a promotional rate expiring soon highlighted
+  in amber, and a link through to the full Debts page.
+- A **Payments due this month** panel lists what's due and when, in order
+  of due date, with anything overdue shown in red.
+- A **Savings goals** panel appears too, currently a placeholder until the
+  separate Budget Planning module is built.
+
+### The collapsible financial chart
+
+In Personal Finance mode, the "Financial year at a glance" chart described
+above is still there, but starts **collapsed** behind a **Show financial
+detail** toggle, so debt and net worth take priority on the page. Click the
+toggle to expand it smoothly — everything about the chart (hovering for
+detail, clicking a series to drill in) works exactly the same once
+expanded.
+
+See the [Debt Tracking](debt-tracking.md) guide for the full picture,
+including the payoff calculator and milestone notifications.
+
 ## On mobile
 
 The dashboard is fully responsive: the sidebar tucks behind the menu

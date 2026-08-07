@@ -112,6 +112,32 @@ export function auditActionColor(actionType) {
   return 'blue'
 }
 
+// Client-side approximation of backend/services/debt_calculator.py's
+// calculate_payoff, for the Add Debt form's live preview only — the
+// authoritative figures shown on the debt list/detail pages always come
+// from the backend. Returns null when there isn't enough to compute yet,
+// { warning: true } when the payment doesn't cover the interest, or
+// { months } otherwise.
+export function estimateDebtPayoffMonths(balance, annualRatePercent, monthlyPayment) {
+  const b = Number(balance)
+  const payment = Number(monthlyPayment)
+  const rate = Number(annualRatePercent) / 100 / 12
+  if (!b || b <= 0 || !payment || payment <= 0) return null
+  const monthlyInterest = b * rate
+  if (rate > 0 && payment <= monthlyInterest) return { warning: true }
+  if (rate === 0) return { months: Math.ceil(b / payment) }
+  const months = Math.ceil(-Math.log(1 - (rate * b) / payment) / Math.log(1 + rate))
+  return { months: Math.max(months, 1) }
+}
+
+// Adds `months` calendar months to today and formats it, for the Add Debt
+// form's "paid off in approximately X months (DATE)" preview line.
+export function addMonthsFromToday(months) {
+  const d = new Date()
+  d.setMonth(d.getMonth() + months)
+  return formatMonthYear(d.toISOString().slice(0, 10))
+}
+
 export function formatMonthYear(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`)
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })

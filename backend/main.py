@@ -14,6 +14,7 @@ from routers.auth import router as auth_router
 from routers.categories import router as categories_router
 from routers.contributions import router as contributions_router
 from routers.dashboard import router as dashboard_router
+from routers.debts import router as debts_router
 from routers.financial_years import router as financial_years_router
 from routers.folder import router as folder_router
 from routers.help import router as help_router
@@ -30,7 +31,7 @@ from routers.search import router as search_router
 from routers.settings import router as settings_router
 from routers.storage import router as storage_router
 from routers.system import router as system_router
-from services import backup_service, error_service, folder_watcher_service, maintenance_service, profile_service, storage_service
+from services import backup_service, debt_notification_service, error_service, folder_watcher_service, maintenance_service, profile_service, storage_service
 from services.auth_service import ensure_superadmin
 from version import APP_VERSION
 
@@ -143,6 +144,7 @@ app.include_router(auth_router)
 app.include_router(categories_router)
 app.include_router(contributions_router)
 app.include_router(dashboard_router)
+app.include_router(debts_router)
 app.include_router(financial_years_router)
 app.include_router(folder_router)
 app.include_router(help_router)
@@ -233,6 +235,13 @@ def on_startup():
     # folder_integration feature module's enabled state — see
     # services/folder_watcher_service.py and docs/decisions-log.md.
     folder_watcher_service.start_watcher()
+
+    # Debt Tracking promotional-rate expiry check: runs once now, then a
+    # background thread fires it again every 24 hours — independent of the
+    # debt_tracking feature module's enabled state, same as every other
+    # background job in this app. See services/debt_notification_service.py.
+    debt_notification_service.check_promo_expiries()
+    debt_notification_service.start_scheduler()
 
 
 @app.get("/health")

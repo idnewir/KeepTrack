@@ -12,6 +12,8 @@ import CategoriesPage from './pages/CategoriesPage.jsx'
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
 import ContributionsPage from './pages/ContributionsPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
+import DebtDetailPage from './pages/DebtDetailPage.jsx'
+import DebtsPage from './pages/DebtsPage.jsx'
 import ForecastBreakdownPage from './pages/ForecastBreakdownPage.jsx'
 import HelpPage from './pages/HelpPage.jsx'
 import ImportPage from './pages/ImportPage.jsx'
@@ -90,6 +92,8 @@ export default function App() {
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/:id" element={<ProjectDetailPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/debts" element={<DebtsPage />} />
+            <Route path="/debts/:id" element={<DebtDetailPage />} />
             <Route path="/search" element={<SearchResultsPage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route

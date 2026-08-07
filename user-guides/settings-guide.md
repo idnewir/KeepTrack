@@ -214,6 +214,29 @@ As you type, a small **live preview** shows how the sidebar will look with your 
 - Click **Save all** to apply every field at once. The sidebar, page titles, notifications, and dashboard update immediately for everyone — no page refresh needed.
 - Click **Reset to defaults** to put every label back to its original charity-style wording. You'll be asked to confirm first, since this affects everyone.
 
+### Debt Tracking terminology
+
+Only shown when the [Debt Tracking](feature-modules.md) module is switched
+on.
+
+To get there: **Settings → Appearance → Debt Tracking terminology**.
+
+- **Module name label** — default *Debt Tracking*.
+- **Debt label** — default *Debt*. Try *Loan* or *Balance*.
+- **Payment label** — default *Payment*. Try *Repayment* or *Instalment*.
+
+Just like the main Terminology section above, these labels update
+throughout the app automatically once saved — the sidebar link, page
+headings, and buttons on the Debts pages all pick up the new wording
+immediately, no page refresh needed. See the [Debt Tracking](debt-tracking.md)
+guide for everything else the module does.
+
+> **Note:** enabling the Debt Tracking module also switches the Dashboard
+> to **Personal Finance mode** automatically — this isn't a separate
+> setting to turn on, it happens as soon as the module is enabled. See
+> [Debt Tracking](debt-tracking.md#how-the-personal-finance-dashboard-works)
+> for what changes.
+
 ### Target Reserve
 
 The target reserve (whatever you've renamed it to, above) is the dashboard gauge that shows how your current balance compares to a healthy amount held in reserve.

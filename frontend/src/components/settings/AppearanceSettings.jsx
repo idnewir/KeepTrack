@@ -1,6 +1,10 @@
 import TerminologySettings from './TerminologySettings.jsx'
+import DebtTerminologySettings from './DebtTerminologySettings.jsx'
+import { useModules } from '../../context/ModulesContext.jsx'
 
 export default function AppearanceSettings({ token }) {
+  const { isEnabled } = useModules()
+
   return (
     <div>
       <h2 className="kt-panel-title">Appearance</h2>
@@ -11,6 +15,8 @@ export default function AppearanceSettings({ token }) {
       </div>
 
       <TerminologySettings token={token} />
+
+      {isEnabled('debt_tracking') && <DebtTerminologySettings token={token} />}
     </div>
   )
 }

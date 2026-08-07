@@ -1,6 +1,7 @@
 from models.audit_log import AuditLog, AuditLogArchive
 from models.category import Category
 from models.contribution import Contribution
+from models.debt import Debt, DebtMilestone, DebtPayment
 from models.error_log import ErrorLog
 from models.feature_module import FeatureModule
 from models.financial_year import FinancialYear
@@ -22,6 +23,9 @@ __all__ = [
     "AuditLogArchive",
     "Category",
     "Contribution",
+    "Debt",
+    "DebtMilestone",
+    "DebtPayment",
     "ErrorLog",
     "FeatureModule",
     "FinancialYear",

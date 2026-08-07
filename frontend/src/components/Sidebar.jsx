@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useTerminology } from '../context/TerminologyContext.jsx'
+import { useDebtTerminology } from '../context/DebtTerminologyContext.jsx'
 import { useModules } from '../context/ModulesContext.jsx'
 
 function HelpIcon() {
@@ -20,6 +21,7 @@ function HelpIcon() {
 
 export default function Sidebar({ open, onNavigate }) {
   const terminology = useTerminology()
+  const debtTerminology = useDebtTerminology()
   const { isEnabled } = useModules()
 
   const navItems = [
@@ -29,6 +31,8 @@ export default function Sidebar({ open, onNavigate }) {
     ...(isEnabled('reconciliation') ? [{ label: terminology.term_reconciliation, to: '/reconciliation' }] : []),
     ...(isEnabled('planned_projects') ? [{ label: terminology.term_projects, to: '/projects' }] : []),
     { label: 'Reports', to: '/reports' },
+    // Positioned after Reports, before Settings, per this module's spec.
+    ...(isEnabled('debt_tracking') ? [{ label: `${debtTerminology.debt_term_debt}s`, to: '/debts' }] : []),
   ]
 
   return (

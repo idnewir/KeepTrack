@@ -32,7 +32,7 @@ If an account already exists, click **Register** on the login screen, fill in yo
 
 Once logged in, you'll see:
 
-- A **sidebar** on the left (or a menu button on mobile) with links to: Dashboard, Invoices, Contributions, Reconciliation, Projects, Reports, and Settings.
+- A **sidebar** on the left (or a menu button on mobile) with links to: Dashboard, Invoices, Contributions, Reconciliation, Projects, Reports, and Settings. If your Administrator has switched on the optional [Debt Tracking](debt-tracking.md) module, a **Debts** link also appears, between Reports and Settings.
 - A **header** at the top showing the Keep Track logo and name.
 - The **main area** in the middle, which shows whichever page you've selected.
 
@@ -51,8 +51,20 @@ Either way, if you set neither, your initials are shown instead.
 
 A Gravatar picture is downloaded once and **saved to Keep Track**, not loaded live from Gravatar on every page view — this keeps things fast and doesn't depend on Gravatar's own website being reachable. If you update your picture on Gravatar's website afterwards, Keep Track won't notice on its own: go back to **My profile → Gravatar** and click **Refresh from Gravatar** to pick up the change.
 
-## 7. Where to go next
+## 7. Optional: tracking your own debts
+
+If you're using Keep Track for your own or your household's finances,
+Keep Track also has an optional **Debt Tracking** module — off by default —
+for logging loans, credit cards, mortgages, and similar, recording
+payments, and seeing a calculated payoff timeline for each one. An
+Administrator turns it on from **Settings → General → Feature Modules**;
+doing so also switches the Dashboard to a Personal Finance view showing
+your net worth and debt at a glance. See the [Debt Tracking](debt-tracking.md)
+guide for the full walkthrough.
+
+## 8. Where to go next
 
 - To upload your first invoice, see [Uploading Invoices](uploading-invoices.md).
 - To understand the dashboard, see [Dashboard Guide](dashboard-guide.md).
 - To record money coming in, see [Managing Contributions](managing-contributions.md).
+- To track your own debts, see [Debt Tracking](debt-tracking.md).

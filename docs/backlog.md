@@ -34,15 +34,6 @@ Things that are broken or incomplete in features that have already been built. T
 
 Features that have been designed and committed to for V1, but are not yet built. Unlike Section 1, these aren't broken — they simply don't exist yet. All of these are required before Keep Track goes to production.
 
-- **Debt Tracking module** (toggleable, default OFF):
-  - Flexible debt records (credit card, loan, mortgage, car finance, overdraft, BNPL, other).
-  - Fields: name, type, current balance, credit limit, monthly payment, payment due date, start date, expected end date, interest rate, rate type (standard/promotional/0%), promotional end date, standard rate after promotion, notes.
-  - Payoff calculator — months remaining, total interest, total to pay, warning if payment is below interest.
-  - Terminology configurable within module settings.
-  - Setup prompt on enable.
-  - Dashboard integration — total debt, monthly payments.
-  - User guide.
-
 - **Budget Planning module** (toggleable, default OFF):
   - Monthly budget envelopes per category.
   - Income allocation across categories.
@@ -104,7 +95,7 @@ Longer-term ideas for future versions of Keep Track. These are explicitly out of
 - **Dark mode for exported PDFs** — a user preference for PDF colour scheme.
 - **Notification centre:** email notifications for critical alerts.
 - **Full text search:** extend to contributions and reconciliation notes.
-- **Debt tracking enhancements:** debt payoff strategies (avalanche/snowball), debt-to-income ratio, net worth calculation.
+- **Debt tracking enhancements to V2** (avalanche/snowball strategies, debt-to-income ratio, net worth over time chart) — point-in-time net worth (funds on hand minus total debt) is already a dashboard metric once Debt Tracking is enabled; a historical chart of it over time is not yet built.
 - **Budget Planning enhancements:** budget vs. actual comparison charts, spending trends, category budget rollover.
 - **Savings goals linked to projects:** when a project is funded, mark the savings goal as complete.
 - **Import enhancements:** support for bank statement CSV formats (Barclays, HSBC, Monzo, etc).
@@ -126,7 +117,6 @@ Longer-term ideas for future versions of Keep Track. These are explicitly out of
 - **Debt Tracking:** support for joint debts shared between users.
 - **Net worth dashboard:** assets vs. liabilities overview.
 - **Tiled report dashboard** — Reports page shows saved and pinned reports as clickable tiles (mini previews) rather than just a list. Clicking a tile expands to full screen. Users can pin their most used reports for quick access. Inspired by Actual Budget's report dashboard.
-- **Net worth calculation** — once Debt Tracking module is built, calculate and display net worth: total funds on hand minus total outstanding debt. Show as a dashboard metric and in reports. Tracks net worth over time.
 - **Scheduled transactions** — define expected recurring invoices (e.g. electricity bill expected on the 1st of each month for approximately £X). App tracks whether they arrived and alerts if an expected invoice is overdue. More structured than the current upcoming invoices panel which is pattern-based.
 - **Transaction import formats** — support importing transactions from popular financial file formats: QIF, OFX, QFX, CSV. Inspired by Actual Budget's import capabilities. Complements the existing CSV import for historical data.
 - **Bank sync** — connect directly to UK bank accounts via GoCardless open banking API for automatic transaction import. Inspired by Actual Budget's bank sync feature.

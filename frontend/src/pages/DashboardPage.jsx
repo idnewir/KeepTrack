@@ -4,6 +4,7 @@ import FinancialChart from '../components/FinancialChart.jsx'
 import HelpIconLink from '../components/HelpIconLink.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
+import { useDebtTerminology } from '../context/DebtTerminologyContext.jsx'
 import { useModules } from '../context/ModulesContext.jsx'
 import { dashboardApi, notificationsApi } from '../utils/api.js'
 import { formatCurrency, formatDate, projectUrgency, singularize } from '../utils/format.js'
@@ -56,13 +57,20 @@ export default function DashboardPage() {
   const token = user?.token
   const navigate = useNavigate()
   const terminology = useTerminology()
+  const debtTerminology = useDebtTerminology()
   const { isEnabled } = useModules()
   const expensesLower = terminology.term_expenses.toLowerCase()
   const projectsLower = terminology.term_projects.toLowerCase()
+  // Enabling Debt Tracking switches the dashboard to Personal Finance mode
+  // automatically — not a user preference, since the whole point is that
+  // net worth/debt figures only exist to show once debts are being tracked
+  // at all. See docs/decisions-log.md.
+  const personalFinanceMode = isEnabled('debt_tracking')
 
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showFinancialDetail, setShowFinancialDetail] = useState(false)
 
   const [notifications, setNotifications] = useState([])
   const [dismissed, setDismissed] = useState(() => new Set())
@@ -250,53 +258,108 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="kt-metric-row">
-        <div className="kt-metric-card">
-          <span className="kt-metric-label">Monthly average cost</span>
-          <span className="kt-metric-value">{formatCurrency(summary.monthly_average_cost)}</span>
-        </div>
-        <div className="kt-metric-card">
-          <span className="kt-metric-label">Total spent this year</span>
-          <span className="kt-metric-value">{formatCurrency(summary.total_spent)}</span>
-        </div>
-        <div className="kt-metric-card">
-          <span className="kt-metric-label">Total income this year</span>
-          <span className="kt-metric-value">{formatCurrency(summary.total_contributions)}</span>
-        </div>
-        <div className={`kt-metric-card kt-metric-balance kt-status-${summary.balance_status}`}>
-          <span className="kt-metric-label">Current balance</span>
-          <span className="kt-metric-value">{formatCurrency(summary.current_balance)}</span>
-          <span className="kt-metric-status">{STATUS_LABEL[summary.balance_status]}</span>
-        </div>
-      </div>
-
-      <div className="kt-dashboard-panel">
-        <h2 className="kt-panel-title">Financial year at a glance</h2>
-        <p className="kt-panel-subtitle">
-          Click a series to see the detail behind it — income, actual spend, or the forecast.
-        </p>
-        <FinancialChart months={summary.monthly_breakdown} onSeriesClick={handleSeriesClick} />
-      </div>
-
-      <div className="kt-dashboard-panel">
-        <h2 className="kt-panel-title">{summary.reserve_label}</h2>
-        <div className="kt-reserve-gauge">
-          <div className="kt-reserve-track">
-            <div
-              className={`kt-reserve-fill kt-status-${summary.balance_status}`}
-              style={{ width: `${reservePct}%` }}
-            />
+      {personalFinanceMode ? (
+        <div className="kt-metric-row">
+          <div className={`kt-metric-card kt-metric-balance kt-status-${Number(summary.net_worth) >= 0 ? 'above' : 'below'}`}>
+            <span className="kt-metric-label">Net worth</span>
+            <span className="kt-metric-value">{formatCurrency(summary.net_worth)}</span>
           </div>
-          <span className="kt-reserve-label">
-            Balance {formatCurrency(summary.current_balance)} / Target {formatCurrency(summary.target_reserve)}
-          </span>
+          <div className="kt-metric-card kt-debt-metric-total">
+            <span className="kt-metric-label">Total {debtTerminology.debt_term_debt.toLowerCase()}</span>
+            <span className="kt-metric-value">{formatCurrency(summary.total_debt)}</span>
+          </div>
+          <div className="kt-metric-card kt-debt-metric-monthly">
+            <span className="kt-metric-label">Monthly payments due</span>
+            <span className="kt-metric-value">{formatCurrency(summary.monthly_debt_payments)}</span>
+          </div>
+          <div className="kt-metric-card">
+            <span className="kt-metric-label">Available funds</span>
+            <span className="kt-metric-value">{formatCurrency(summary.current_balance)}</span>
+          </div>
         </div>
-        <p className="kt-panel-subtitle" style={{ marginTop: 8 }}>
-          {summary.reserve_calculation === 'manual'
-            ? 'Manually set target'
-            : `Based on ${summary.reserve_months} month${summary.reserve_months === 1 ? '' : 's'} of average expenses`}
-        </p>
+      ) : (
+        <div className="kt-metric-row">
+          <div className="kt-metric-card">
+            <span className="kt-metric-label">Monthly average cost</span>
+            <span className="kt-metric-value">{formatCurrency(summary.monthly_average_cost)}</span>
+          </div>
+          <div className="kt-metric-card">
+            <span className="kt-metric-label">Total spent this year</span>
+            <span className="kt-metric-value">{formatCurrency(summary.total_spent)}</span>
+          </div>
+          <div className="kt-metric-card">
+            <span className="kt-metric-label">Total income this year</span>
+            <span className="kt-metric-value">{formatCurrency(summary.total_contributions)}</span>
+          </div>
+          <div className={`kt-metric-card kt-metric-balance kt-status-${summary.balance_status}`}>
+            <span className="kt-metric-label">Current balance</span>
+            <span className="kt-metric-value">{formatCurrency(summary.current_balance)}</span>
+            <span className="kt-metric-status">{STATUS_LABEL[summary.balance_status]}</span>
+          </div>
+        </div>
+      )}
+
+      {personalFinanceMode && (
+        <div className="kt-panels-row">
+          <DebtSummaryPanel items={summary.debts_summary} debtTerminology={debtTerminology} navigate={navigate} />
+          <MonthlyPaymentsDuePanel items={summary.debts_summary} debtTerminology={debtTerminology} />
+          <SavingsGoalsPanel />
+        </div>
+      )}
+
+      <div className="kt-dashboard-panel">
+        {personalFinanceMode ? (
+          <>
+            <button
+              type="button"
+              className="kt-category-link-button kt-collapsible-toggle"
+              onClick={() => setShowFinancialDetail((v) => !v)}
+              aria-expanded={showFinancialDetail}
+            >
+              {showFinancialDetail ? 'Hide financial detail' : 'Show financial detail'}
+            </button>
+            <div className={`kt-collapsible-chart${showFinancialDetail ? ' expanded' : ''}`}>
+              <div>
+                <h2 className="kt-panel-title">Financial year at a glance</h2>
+                <p className="kt-panel-subtitle">
+                  Click a series to see the detail behind it — income, actual spend, or the forecast.
+                </p>
+                <FinancialChart months={summary.monthly_breakdown} onSeriesClick={handleSeriesClick} />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="kt-panel-title">Financial year at a glance</h2>
+            <p className="kt-panel-subtitle">
+              Click a series to see the detail behind it — income, actual spend, or the forecast.
+            </p>
+            <FinancialChart months={summary.monthly_breakdown} onSeriesClick={handleSeriesClick} />
+          </>
+        )}
       </div>
+
+      {!personalFinanceMode && (
+        <div className="kt-dashboard-panel">
+          <h2 className="kt-panel-title">{summary.reserve_label}</h2>
+          <div className="kt-reserve-gauge">
+            <div className="kt-reserve-track">
+              <div
+                className={`kt-reserve-fill kt-status-${summary.balance_status}`}
+                style={{ width: `${reservePct}%` }}
+              />
+            </div>
+            <span className="kt-reserve-label">
+              Balance {formatCurrency(summary.current_balance)} / Target {formatCurrency(summary.target_reserve)}
+            </span>
+          </div>
+          <p className="kt-panel-subtitle" style={{ marginTop: 8 }}>
+            {summary.reserve_calculation === 'manual'
+              ? 'Manually set target'
+              : `Based on ${summary.reserve_months} month${summary.reserve_months === 1 ? '' : 's'} of average expenses`}
+          </p>
+        </div>
+      )}
 
       <div className="kt-panels-row">
         <UpcomingInvoicesPanel items={summary.upcoming_expected_invoices} navigate={navigate} expensesLower={expensesLower} />
@@ -305,6 +368,94 @@ export default function DashboardPage() {
         )}
         <RecentActivityPanel items={summary.recent_activity} navigate={navigate} expensesLower={expensesLower} />
       </div>
+    </div>
+  )
+}
+
+function DebtSummaryPanel({ items, debtTerminology, navigate }) {
+  const termDebt = debtTerminology.debt_term_debt
+  return (
+    <div className="kt-dashboard-panel kt-panel-card">
+      <h2 className="kt-panel-title">{termDebt} summary</h2>
+      <p className="kt-panel-subtitle">
+        <Link to="/debts">View all {termDebt.toLowerCase()}s</Link>
+      </p>
+      {items.length === 0 ? (
+        <PanelEmptyState>No active {termDebt.toLowerCase()}s tracked yet.</PanelEmptyState>
+      ) : (
+        <ul className="kt-panel-list">
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className={`kt-panel-list-row kt-panel-list-row-clickable${item.promotional_end_date ? ' kt-panel-list-row-promo' : ''}`}
+              onClick={() => navigate(`/debts/${item.id}`)}
+            >
+              <span className="kt-panel-list-main">
+                <span>
+                  <strong>{item.name}</strong>
+                  <span className="kt-panel-list-sub">
+                    {Number(item.interest_rate)}% · Next payment {formatDate(item.next_payment_date)}
+                    {item.promotional_end_date && (
+                      <span className="kt-panel-list-promo-badge"> · Promo ends {formatDate(item.promotional_end_date)}</span>
+                    )}
+                  </span>
+                </span>
+              </span>
+              <span className="kt-panel-list-amount">{formatCurrency(item.current_balance)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function MonthlyPaymentsDuePanel({ items, debtTerminology }) {
+  const today = new Date().toISOString().slice(0, 10)
+  const currentMonth = today.slice(0, 7)
+  const sorted = [...items]
+    .filter((item) => item.next_payment_date.slice(0, 7) === currentMonth)
+    .sort((a, b) => (a.next_payment_date < b.next_payment_date ? -1 : 1))
+
+  return (
+    <div className="kt-dashboard-panel kt-panel-card">
+      <h2 className="kt-panel-title">{debtTerminology.debt_term_payment}s due this month</h2>
+      {sorted.length === 0 ? (
+        <PanelEmptyState>No {debtTerminology.debt_term_payment.toLowerCase()}s due this month.</PanelEmptyState>
+      ) : (
+        <ul className="kt-panel-list">
+          {sorted.map((item) => {
+            const overdue = item.next_payment_date < today
+            return (
+              <li key={item.id} className={`kt-panel-list-row${overdue ? ' kt-panel-list-row-overdue' : ''}`}>
+                <span className="kt-panel-list-main">
+                  <span>
+                    <strong>{item.name}</strong>
+                    <span className="kt-panel-list-sub">Due {formatDate(item.next_payment_date)}</span>
+                  </span>
+                </span>
+                <span className="kt-panel-list-amount">{formatCurrency(item.current_balance)}</span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// Budget Planning (the module savings goals would come from) has no built
+// feature behind it yet regardless of its toggle state — see docs/backlog.md
+// — so this placeholder always points there rather than branching on
+// isEnabled('budget_planning'), which would just show an equally-empty
+// "set up" message with nothing to set up.
+function SavingsGoalsPanel() {
+  return (
+    <div className="kt-dashboard-panel kt-panel-card">
+      <h2 className="kt-panel-title">Savings goals</h2>
+      <PanelEmptyState>
+        Budget Planning not yet enabled. Enable it in Settings → General → Feature Modules.
+      </PanelEmptyState>
     </div>
   )
 }

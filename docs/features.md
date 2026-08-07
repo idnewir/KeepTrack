@@ -219,7 +219,7 @@ Enabling or disabling a module only changes **UI visibility and API access** —
 | **Bulk Import** | On | No | The CSV/PDF bulk import workflow and its Settings → Data link. |
 | **Full Text Search** | On | No | The header search bar and the search results page. |
 | **Folder Integration** | Off | Yes | Auto-import from a watched input folder and auto-export of signed PDFs to an output folder. |
-| **Debt Tracking** | Off | Yes | Tracking loans, credit cards, mortgages, and other debts (module name is renameable at setup). |
+| **Debt Tracking** | Off | Yes | Tracking loans, credit cards, mortgages, and other debts (module name is renameable at setup). See [Debt Tracking](#12-debt-tracking), below. |
 | **Budget Planning** | Off | Yes | Setting monthly budgets and allocating income across categories (module name is renameable at setup). |
 
 ### Enabling and disabling
@@ -278,3 +278,52 @@ A [feature module](#9-feature-modules), off by default. When enabled, gives Keep
 - **SMB** — connected to directly (no OS-level mount needed), with optional guest access or a username/password (encrypted at rest). A connection timeout and automatic retry (3 attempts, 5 seconds apart) apply to every SMB connection attempt.
 - **NFS** — not connected to natively; mount the NFS share at the OS level and point Keep Track's **local path** option at the resulting mount instead. See the user guide for the Proxmox-specific note.
 - Both the input and output folder configuration screens have their own **Test connection** button, which reports success (with a file count, for input) or a specific error, without changing anything.
+
+---
+
+## 12. Debt Tracking
+
+A [feature module](#9-feature-modules), off by default, and **personal finance only** — it has nothing to do with KHOC-style organisational running costs, and is aimed at an individual (or household) tracking their own loans, credit cards, mortgages, and similar. See [decisions-log.md](decisions-log.md) for why it's scoped this way rather than folded into Planned Projects. Full walkthrough in [user-guides/debt-tracking.md](../user-guides/debt-tracking.md).
+
+### What it tracks
+
+Each debt records: a name, a type (Credit Card, Loan, Mortgage, Car Finance, Overdraft, Buy Now Pay Later, or Other with a custom label), current balance, an optional credit limit (Credit Card/Overdraft), monthly payment, payment due day, start date, an optional expected end date, an interest rate, a rate type (Standard, Promotional, or 0%/Interest Free), and — for a promotional/0% rate — its end date and the standard rate that applies afterwards. Notes are free text.
+
+### Payment logging
+
+- Payments are logged as a simple amount + date + optional notes — there is no principal/interest split for V1 (see [decisions-log.md](decisions-log.md) for why). Logging a payment reduces the debt's current balance directly.
+- If a payment brings the balance to zero or below, the debt is automatically marked **paid off**.
+- A debt can also be marked paid off manually at any time (**Mark as paid off**), which zeroes its balance and records the payoff date.
+- An Admin can delete a mistaken payment, which restores the balance it had reduced.
+
+### The payoff calculator
+
+Computed live from the debt's current balance, interest rate, and monthly payment — never stored, so it can never drift:
+
+- **Standard rate** — months remaining, total interest to pay, total amount to pay, and an estimated payoff date. If the monthly payment doesn't cover the interest accruing each month, a clear warning is shown instead ("Payment does not cover interest — balance is growing") rather than a misleading month count.
+- **Promotional/0% rate** — a **dual scenario** calculator instead: "at the current promotional rate" alongside "once the standard rate applies" (simulating the promotional period month by month, then handing the remaining balance to a standard-rate projection), with the extra interest cost of the standard-rate scenario highlighted directly.
+- A dedicated amber warning panel appears on a promotional/0% debt's detail page once its end date is within **30 days** — days remaining, the rate that applies afterwards, and a suggested monthly payment to clear the balance before the rate changes.
+
+### Milestone notifications
+
+Crossing 25%, 50%, 75%, or 100% paid off (by original balance vs. current balance) fires a one-time notification — "Debt milestone reached! You have paid off [X]% of [debt name]! Keep it up!" — recorded in a dedicated table so each threshold **never repeats** for the same debt, even if the balance later rises and falls back across it. See [decisions-log.md](decisions-log.md).
+
+### The balance-over-time chart
+
+A debt's detail page plots its balance over time: actual balance reduction from its logged payment history, projected forward from today based on its monthly payment (and, for a promotional/0% debt, a vertical marker where the rate is projected to change).
+
+### Debt list and sorting
+
+The Debts page (`/debts`) shows total debt, monthly payments due, and the number of active debts at the top, with an **Add debt** button. Debts are shown as cards (balance, rate — styled distinctly for a promotional/0% rate with a countdown — monthly payment, next payment date, and a payoff progress bar coloured green above 50%, amber 25–50%, red below 25%), sortable by highest/lowest interest, largest/smallest balance, next payment due, promotional rate expiring soonest, or most recently added. Paid-off debts collapse into their own section at the bottom, styled distinctly (green, with a tick) from active debts.
+
+### Dashboard integration
+
+Enabling Debt Tracking automatically switches the Dashboard to **Personal Finance mode** — see [decisions-log.md](decisions-log.md) for why this is automatic rather than a separate user preference. Personal Finance mode shows net worth (funds on hand minus total debt), total debt, monthly payments due, and available funds across the top, a debt summary panel, a payments-due-this-month panel, a placeholder savings goals panel (pending the separate Budget Planning module), and the existing income/expenses/forecast chart collapsed by default behind a "Show financial detail" toggle.
+
+### Terminology
+
+Debt Tracking has its own terminology settings (Settings → Appearance → Debt Tracking terminology) — Module name, Debt label, and Payment label — distinct from the app's five global `term_*` labels, since those are fixed to the organisational/charity vocabulary this module doesn't share. See [decisions-log.md](decisions-log.md).
+
+### A daily background check
+
+Independent of the module's enabled state (per the [Feature Modules](#9-feature-modules) rule that background logic always keeps running), a daily check notifies every Admin about any promotional-rate debt whose rate is expiring within 30 days, once per debt per day.

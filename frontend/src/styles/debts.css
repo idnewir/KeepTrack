@@ -1,0 +1,402 @@
+/* Debt Tracking module — list page, detail page, dashboard Personal Finance
+   mode panels, and the Add/Edit debt form. Reuses this app's existing
+   design tokens (theme.css) and shared component classes (kt-metric-card,
+   kt-panel-list, kt-modal, kt-field) rather than introducing new ones where
+   an existing class already fits. */
+
+.kt-debt-metric-total .kt-metric-value {
+  color: var(--kt-danger);
+}
+
+.kt-debt-metric-monthly .kt-metric-value {
+  color: var(--kt-amber-strong);
+}
+
+.kt-debts-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.kt-debts-sort {
+  min-width: 240px;
+}
+
+.kt-debts-sort select {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+  width: 100%;
+}
+
+.kt-debt-form-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--kt-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 12px 0 0;
+  flex: 1 1 100%;
+}
+
+.kt-debt-form-section-title:first-child {
+  margin-top: 0;
+}
+
+.kt-debt-preview {
+  background: rgba(var(--kt-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--kt-accent-rgb), 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--kt-text);
+}
+
+.kt-debt-preview-warning {
+  background: var(--kt-danger-bg);
+  border: 1px solid var(--kt-danger-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--kt-danger);
+}
+
+/* Debt cards */
+
+.kt-debt-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kt-debt-card {
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.kt-debt-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.kt-debt-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.kt-debt-name a {
+  color: var(--kt-text);
+  text-decoration: none;
+}
+
+.kt-debt-name a:hover {
+  color: var(--kt-primary);
+}
+
+.kt-debt-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(var(--kt-primary-rgb), 0.1);
+  color: var(--kt-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.kt-debt-balance {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--kt-text);
+  margin-bottom: 4px;
+}
+
+.kt-debt-rate {
+  font-size: 14px;
+  color: var(--kt-text-secondary);
+  margin-bottom: 12px;
+}
+
+.kt-debt-rate-promo {
+  color: var(--kt-accent);
+  font-weight: 600;
+}
+
+.kt-debt-rate-countdown {
+  font-weight: 400;
+  color: var(--kt-accent);
+}
+
+.kt-debt-promo-warning {
+  background: rgba(var(--kt-amber-rgb), 0.14);
+  border: 1px solid rgba(var(--kt-amber-rgb), 0.4);
+  color: var(--kt-amber);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.kt-debt-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--kt-text-secondary);
+  margin-bottom: 12px;
+}
+
+.kt-debt-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--kt-border);
+  overflow: hidden;
+}
+
+.kt-debt-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.kt-debt-progress-good {
+  background: var(--kt-accent);
+}
+
+.kt-debt-progress-amber {
+  background: var(--kt-amber-strong);
+}
+
+.kt-debt-progress-bad {
+  background: var(--kt-danger);
+}
+
+.kt-debt-card-actions {
+  margin-top: 14px;
+}
+
+.kt-debt-log-payment-button {
+  padding: 6px 16px;
+}
+
+/* Paid off section */
+
+.kt-debt-paidoff-section {
+  margin-top: 8px;
+}
+
+.kt-debt-paidoff-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--kt-text-secondary);
+  padding: 8px 0;
+}
+
+.kt-debt-card-paidoff {
+  background: rgba(var(--kt-accent-rgb), 0.06);
+  border-color: rgba(var(--kt-accent-rgb), 0.3);
+}
+
+.kt-debt-paidoff-tick {
+  color: var(--kt-accent);
+}
+
+.kt-debt-paidoff-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(var(--kt-accent-rgb), 0.14);
+  color: var(--kt-accent);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Detail page */
+
+.kt-debt-detail-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kt-debt-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.kt-debt-summary-grid .kt-metric-label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.kt-debt-summary-grid .kt-metric-value {
+  font-size: 18px;
+  margin: 0;
+}
+
+.kt-debt-payoff-warning {
+  background: var(--kt-danger-bg);
+  border: 1px solid var(--kt-danger-border);
+  color: var(--kt-danger);
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 14px;
+}
+
+.kt-debt-dual-scenarios {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.kt-debt-scenario-panel {
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.kt-debt-scenario-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kt-debt-scenario-list li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.kt-debt-dual-diff {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(var(--kt-amber-rgb), 0.14);
+  border: 1px solid rgba(var(--kt-amber-rgb), 0.4);
+  border-radius: 8px;
+  color: var(--kt-amber);
+  font-weight: 600;
+}
+
+.kt-debt-promo-panel {
+  background: rgba(var(--kt-amber-rgb), 0.1);
+  border: 1px solid rgba(var(--kt-amber-rgb), 0.4);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  color: var(--kt-text);
+}
+
+.kt-debt-promo-panel p {
+  margin: 0 0 6px;
+}
+
+.kt-debt-promo-panel p:last-child {
+  margin-bottom: 0;
+}
+
+.kt-debt-notes-box {
+  background: var(--kt-background);
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+  padding: 16px;
+  white-space: pre-wrap;
+  color: var(--kt-text);
+  font-size: 14px;
+}
+
+.kt-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--kt-text-secondary);
+}
+
+.kt-pagination button {
+  border: 1px solid var(--kt-border);
+  background: var(--kt-surface);
+  color: var(--kt-text);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.kt-pagination button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Dashboard: Personal Finance mode */
+
+.kt-panel-list-row-promo {
+  background: rgba(var(--kt-amber-rgb), 0.08);
+}
+
+.kt-panel-list-promo-badge {
+  color: var(--kt-amber);
+  font-weight: 600;
+}
+
+.kt-panel-list-row-overdue {
+  background: rgba(var(--kt-danger-rgb), 0.1);
+}
+
+.kt-panel-list-row-overdue .kt-panel-list-amount {
+  color: var(--kt-danger);
+}
+
+.kt-collapsible-toggle {
+  margin-bottom: 8px;
+}
+
+.kt-collapsible-chart {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.3s ease, opacity 0.25s ease;
+}
+
+.kt-collapsible-chart > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.kt-collapsible-chart.expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .kt-debt-dual-scenarios {
+    grid-template-columns: 1fr;
+  }
+
+  .kt-debt-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
