@@ -1069,3 +1069,15 @@ class FolderOutputWriteResultOut(BaseModel):
     written: bool
     path: str | None
     error: str | None
+
+
+class InvoiceSignResponseOut(BaseModel):
+    """POST /invoices/{id}/sign's response. `download` tells the frontend
+    whether it should follow up with GET /invoices/{id}/signed-pdf and
+    trigger a browser download — false only when the output folder is
+    enabled and set to 'folder_only', per folder_output_behaviour. See
+    docs/decisions-log.md for why this is a typed field rather than the
+    frontend re-deriving it from settings itself."""
+    invoice: InvoiceOut
+    download: bool
+    output_write: FolderOutputWriteResultOut

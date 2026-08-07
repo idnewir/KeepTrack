@@ -17,6 +17,7 @@ from models.schemas import (
     InvoiceConfirmRequest,
     InvoiceOut,
     InvoiceSignRequest,
+    InvoiceSignResponseOut,
     InvoiceUpdate,
     PaginatedResponse,
 )
@@ -25,6 +26,7 @@ from services import audit_service, error_service, financial_year_service as fy_
 from services.ai_provider_service import extract_invoice_data
 from services.ai_service import check_duplicate
 from services.export_pdf_service import generate_table_export_pdf
+from services.folder_service import get_output_config
 from services.folder_watcher_service import write_to_output_folder
 from services.preview_service import render_pdf_first_page_png
 from services.reconciliation_service import mark_reconciliation_stale
@@ -444,7 +446,7 @@ def unlink_invoice_project(
     return _invoice_to_out(db, invoice)
 
 
-@router.post("/{invoice_id}/sign", response_model=InvoiceOut, dependencies=[Depends(require_module("signing_export"))])
+@router.post("/{invoice_id}/sign", response_model=InvoiceSignResponseOut, dependencies=[Depends(require_module("signing_export"))])
 def sign_invoice(
     invoice_id: int,
     payload: InvoiceSignRequest,
@@ -517,10 +519,24 @@ def sign_invoice(
     # No-ops internally (and never raises) when Folder Integration's output
     # folder is disabled or set to browser-only, so it's safe to call
     # unconditionally here rather than duplicating its enabled/behaviour
-    # check in this router. See services/folder_watcher_service.py.
-    write_to_output_folder(db, invoice.id, signed_path)
+    # check in this router. Called — and its result captured — before the
+    # response is built below, so a write failure is always reflected in
+    # this response rather than only discoverable later. See
+    # services/folder_watcher_service.py.
+    output_write = write_to_output_folder(db, invoice.id, signed_path)
 
-    return _invoice_to_out(db, invoice)
+    # 'folder_only' is the one case the frontend must NOT also download the
+    # signed PDF for — every other case (disabled, browser_only, both)
+    # keeps the pre-existing browser-download behaviour. See
+    # docs/decisions-log.md.
+    output_config = get_output_config(db)
+    download = not (output_config["enabled"] and output_config["behaviour"] == "folder_only")
+
+    return {
+        "invoice": _invoice_to_out(db, invoice),
+        "download": download,
+        "output_write": output_write,
+    }
 
 
 @router.get("/{invoice_id}/original-pdf")

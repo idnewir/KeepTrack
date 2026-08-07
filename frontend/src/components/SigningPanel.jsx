@@ -483,7 +483,7 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
 
     setPlacing(true)
     try {
-      await invoicesApi.sign(
+      const result = await invoicesApi.sign(
         invoiceId,
         {
           signature_image: effectiveSignatureDataUrl,
@@ -497,9 +497,20 @@ export default function SigningPanel({ invoiceId, invoiceFilename, file, token, 
         },
         token
       )
-      const blob = await invoicesApi.downloadSignedPdf(invoiceId, token)
-      downloadBlob(blob, `signed_${invoiceFilename}`)
-      setSuccessMessage('Signature applied — the signed PDF has been downloaded.')
+      // `download` is false only when the output folder is enabled and set
+      // to "Save to folder only" — otherwise this preserves the previous
+      // always-download behaviour. See docs/decisions-log.md.
+      if (result.download) {
+        const blob = await invoicesApi.downloadSignedPdf(invoiceId, token)
+        downloadBlob(blob, `signed_${invoiceFilename}`)
+        setSuccessMessage('Signature applied — the signed PDF has been downloaded.')
+      } else if (result.output_write.written) {
+        setSuccessMessage(`Signature applied — signed PDF saved to output folder: ${result.output_write.path}`)
+      } else {
+        setSuccessMessage(
+          `Signature applied, but saving to the output folder failed: ${result.output_write.error || 'unknown error'}`
+        )
+      }
       window.setTimeout(() => requestClose(onSigned), 900)
     } catch (err) {
       setPlaceError(err.message || 'Failed to place signature')
