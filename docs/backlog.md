@@ -106,6 +106,7 @@ Longer-term ideas for future versions of Keep Track. These are explicitly out of
 - **Secrets management** — move from `.env` to Docker secrets or k3s secrets.
 - **MFA QR code logo** — embed the Keep Track logo once the app is publicly accessible.
 - **Profile picture:** improve Gravatar integration.
+- **DiceBear avatar integration** — support DiceBear avatar generation (dicebear.com) as a third avatar option on the profile page, alongside photo upload and Gravatar. Fetch and cache server-side using the same pattern as the Gravatar implementation. Allow users to customise their DiceBear style and seed before fetching.
 - **Dark mode for exported PDFs** — a user preference for PDF colour scheme.
 - **Notification centre:** email notifications for critical alerts.
 - **Full text search:** extend to contributions and reconciliation notes.
