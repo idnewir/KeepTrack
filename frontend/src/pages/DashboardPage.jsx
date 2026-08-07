@@ -427,7 +427,7 @@ function FundingProgressRow({ item }) {
   const savedPct = target > 0 && balance != null ? Math.min(100, Math.max(0, (balance / target) * 100)) : 0
 
   return (
-    <div className="kt-project-funding kt-panel-list-progress">
+    <div className="kt-project-funding">
       <div className="kt-project-funding-row">
         <span>
           Saving toward: <strong>{formatCurrency(item.funding_target_amount)}</strong>
@@ -439,7 +439,7 @@ function FundingProgressRow({ item }) {
           </span>
         )}
       </div>
-      <div className="kt-project-progress-track">
+      <div className="kt-project-progress-track kt-panel-list-progress">
         <div
           className={`kt-project-progress-fill kt-funding-track-${item.on_track ? 'on-fill' : 'off-fill'}`}
           style={{ width: `${savedPct}%` }}

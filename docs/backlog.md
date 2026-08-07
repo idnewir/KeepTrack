@@ -26,7 +26,6 @@ Items move between sections as priorities shift and work progresses:
 
 Things that are broken or incomplete in features that have already been built. These represent real defects or gaps in existing functionality — not new work — and should be fixed before Keep Track goes to production.
 
-- **Dashboard planned projects panel** — project cards don't autosize correctly when funding target mode is enabled; text is truncated.
 - **Report PDF styling** needs review and improvement — charts and layout should match the quality of the manually built KHOC report template.
 - **Gravatar avatar URL** doesn't work reliably — likely a Gravatar-side issue, but worth investigating properly rather than assuming.
 - **Settings → AI & Extraction** only shows AI provider configuration — nothing about extraction behaviour itself, which may confuse users expecting extraction-specific settings there.

@@ -221,6 +221,11 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
+  /* Grid's default `stretch` forces every panel in the row to match the
+     tallest one — since a funding-target project card can make Planned
+     Projects considerably taller than Upcoming/Recent Activity, each panel
+     should size to its own content instead. See docs/decisions-log.md. */
+  align-items: start;
 }
 
 .kt-panel-card {
@@ -247,7 +252,15 @@
   background: var(--kt-border);
   border: 1px solid var(--kt-border);
   border-radius: 10px;
-  overflow: hidden;
+  /* Each row/card sizes to its own content (nothing here constrains a
+     row's height) — but a panel with many rows scrolls internally past
+     this height rather than growing the whole dashboard indefinitely or,
+     worse, clipping a row's content. Matches this app's existing
+     max-height + overflow-y:auto scroll regions (e.g. notifications.css,
+     search.css). See docs/decisions-log.md. */
+  max-height: 420px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .kt-panel-list-row {
@@ -405,6 +418,10 @@
 @media (max-width: 520px) {
   .kt-metric-row {
     grid-template-columns: 1fr;
+  }
+
+  .kt-panel-list {
+    max-height: 320px;
   }
 
   .kt-dashboard-panel {
