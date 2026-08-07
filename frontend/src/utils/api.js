@@ -325,6 +325,18 @@ export const reconciliationApi = {
   },
 }
 
+// Plain fetch returning response text, for endpoints that return raw
+// markdown/text rather than JSON (help guide content).
+async function requestText(path, { token } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    throw new ApiError(`Request failed (${res.status})`, res.status, null)
+  }
+  return res.text()
+}
+
 // Plain fetch returning a Blob, for authenticated file downloads (the browser
 // can't attach an Authorization header to a plain <a href> download).
 async function requestBlob(path, { token } = {}) {
@@ -527,6 +539,11 @@ export const storageApi = {
     formData.append('superadmin_password', superadminPassword)
     return requestForm('/storage/restore', { formData, token })
   },
+}
+
+export const helpApi = {
+  list: (token) => request('/help', { token }),
+  get: (guideKey, token) => requestText(`/help/${guideKey}`, { token }),
 }
 
 export const reportsApi = {

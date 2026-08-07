@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 // Small, subtle "?" link placed in a page's header area, deep-linking into
-// the matching Help topic (see help/topics.js for the topic keys).
+// the matching Help topic (see backend/routers/help.py for the topic keys).
 export default function HelpIconLink({ topic }) {
   return (
     <Link

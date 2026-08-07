@@ -949,6 +949,12 @@ class FeatureModuleOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class HelpGuideOut(BaseModel):
+    key: str
+    title: str
+    filename: str
+
+
 class FeatureModuleUpdate(BaseModel):
     enabled: bool
 

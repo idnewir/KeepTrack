@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { HELP_TOPICS, HELP_TOPIC_BY_KEY, HELP_TOPIC_BY_FILE, DEFAULT_HELP_TOPIC } from '../help/topics.js'
+import { useAuth } from '../hooks/AuthContext.jsx'
+import { helpApi } from '../utils/api.js'
 import { renderGuideMarkdown } from '../help/markdown.js'
 
 const BACK_TO_TOP_THRESHOLD = 300
+const DEFAULT_HELP_TOPIC = 'getting-started'
 
 function SearchIcon() {
   return (
@@ -15,52 +17,88 @@ function SearchIcon() {
 }
 
 export default function HelpPage() {
+  const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const requestedTopic = searchParams.get('topic')
-  const initialTopic = HELP_TOPIC_BY_KEY[requestedTopic] ? requestedTopic : DEFAULT_HELP_TOPIC
 
-  const [activeTopic, setActiveTopic] = useState(initialTopic)
+  const [topics, setTopics] = useState([])
+  const [topicsLoaded, setTopicsLoaded] = useState(false)
+  const [topicsError, setTopicsError] = useState(false)
+  const [activeTopic, setActiveTopic] = useState(requestedTopic || DEFAULT_HELP_TOPIC)
   const [mobileShowContent, setMobileShowContent] = useState(requestedTopic != null)
   const [searchQuery, setSearchQuery] = useState('')
   const [guideTexts, setGuideTexts] = useState({})
-  const [loadError, setLoadError] = useState(false)
+  const [guideErrors, setGuideErrors] = useState({})
   const [showBackToTop, setShowBackToTop] = useState(false)
 
   const contentScrollRef = useRef(null)
   const searchInputRef = useRef(null)
 
-  // All eight guides are small — load them all up front so search can match
+  // List of guides, then all of their content, both come from the backend
+  // (the single source of truth for guides — see docs/decisions-log.md).
+  // All guides are small — load them all up front so search can match
   // against their content, not just the topic titles, and switching topics
   // never has to wait on a fetch.
   useEffect(() => {
     let cancelled = false
-    Promise.all(
-      HELP_TOPICS.map((topic) =>
-        fetch(`/help-guides/${topic.file}`)
-          .then((res) => (res.ok ? res.text() : Promise.reject(new Error(`${res.status}`))))
-          .then((text) => [topic.key, text])
-          .catch(() => [topic.key, null])
-      )
-    ).then((entries) => {
+
+    async function load() {
+      let list
+      try {
+        list = await helpApi.list(user.token)
+      } catch {
+        if (!cancelled) setTopicsError(true)
+        return
+      }
       if (cancelled) return
-      const texts = Object.fromEntries(entries)
+
+      setTopics(list)
+      setTopicsLoaded(true)
+      if (!list.some((topic) => topic.key === requestedTopic)) {
+        setActiveTopic(list[0]?.key || DEFAULT_HELP_TOPIC)
+      }
+
+      const entries = await Promise.all(
+        list.map((topic) =>
+          helpApi
+            .get(topic.key, user.token)
+            .then((text) => [topic.key, text, false])
+            .catch(() => [topic.key, null, true])
+        )
+      )
+      if (cancelled) return
+
+      const texts = {}
+      const errors = {}
+      entries.forEach(([key, text, failed]) => {
+        if (failed) errors[key] = true
+        else texts[key] = text
+      })
       setGuideTexts(texts)
-      if (Object.values(texts).every((t) => t == null)) setLoadError(true)
-    })
+      setGuideErrors(errors)
+    }
+
+    load()
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const topicByKey = useMemo(() => Object.fromEntries(topics.map((t) => [t.key, t])), [topics])
+  // Guides link to each other by filename (e.g. "uploading-invoices.md") —
+  // maps that back to the topic key so those links can be intercepted.
+  const topicByFile = useMemo(() => Object.fromEntries(topics.map((t) => [t.filename, t.key])), [topics])
 
   const filteredTopics = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    if (!q) return HELP_TOPICS
-    return HELP_TOPICS.filter((topic) => {
-      if (topic.label.toLowerCase().includes(q)) return true
+    if (!q) return topics
+    return topics.filter((topic) => {
+      if (topic.title.toLowerCase().includes(q)) return true
       const text = guideTexts[topic.key]
       return typeof text === 'string' && text.toLowerCase().includes(q)
     })
-  }, [searchQuery, guideTexts])
+  }, [searchQuery, guideTexts, topics])
 
   const handleSelectTopic = (key) => {
     setActiveTopic(key)
@@ -80,14 +118,11 @@ export default function HelpPage() {
     if (e.key === 'Escape') clearSearch()
   }
 
-  // Guides link to each other by filename (e.g. "uploading-invoices.md") —
-  // intercept those clicks and route within the Help page instead of
-  // requesting the raw markdown file.
   const handleContentClick = (e) => {
     const anchor = e.target.closest('a')
     if (!anchor) return
     const href = anchor.getAttribute('href') || ''
-    const topicKey = HELP_TOPIC_BY_FILE[href]
+    const topicKey = topicByFile[href]
     if (topicKey) {
       e.preventDefault()
       handleSelectTopic(topicKey)
@@ -105,7 +140,8 @@ export default function HelpPage() {
   }
 
   const activeText = guideTexts[activeTopic]
-  const activeLabel = HELP_TOPIC_BY_KEY[activeTopic]?.label
+  const activeError = guideErrors[activeTopic]
+  const activeLabel = topicByKey[activeTopic]?.title
 
   return (
     <div>
@@ -150,7 +186,7 @@ export default function HelpPage() {
                         className={`kt-settings-nav-link${activeTopic === topic.key ? ' active' : ''}`}
                         onClick={() => handleSelectTopic(topic.key)}
                       >
-                        <span>{topic.label}</span>
+                        <span>{topic.title}</span>
                       </button>
                     </li>
                   ))}
@@ -169,12 +205,18 @@ export default function HelpPage() {
               className="kt-help-content-scroll"
               onScroll={handleContentScroll}
             >
-              {loadError ? (
-                <p className="kt-page-subtitle">
+              {topicsError ? (
+                <p className="kt-page-subtitle kt-help-error">
                   Couldn't load help content. Please try again shortly.
                 </p>
+              ) : !topicsLoaded ? (
+                <span className="kt-help-spinner" role="status" aria-label="Loading help topics" />
+              ) : activeError ? (
+                <p className="kt-page-subtitle kt-help-error">
+                  Could not load this guide. Please try again.
+                </p>
               ) : activeText == null ? (
-                <p className="kt-page-subtitle">Loading…</p>
+                <span className="kt-help-spinner" role="status" aria-label="Loading guide" />
               ) : (
                 <div
                   className="kt-help-content"

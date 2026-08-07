@@ -57,6 +57,20 @@
   padding-right: 4px;
 }
 
+.kt-help-spinner {
+  width: 22px;
+  height: 22px;
+  margin: 24px 0;
+  border: 3px solid rgba(var(--kt-text-muted-rgb), 0.3);
+  border-top-color: var(--kt-primary);
+  border-radius: 50%;
+  animation: kt-spin 0.7s linear infinite;
+}
+
+.kt-help-error {
+  color: var(--kt-text-muted);
+}
+
 .kt-help-content {
   max-width: 720px;
   color: var(--kt-text);

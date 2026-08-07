@@ -32,6 +32,7 @@ services:
       DATABASE_URL: ${DATABASE_URL}
     volumes:
       - ./backend:/app
+      - ./user-guides:/app/user-guides:ro
       - invoice_storage:/data/invoices
       - watched_folder:/data/watched
       - report_storage:/data/reports

@@ -27,7 +27,6 @@ Items move between sections as priorities shift and work progresses:
 Things that are broken or incomplete in features that have already been built. These represent real defects or gaps in existing functionality — not new work — and should be fixed before Keep Track goes to production.
 
 - **Report PDF styling** needs review and improvement — charts and layout should match the quality of the manually built KHOC report template.
-- **Help guides are duplicated** in two locations (`user-guides/` and `frontend/public/help-guides/`) — editing one does not update the other, so the two can silently drift out of sync.
 
 ---
 
@@ -71,7 +70,6 @@ Features that have been designed and committed to for V1, but are not yet built.
   - Kubernetes manifests for k3s deployment.
   - Container vulnerability scanning (slim/alpine base images, OS updates during build, Trivy integration).
   - A single `docker-compose up -d` starts everything.
-  - Help guides consolidated into a single source (depends on the Section 1 duplication bug being fixed first).
   - `docs/deployment.md` — full deployment guide.
 
 ---
