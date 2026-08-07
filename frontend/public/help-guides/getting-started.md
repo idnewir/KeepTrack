@@ -40,7 +40,18 @@ Once logged in, you'll see:
 
 Not everyone sees the same options. For example, some people can only view information, while others can also add and change things. If a button or page seems to be missing, it's likely your role doesn't include that permission — ask your administrator if you think this is wrong.
 
-## 6. Where to go next
+## 6. Setting a profile picture
+
+From **My profile** (click your name in the top-right corner, then **My profile**), you can add a picture next to your name in two ways:
+
+- **Upload image** — upload a JPG, PNG, GIF, or WebP file directly (max 5 MB).
+- **Gravatar** — enter the email address linked to your [Gravatar](https://www.gravatar.com) account and click **Fetch from Gravatar**.
+
+Either way, if you set neither, your initials are shown instead.
+
+A Gravatar picture is downloaded once and **saved to Keep Track**, not loaded live from Gravatar on every page view — this keeps things fast and doesn't depend on Gravatar's own website being reachable. If you update your picture on Gravatar's website afterwards, Keep Track won't notice on its own: go back to **My profile → Gravatar** and click **Refresh from Gravatar** to pick up the change.
+
+## 7. Where to go next
 
 - To upload your first invoice, see [Uploading Invoices](uploading-invoices.md).
 - To understand the dashboard, see [Dashboard Guide](dashboard-guide.md).

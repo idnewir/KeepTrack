@@ -104,6 +104,13 @@ export const profileApi = {
   // Fetched as a Blob (not a plain <img src>) since the endpoint requires
   // an Authorization header — same pattern as invoicesApi.getPreview.
   getAvatarBlob: (userId, token) => requestBlob(`/profile/avatar/${userId}`, { token }),
+  // Both fetch the image server-side (see docs/decisions-log.md for why —
+  // a browser-side fetch of an external avatar host runs into CSP
+  // connect-src restrictions) rather than the frontend loading it directly.
+  fetchGravatar: (email, token) =>
+    request('/profile/avatar/gravatar', { method: 'POST', body: { email }, token }),
+  refreshGravatar: (token) =>
+    request('/profile/avatar/gravatar/refresh', { method: 'POST', token }),
   uploadSignature: (file, token, onProgress) => {
     const formData = new FormData()
     formData.append('file', file)

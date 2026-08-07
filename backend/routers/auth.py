@@ -747,6 +747,7 @@ def update_my_profile(
         if user.avatar_path:
             profile_service.remove_avatar(user.id)
             user.avatar_path = None
+            user.avatar_source = None
     else:
         user.avatar_url = None
 

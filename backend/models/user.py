@@ -1,4 +1,7 @@
 """User ORM model — see docs/database-schema.md for the source schema."""
+import os
+from datetime import datetime, timezone
+
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Integer, String, func
 
 from database import Base
@@ -46,6 +49,13 @@ class User(Base):
     avatar_path = Column(String(500), nullable=True)
     # External avatar image (Gravatar, DiceBear, any direct image URL).
     avatar_url = Column(String(1000), nullable=True)
+    # Which flow produced the file at avatar_path — 'upload' or 'gravatar'.
+    # Both an upload and a Gravatar fetch can save an identically-named
+    # avatar.png, so this is the only way to tell them apart (needed to
+    # decide whether the profile page shows "Refresh from Gravatar"). Null
+    # for avatars saved before this column existed, or when avatar_path is
+    # unset. See docs/decisions-log.md.
+    avatar_source = Column(String(20), nullable=True)
     # Path to an uploaded signature image (always stored as PNG with a
     # transparent background) under services/profile_service.py's signature
     # storage root, used to auto-fill the signing panel.
@@ -58,3 +68,13 @@ class User(Base):
     @property
     def has_signature(self) -> bool:
         return bool(self.signature_path)
+
+    @property
+    def avatar_fetched_at(self) -> datetime | None:
+        """The avatar file's own last-modified time — used to show "Last
+        fetched: [date]" for a Gravatar-sourced avatar rather than a
+        separate DB timestamp column, since the file's mtime already is
+        that timestamp."""
+        if not self.avatar_path or not os.path.exists(self.avatar_path):
+            return None
+        return datetime.fromtimestamp(os.path.getmtime(self.avatar_path), tz=timezone.utc)

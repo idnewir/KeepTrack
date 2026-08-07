@@ -91,26 +91,31 @@ def _open_validated_image(content: bytes, allowed_formats: set[str]) -> Image.Im
     return img
 
 
-def save_avatar(user_id: int, content: bytes) -> str:
+def save_avatar(user_id: int, content: bytes, *, force_format: str | None = None) -> str:
     """Validates, resizes to a max of 256x256 (preserving aspect ratio), and
-    saves an uploaded profile picture. Returns the path it was written to.
-    Any previously saved avatar file is removed first, including one saved
-    under a different extension."""
+    saves a profile picture — either an uploaded file or (via force_format=
+    "PNG") a Gravatar-fetched image, always saved as avatar.png regardless
+    of what format Gravatar actually served. Returns the path it was written
+    to. Any previously saved avatar file is removed first, including one
+    saved under a different extension."""
     if len(content) > MAX_AVATAR_BYTES:
         raise ValueError(f"Image is too large (max {MAX_AVATAR_BYTES // (1024 * 1024)} MB)")
 
     img = _open_validated_image(content, ALLOWED_AVATAR_FORMATS)
     img.thumbnail((AVATAR_MAX_DIMENSION, AVATAR_MAX_DIMENSION), Image.LANCZOS)
 
-    ext = _EXT_FOR_FORMAT[img.format]
-    if img.format == "JPEG" and img.mode in ("RGBA", "P"):
+    fmt = force_format or img.format
+    ext = _EXT_FOR_FORMAT[fmt]
+    if fmt == "JPEG" and img.mode in ("RGBA", "P"):
         img = img.convert("RGB")
+    elif fmt == "PNG" and img.mode not in ("RGB", "RGBA", "L", "P"):
+        img = img.convert("RGBA")
 
     target_dir = avatar_dir(user_id)
     _clear_dir(target_dir)
     os.makedirs(target_dir, exist_ok=True)
     target_path = os.path.join(target_dir, f"avatar.{ext}")
-    img.save(target_path, format=img.format)
+    img.save(target_path, format=fmt)
     return target_path
 
 

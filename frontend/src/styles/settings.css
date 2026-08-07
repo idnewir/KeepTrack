@@ -371,19 +371,6 @@
   object-fit: cover;
 }
 
-.kt-avatar-url-preview {
-  display: flex;
-  justify-content: center;
-}
-
-.kt-avatar-url-preview img {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: var(--kt-avatar-bg);
-}
-
 .kt-signature-current {
   display: flex;
   flex-direction: column;
@@ -981,6 +968,12 @@
   background: rgba(var(--kt-primary-rgb), 0.08);
   color: var(--kt-primary);
   border: 1px solid rgba(var(--kt-primary-rgb), 0.25);
+}
+
+.kt-ai-banner-warning {
+  background: rgba(var(--kt-amber-rgb), 0.1);
+  color: var(--kt-amber);
+  border: 1px solid rgba(var(--kt-amber-rgb), 0.3);
 }
 
 .kt-ai-badge {

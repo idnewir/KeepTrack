@@ -45,6 +45,11 @@ class UserOut(BaseModel):
     # the raw storage paths themselves.
     avatar_url: str | None = None
     has_avatar: bool = False
+    # 'upload' or 'gravatar' — lets the profile page decide whether to show
+    # "Refresh from Gravatar". avatar_fetched_at is the avatar file's own
+    # mtime (see models/user.py), only meaningful when avatar_source is set.
+    avatar_source: str | None = None
+    avatar_fetched_at: datetime | None = None
     has_signature: bool = False
     # Both computed server-side per-request in GET /auth/me — not columns on
     # User itself. See docs/decisions-log.md.
@@ -146,6 +151,10 @@ class ProfileUpdateRequest(BaseModel):
     # avatar_path (see routers/auth.py.update_my_profile) since the two are
     # mutually exclusive. See docs/decisions-log.md.
     avatar_url: str | None = Field(default=None, max_length=1000)
+
+
+class GravatarFetchRequest(BaseModel):
+    email: EmailStr
 
 
 class PasswordChangeRequest(BaseModel):

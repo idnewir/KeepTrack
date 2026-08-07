@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { authApi, profileApi } from '../../utils/api.js'
+import { profileApi } from '../../utils/api.js'
+import { formatDate } from '../../utils/format.js'
 import Avatar, { invalidateAvatarCache } from '../Avatar.jsx'
 
 const MAX_AVATAR_MB = 5
@@ -20,21 +21,21 @@ export default function AvatarSection({ user, token, onChanged }) {
   const [uploadError, setUploadError] = useState('')
   const [removingAvatar, setRemovingAvatar] = useState(false)
 
-  const [urlValue, setUrlValue] = useState(user.avatar_url || '')
-  const [savingUrl, setSavingUrl] = useState(false)
-  const [urlError, setUrlError] = useState('')
+  const [gravatarEmail, setGravatarEmail] = useState(user.email || '')
+  const [fetchingGravatar, setFetchingGravatar] = useState(false)
+  const [gravatarError, setGravatarError] = useState('')
+  const [useDifferentEmail, setUseDifferentEmail] = useState(false)
 
-  // Keeps the URL field in sync when avatar_url changes from outside this
-  // component's own save/clear actions below — most notably, uploading a
-  // picture (the Upload image tab) clears avatar_url server-side, and
-  // without this the URL field would keep showing whatever was last typed
-  // here even though it no longer reflects the saved state. Only resyncs
-  // when the saved value actually changes, so it doesn't clobber the field
-  // while the user is still typing an unsaved edit.
+  const isGravatarSourced = user.avatar_source === 'gravatar'
+
+  // Keeps the email field in sync with the account's email when it changes
+  // elsewhere (the account details form above), same reasoning as the old
+  // avatar-URL field's resync: only the saved value changing should update
+  // it, not every render, so it doesn't clobber an unsaved edit in progress.
   useEffect(() => {
-    setUrlValue(user.avatar_url || '')
+    setGravatarEmail(user.email || '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.avatar_url])
+  }, [user.email])
 
   const afterChange = async () => {
     invalidateAvatarCache(user.id)
@@ -91,25 +92,32 @@ export default function AvatarSection({ user, token, onChanged }) {
     }
   }
 
-  const saveAvatarUrl = async (nextUrl) => {
-    setUrlError('')
-    setSavingUrl(true)
+  const handleFetchGravatar = async () => {
+    if (!gravatarEmail.trim()) return
+    setGravatarError('')
+    setFetchingGravatar(true)
     try {
-      await authApi.updateProfile(
-        { display_name: user.display_name, email: user.email, avatar_url: nextUrl || '' },
-        token
-      )
+      await profileApi.fetchGravatar(gravatarEmail.trim(), token)
+      setUseDifferentEmail(false)
       await afterChange()
     } catch (err) {
-      setUrlError(err.message || 'Failed to save avatar URL')
+      setGravatarError(err.message || 'Failed to fetch Gravatar image')
     } finally {
-      setSavingUrl(false)
+      setFetchingGravatar(false)
     }
   }
 
-  const handleClearUrl = () => {
-    setUrlValue('')
-    saveAvatarUrl('')
+  const handleRefreshGravatar = async () => {
+    setGravatarError('')
+    setFetchingGravatar(true)
+    try {
+      await profileApi.refreshGravatar(token)
+      await afterChange()
+    } catch (err) {
+      setGravatarError(err.message || 'Failed to refresh Gravatar image')
+    } finally {
+      setFetchingGravatar(false)
+    }
   }
 
   return (
@@ -117,11 +125,13 @@ export default function AvatarSection({ user, token, onChanged }) {
       <div className="kt-avatar-current">
         <Avatar userId={user.id} token={token} size={80} title={user.display_name || user.username} />
         <p className="kt-field-note">
-          {user.has_avatar
-            ? 'Uploaded picture'
-            : user.avatar_url
-              ? 'External image'
-              : 'Generated from your initials — upload a picture or set a URL below.'}
+          {isGravatarSourced
+            ? 'Gravatar picture'
+            : user.has_avatar
+              ? 'Uploaded picture'
+              : user.avatar_url
+                ? 'External image'
+                : 'Generated from your initials — upload a picture or fetch one from Gravatar below.'}
         </p>
       </div>
 
@@ -138,11 +148,11 @@ export default function AvatarSection({ user, token, onChanged }) {
         <button
           type="button"
           role="tab"
-          aria-selected={tab === 'url'}
-          className={`kt-users-tab${tab === 'url' ? ' active' : ''}`}
-          onClick={() => setTab('url')}
+          aria-selected={tab === 'gravatar'}
+          className={`kt-users-tab${tab === 'gravatar' ? ' active' : ''}`}
+          onClick={() => setTab('gravatar')}
         >
-          Avatar URL
+          Gravatar
         </button>
       </div>
 
@@ -207,55 +217,99 @@ export default function AvatarSection({ user, token, onChanged }) {
         </div>
       ) : (
         <div className="kt-avatar-tab-panel">
-          <div className="kt-field">
-            <label htmlFor="avatar-url">Image URL</label>
-            <input
-              id="avatar-url"
-              type="url"
-              placeholder="https://…"
-              value={urlValue}
-              onChange={(e) => setUrlValue(e.target.value)}
-            />
-            <span className="kt-field-note">
-              You can use Gravatar, DiceBear, or any direct image URL. Links:{' '}
-              <a href="https://www.dicebear.com" target="_blank" rel="noreferrer">DiceBear</a>
-              {' · '}
-              <a href="https://www.gravatar.com" target="_blank" rel="noreferrer">Gravatar</a>
-            </span>
-          </div>
+          <p className="kt-field-note">
+            Use your Gravatar profile picture. Gravatar is a free service that links a profile
+            picture to your email address.
+          </p>
 
-          {urlValue.trim() && (
-            <div className="kt-avatar-url-preview">
-              <img
-                src={urlValue.trim()}
-                alt="Preview"
-                onError={(e) => {
-                  e.currentTarget.style.visibility = 'hidden'
-                }}
-                onLoad={(e) => {
-                  e.currentTarget.style.visibility = 'visible'
-                }}
-              />
-            </div>
+          {isGravatarSourced && !useDifferentEmail ? (
+            <>
+              <p className="kt-field-note">
+                Last fetched: {user.avatar_fetched_at ? formatDate(user.avatar_fetched_at) : 'Unknown'}
+              </p>
+
+              {gravatarError && <div className="kt-auth-error">{gravatarError}</div>}
+
+              <div className="kt-avatar-tab-actions">
+                <button
+                  type="button"
+                  className="kt-auth-button"
+                  onClick={handleRefreshGravatar}
+                  disabled={fetchingGravatar}
+                >
+                  {fetchingGravatar ? (
+                    <>
+                      <span className="kt-ai-test-spinner" /> Refreshing…
+                    </>
+                  ) : (
+                    'Refresh from Gravatar'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="kt-category-link-button"
+                  onClick={() => setUseDifferentEmail(true)}
+                  disabled={fetchingGravatar}
+                >
+                  Use a different email
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="kt-field">
+                <label htmlFor="gravatar-email">Email address</label>
+                <input
+                  id="gravatar-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={gravatarEmail}
+                  onChange={(e) => setGravatarEmail(e.target.value)}
+                />
+              </div>
+
+              {gravatarError && <div className="kt-auth-error">{gravatarError}</div>}
+
+              <div className="kt-avatar-tab-actions">
+                <button
+                  type="button"
+                  className="kt-auth-button"
+                  disabled={fetchingGravatar || !gravatarEmail.trim()}
+                  onClick={handleFetchGravatar}
+                >
+                  {fetchingGravatar ? (
+                    <>
+                      <span className="kt-ai-test-spinner" /> Fetching…
+                    </>
+                  ) : (
+                    'Fetch from Gravatar'
+                  )}
+                </button>
+                {isGravatarSourced && (
+                  <button
+                    type="button"
+                    className="kt-category-link-button"
+                    onClick={() => setUseDifferentEmail(false)}
+                    disabled={fetchingGravatar}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </>
           )}
 
-          {urlError && <div className="kt-auth-error">{urlError}</div>}
-
-          <div className="kt-avatar-tab-actions">
-            <button
-              type="button"
-              className="kt-auth-button"
-              disabled={savingUrl || !urlValue.trim()}
-              onClick={() => saveAvatarUrl(urlValue.trim())}
-            >
-              {savingUrl ? 'Saving…' : 'Save'}
-            </button>
-            {user.avatar_url && (
-              <button type="button" className="kt-category-link-button kt-category-danger" onClick={handleClearUrl} disabled={savingUrl}>
-                Clear URL
-              </button>
-            )}
+          <div className="kt-ai-banner kt-ai-banner-warning">
+            Your Gravatar image is saved to Keep Track when you fetch it. If you update your
+            Gravatar profile picture, click Refresh from Gravatar to update it here.
           </div>
+
+          <p className="kt-field-note">
+            Don't have a Gravatar?{' '}
+            <a href="https://www.gravatar.com" target="_blank" rel="noreferrer">
+              Set one up at gravatar.com
+            </a>
+          </p>
         </div>
       )}
     </div>
