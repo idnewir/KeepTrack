@@ -84,6 +84,8 @@ Small improvements that make V1 feel complete and considered, but do not block l
 - **Welcome page:** review copy for personal finance vs. organisational tone.
 - **Help guides:** review all content for accuracy after recent changes.
 - **Audit log:** confirm all actions are being captured correctly.
+- **Transaction rules** — auto-categorise invoices by supplier name. Define rules like "Any invoice from Corona Energy → Electricity". Rules applied automatically during AI extraction and manual review. Works even when AI is disabled. Rules manageable in Settings. Improves categorisation accuracy over time.
+- **Cash flow enhancement** — update the dashboard financial chart to show separate income and expense visualisations more clearly, inspired by Actual Budget's cash flow report. Show how available funds fluctuate month by month with income and expenses as distinct areas.
 
 ---
 
@@ -123,3 +125,8 @@ Longer-term ideas for future versions of Keep Track. These are explicitly out of
 - **Budget Planning:** support for irregular income (freelancers, commission-based).
 - **Debt Tracking:** support for joint debts shared between users.
 - **Net worth dashboard:** assets vs. liabilities overview.
+- **Tiled report dashboard** — Reports page shows saved and pinned reports as clickable tiles (mini previews) rather than just a list. Clicking a tile expands to full screen. Users can pin their most used reports for quick access. Inspired by Actual Budget's report dashboard.
+- **Net worth calculation** — once Debt Tracking module is built, calculate and display net worth: total funds on hand minus total outstanding debt. Show as a dashboard metric and in reports. Tracks net worth over time.
+- **Scheduled transactions** — define expected recurring invoices (e.g. electricity bill expected on the 1st of each month for approximately £X). App tracks whether they arrived and alerts if an expected invoice is overdue. More structured than the current upcoming invoices panel which is pattern-based.
+- **Transaction import formats** — support importing transactions from popular financial file formats: QIF, OFX, QFX, CSV. Inspired by Actual Budget's import capabilities. Complements the existing CSV import for historical data.
+- **Bank sync** — connect directly to UK bank accounts via GoCardless open banking API for automatic transaction import. Inspired by Actual Budget's bank sync feature.
