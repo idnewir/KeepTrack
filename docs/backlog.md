@@ -28,7 +28,6 @@ Things that are broken or incomplete in features that have already been built. T
 
 - **Report PDF styling** needs review and improvement — charts and layout should match the quality of the manually built KHOC report template.
 - **Gravatar avatar URL** doesn't work reliably — likely a Gravatar-side issue, but worth investigating properly rather than assuming.
-- **Settings → AI & Extraction** only shows AI provider configuration — nothing about extraction behaviour itself, which may confuse users expecting extraction-specific settings there.
 - **Help guides are duplicated** in two locations (`user-guides/` and `frontend/public/help-guides/`) — editing one does not update the other, so the two can silently drift out of sync.
 
 ---

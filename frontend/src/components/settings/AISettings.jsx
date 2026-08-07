@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { aiApi } from '../../utils/api.js'
 
 const CLOUD_PROVIDERS = ['anthropic', 'openai', 'google', 'xai', 'mistral', 'cohere']
@@ -161,6 +162,28 @@ export default function AISettings({ token }) {
       <p className="kt-panel-subtitle">
         Configure how Keep Track uses AI to read invoices and write report summaries.
       </p>
+
+      <div className="kt-settings-list" style={{ marginBottom: 28 }}>
+        <div className="kt-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+          <div className="kt-settings-row-text">
+            <span className="kt-settings-row-title">Invoice Extraction</span>
+            <p className="kt-settings-row-description">
+              When AI is enabled, Keep Track automatically extracts supplier, date, amount and
+              category from uploaded invoices. You can review and correct this information
+              before confirming each invoice. When AI is disabled, all fields must be filled in
+              manually.
+            </p>
+            <p className="kt-field-note" style={{ marginTop: 8 }}>
+              Fields the AI is uncertain about are highlighted in amber on the review card.
+            </p>
+            <p className="kt-field-note" style={{ marginTop: 8 }}>
+              <Link to="/help?topic=uploading-invoices">
+                Learn more in the Help section → Uploading Invoices
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
 
       {loadError && <div className="kt-auth-error" style={{ marginBottom: 20 }}>{loadError}</div>}
       {saveError && <div className="kt-auth-error" style={{ marginBottom: 20 }}>{saveError}</div>}
