@@ -10,12 +10,13 @@ from models.planned_project import PlannedProject
 from models.schemas import FinancialYearOut, ProjectCreate, ProjectOut, ProjectUpdate
 from models.user import User
 from services import audit_service, financial_year_service as fy_service, project_service
-from utils.deps import get_current_user, require_admin, require_standard
+from utils.deps import get_current_user, require_admin, require_module, require_standard
 
-router = APIRouter(prefix="/projects", tags=["projects"])
+router = APIRouter(prefix="/projects", tags=["projects"], dependencies=[Depends(require_module("planned_projects"))])
 
 
 def _project_to_out(db: Session, project: PlannedProject) -> dict:
+    funding = project_service.funding_progress(db, project) or {}
     return {
         "id": project.id,
         "name": project.name,
@@ -32,6 +33,11 @@ def _project_to_out(db: Session, project: PlannedProject) -> dict:
         "edited_at": project.edited_at,
         "edit_reason": project.edit_reason,
         "admin_edit_notes": project.admin_edit_notes,
+        "is_funding_target": project.is_funding_target,
+        "funding_target_amount": project.funding_target_amount,
+        "funding_target_date": project.funding_target_date,
+        "funding_notes": project.funding_notes,
+        **funding,
         **project_service.project_financials(db, project),
     }
 
@@ -108,6 +114,10 @@ def create_project(
         expected_month=payload.expected_month.replace(day=1),
         financial_year_id=payload.financial_year_id,
         created_by=user.id,
+        is_funding_target=payload.is_funding_target,
+        funding_target_amount=payload.funding_target_amount if payload.is_funding_target else None,
+        funding_target_date=payload.funding_target_date if payload.is_funding_target else None,
+        funding_notes=payload.funding_notes if payload.is_funding_target else None,
     )
     db.add(project)
     db.commit()
@@ -181,6 +191,19 @@ def update_project(
         project.estimated_cost = payload.estimated_cost
     if payload.expected_month is not None:
         project.expected_month = payload.expected_month.replace(day=1)
+    if payload.is_funding_target is not None:
+        project.is_funding_target = payload.is_funding_target
+        if not payload.is_funding_target:
+            project.funding_target_amount = None
+            project.funding_target_date = None
+            project.funding_notes = None
+    if project.is_funding_target:
+        if payload.funding_target_amount is not None:
+            project.funding_target_amount = payload.funding_target_amount
+        if payload.funding_target_date is not None:
+            project.funding_target_date = payload.funding_target_date
+        if payload.funding_notes is not None:
+            project.funding_notes = payload.funding_notes
 
     db.commit()
     db.refresh(project)

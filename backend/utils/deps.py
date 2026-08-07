@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.setting import Setting
 from models.user import User
+from services import modules_service
 from utils.security import SCOPE_ACCESS, TokenError, decode_token
 
 _bearer_scheme = HTTPBearer(auto_error=False)
@@ -90,3 +91,28 @@ def require_superadmin(user: User = Depends(get_current_user)) -> User:
     if user.role != "superadmin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Superadmin privileges required")
     return user
+
+
+def require_module(module_key: str):
+    """Dependency factory gating a whole router (or a single endpoint) behind
+    a feature module's enabled state. Only blocks the API surface — the
+    background logic behind a module (forecasting, notification generation,
+    reconciliation staleness, the folder watcher, ...) always keeps running
+    regardless, so re-enabling a module restores full access instantly with
+    no data ever having gone stale. See docs/decisions-log.md.
+
+    Applied as a router-level `dependencies=[Depends(require_module(...))]`
+    for routers that belong entirely to one module (reconciliation, projects,
+    ai, imports, search) and endpoint-level for the one exception —
+    POST /invoices/{id}/sign — which shares a router with ungated invoice
+    endpoints.
+    """
+
+    def _check_module(db: Session = Depends(get_db)) -> None:
+        if not modules_service.is_enabled(db, module_key):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "This feature is not enabled. Enable it in Settings → General",
+            )
+
+    return _check_module

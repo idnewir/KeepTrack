@@ -135,6 +135,17 @@ On login, the user sees relevant alerts:
 - The **Invoices page** has a project filter (all invoices / unlinked only / each active project by name), making it easy to see all spend recorded against a specific project.
 - **Reports** include a project summary section — a table of each project's estimated, actual, and variance figures (with a combined total, and over-budget projects highlighted) — and the AI-written summary calls out any project significantly over or under its estimate by name.
 
+### Funding target mode ("saving toward this project")
+
+- A project can additionally be marked **"I am saving toward this project"** — a distinct mode from ordinary estimated-vs-actual spend tracking, aimed at a savings goal (e.g. "save £3,000 by June") rather than a project whose cost is paid for as invoices land.
+- Turning it on adds three fields: a **funding target amount** (pre-fills with the project's estimated cost), a **target date** (pre-fills with the project's expected month), and free-text **notes**.
+- Keep Track then computes, live, from the app's overall current balance and recent income/spend trend (never stored, so it can never drift):
+  - **Monthly surplus needed** — `(target amount − current balance) ÷ months remaining until the target date`.
+  - **On track** — whether the current monthly surplus (recent average income minus recent average spend) meets or exceeds the monthly surplus needed.
+  - **Projected completion** — the date the target is reached at the current savings trajectory, if the current surplus is positive.
+- Project cards show *"Saving toward: £X,XXX by [date]"*, the monthly surplus needed, and a green tick ("On track") or amber warning ("Behind target") indicator. The dashboard's planned projects panel shows the same savings progress for any funding-target project.
+- This is a **different question from estimated-vs-actual project spend** (see above) — a project can, in principle, use both: an estimated cost tracked against linked invoices, and separately a savings goal tracked against the overall balance. See [decisions-log.md](decisions-log.md) for why the two aren't merged into one concept.
+
 ---
 
 ## 6. Reports
@@ -186,7 +197,51 @@ Accessible to Admins (and Superadmin); most settings are Admin-only, per [user-r
 
 ---
 
-## 9. Account Sheet / Ledger
+## 9. Feature Modules
+
+Keep Track is deliberately generic (see [project-overview.md](project-overview.md)) — not every deployment needs every feature area. Feature Modules let an Admin turn a whole feature area on or off app-wide, so the same install can serve a full charity committee workflow or a stripped-down personal budget tracker without unused menus and pages getting in the way.
+
+### What a module controls
+
+Enabling or disabling a module only changes **UI visibility and API access** — the background logic behind it (forecasting, reconciliation staleness checks, notification generation, the folder watcher, etc.) always keeps running regardless. This means:
+
+- No data is ever lost or hidden by turning a module off — it's just not shown or reachable.
+- Re-enabling a module restores full access **instantly**, with nothing to "catch up" on, since nothing ever stopped running underneath.
+
+### The modules
+
+| Module | Default | Requires setup | Controls |
+|---|---|---|---|
+| **Reconciliation** | On | No | The Reconciliation page and its sidebar link, plus reconciliation-related dashboard notifications. |
+| **Planned Projects** | On | No | The Projects page, its sidebar link, and the dashboard's planned projects panel. |
+| **Signing & Export** | On | No | The signing step in the invoice review flow (independent of the pre-existing app-wide signing toggle — see [decisions-log.md](decisions-log.md)). |
+| **AI Extraction** | On | Yes | Automatic invoice data extraction on upload, and the Settings → AI & Extraction configuration screens. |
+| **Bulk Import** | On | No | The CSV/PDF bulk import workflow and its Settings → Data link. |
+| **Full Text Search** | On | No | The header search bar and the search results page. |
+| **Folder Integration** | Off | Yes | Auto-import from a watched input folder and auto-export of signed PDFs to an output folder. |
+| **Debt Tracking** | Off | Yes | Tracking loans, credit cards, mortgages, and other debts (module name is renameable at setup). |
+| **Budget Planning** | Off | Yes | Setting monthly budgets and allocating income across categories (module name is renameable at setup). |
+
+### Enabling and disabling
+
+- **Settings → General → Feature Modules** lists every module with its description, an Active/Inactive status, and a toggle switch. The toggle is visible to every role but only **Admins** can operate it — Standard and Read Only users see it greyed out, with a note to contact an Administrator.
+- Turning a module **on** applies immediately (optimistic update), shows a confirmation toast, and — if the module `requires_setup` — opens a short setup prompt (see below). The module appears in navigation immediately for the Admin who enabled it, and within 30 seconds for everyone else (see [architecture.md](architecture.md) for how module state is polled).
+- Turning a module **off** asks for confirmation first, explaining that the module will be hidden from navigation but no data will be deleted, and that re-enabling restores full access instantly.
+- Every enable/disable is recorded to the audit log.
+
+### Setup prompts
+
+Shown once, right after an Admin enables a module that `requires_setup`:
+
+- **AI Extraction** — points to Settings → AI & Extraction to add an API key.
+- **Folder Integration** — points to Settings → Data → Storage & Backup to configure the input/output folder paths.
+- **Debt Tracking** / **Budget Planning** — lets the Admin rename the module on the spot (pre-filled with the default name), since neither has one obvious universal label.
+
+Every prompt has a "Skip for now" option — setup is never forced.
+
+---
+
+## 10. Account Sheet / Ledger
 
 - A **monthly ledger** view showing:
   - Contributions in, broken down by contributing group.

@@ -150,6 +150,14 @@ export const settingsApi = {
   clear: (key, token) => request(`/settings/${key}`, { method: 'DELETE', token }),
 }
 
+export const modulesApi = {
+  list: (token) => request('/modules', { token }),
+  update: (moduleKey, enabled, token) =>
+    request(`/modules/${moduleKey}`, { method: 'PUT', body: { enabled }, token }),
+  rename: (moduleKey, label, token) =>
+    request(`/modules/${moduleKey}/label`, { method: 'PUT', body: { label }, token }),
+}
+
 export const systemApi = {
   reset: (payload, token) => request('/system/reset', { method: 'POST', body: payload, token }),
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useModules } from '../context/ModulesContext.jsx'
 import SigningPanel from './SigningPanel.jsx'
 import { invoicesApi } from '../utils/api.js'
 import { formatCurrency } from '../utils/format.js'
@@ -15,6 +16,11 @@ function isMissing(value) {
 export default function ReviewCard({ invoice, file, categories, projects = [], signingEnabled, aiStatus, historical = false, onConfirm, onDiscard }) {
   const { user } = useAuth()
   const token = user?.token
+  const { isEnabled } = useModules()
+  // Feature Modules is the authoritative toggle — a "Continue to sign" step
+  // never appears once signing_export is disabled, regardless of the older
+  // app-wide signing_enabled setting this prop is otherwise sourced from.
+  const effectiveSigningEnabled = signingEnabled && isEnabled('signing_export')
 
   const [previewUrl, setPreviewUrl] = useState(null)
   const [previewLoading, setPreviewLoading] = useState(true)
@@ -125,7 +131,7 @@ export default function ReviewCard({ invoice, file, categories, projects = [], s
         },
         token
       )
-      if (signingEnabled && !historical) {
+      if (effectiveSigningEnabled && !historical) {
         setStage('signing')
       } else {
         const confirmed = await invoicesApi.confirm(invoice.id, token)
@@ -187,7 +193,7 @@ export default function ReviewCard({ invoice, file, categories, projects = [], s
           Historical import — signing not required
         </div>
       )}
-      {aiDisabled && (
+      {(!isEnabled('ai_extraction') || aiDisabled) && (
         <div className="kt-review-ai-banner kt-review-ai-banner-info">
           AI extraction is disabled — please fill in all fields manually.
         </div>
@@ -354,7 +360,7 @@ export default function ReviewCard({ invoice, file, categories, projects = [], s
 
           <div className="kt-review-actions">
             <button type="submit" className="kt-auth-button" disabled={saving || discarding}>
-              {saving ? 'Saving…' : signingEnabled && !historical ? 'Continue to sign' : 'Confirm'}
+              {saving ? 'Saving…' : effectiveSigningEnabled && !historical ? 'Continue to sign' : 'Confirm'}
             </button>
 
             {confirmingDiscard ? (

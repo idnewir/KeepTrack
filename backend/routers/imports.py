@@ -35,10 +35,10 @@ from services.ai_service import check_duplicate
 from services.financial_year_service import get_or_create_financial_year
 from services.reconciliation_service import mark_reconciliation_stale
 from services.storage_service import save_invoice_pdf
-from utils.deps import get_current_user, require_admin, require_standard
+from utils.deps import get_current_user, require_admin, require_module, require_standard
 from utils.file_validation import MAX_INVOICE_PDF_BYTES, looks_like_pdf, sanitise_filename
 
-router = APIRouter(prefix="/imports", tags=["imports"])
+router = APIRouter(prefix="/imports", tags=["imports"], dependencies=[Depends(require_module("bulk_import"))])
 
 MAX_CSV_BYTES = 10 * 1024 * 1024  # 10 MB comfortably covers years of invoice rows
 

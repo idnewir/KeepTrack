@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../../hooks/AuthContext.jsx'
+import { useModules } from '../../context/ModulesContext.jsx'
 
 export const SETTINGS_CATEGORIES = [
   { key: 'general', label: 'General' },
@@ -16,7 +18,10 @@ export const SETTINGS_CATEGORIES = [
     label: 'Data',
     group: true,
     items: [
-      { key: 'import', label: 'Import Data' },
+      // moduleKey (not present on any other item here) — filtered out below
+      // when its module is disabled, per the "Import link hidden when
+      // bulk_import disabled" requirement. See docs/decisions-log.md.
+      { key: 'import', label: 'Import Data', moduleKey: 'bulk_import' },
       { key: 'storage', label: 'Storage & Backup' },
       { key: 'system-reset', label: 'System Reset', danger: true },
     ],
@@ -41,6 +46,9 @@ function ChevronIcon({ expanded }) {
 }
 
 export default function SettingsNav({ active, onSelect }) {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
+  const { isEnabled } = useModules()
   // Expanded by default only when a sub-item is already the active category
   // (e.g. arriving via ?section=storage) — collapsed otherwise.
   const [dataExpanded, setDataExpanded] = useState(() => DATA_GROUP_KEYS.includes(active))
@@ -52,10 +60,17 @@ export default function SettingsNav({ active, onSelect }) {
     if (DATA_GROUP_KEYS.includes(active)) setDataExpanded(true)
   }, [active])
 
+  // Standard and Read Only users can now reach Settings (so the Feature
+  // Modules section under General is visible to them), but every other
+  // category is still Admin-only — restrict the nav down to just General
+  // for anyone else rather than adding a role check to every other
+  // category's own component. See docs/decisions-log.md.
+  const visibleCategories = isAdmin ? SETTINGS_CATEGORIES : SETTINGS_CATEGORIES.filter((cat) => cat.key === 'general')
+
   return (
     <nav className="kt-settings-nav" aria-label="Settings categories">
       <ul className="kt-settings-nav-list">
-        {SETTINGS_CATEGORIES.map((cat) =>
+        {visibleCategories.map((cat) =>
           cat.group ? (
             <li key={cat.key}>
               <button
@@ -69,7 +84,9 @@ export default function SettingsNav({ active, onSelect }) {
               </button>
               {dataExpanded && (
                 <ul className="kt-settings-nav-sublist">
-                  {cat.items.map((item) => (
+                  {cat.items
+                    .filter((item) => !item.moduleKey || isEnabled(item.moduleKey))
+                    .map((item) => (
                     <li key={item.key}>
                       <button
                         type="button"

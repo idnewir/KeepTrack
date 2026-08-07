@@ -16,16 +16,23 @@ import SystemResetSettings from '../components/settings/SystemResetSettings.jsx'
 export default function SettingsPage() {
   const { user } = useAuth()
   const token = user?.token
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
 
   // A dashboard notification (e.g. critical errors detected) can link
   // straight into a specific settings category — and, for Logs, a specific
   // sub-tab — via ?section=logs&tab=errors. Read once on mount, same as
   // every other page's initial-filter-from-URL pattern (see InvoicesPage).
+  // Non-admins are pinned to 'general' regardless of the URL — every other
+  // category is Admin-only (see SettingsNav), and a deep link is the one way
+  // a non-admin could otherwise land on one of them directly.
   const [searchParams] = useSearchParams()
-  const [activeCategory, setActiveCategory] = useState(searchParams.get('section') || 'general')
+  const [activeCategory, setActiveCategory] = useState(
+    isAdmin ? searchParams.get('section') || 'general' : 'general'
+  )
   const [mobileShowContent, setMobileShowContent] = useState(searchParams.get('section') != null)
 
   const handleSelectCategory = (key) => {
+    if (!isAdmin && key !== 'general') return
     setActiveCategory(key)
     setMobileShowContent(true)
   }

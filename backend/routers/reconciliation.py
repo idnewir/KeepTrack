@@ -22,10 +22,12 @@ from services.export_pdf_service import generate_table_export_pdf
 from services.reconciliation_service import calculated_balance_for_month, suggest_reason
 from services.settings_service import get_site_name
 from utils.csv_export import csv_response
-from utils.deps import get_current_user, require_standard
+from utils.deps import get_current_user, require_module, require_standard
 from utils.pagination import paginate
 
-router = APIRouter(prefix="/reconciliation", tags=["reconciliation"])
+router = APIRouter(
+    prefix="/reconciliation", tags=["reconciliation"], dependencies=[Depends(require_module("reconciliation"))]
+)
 
 
 def _filtered_reconciliations_query(db: Session, financial_year_id: int | None, is_stale: bool | None = None):

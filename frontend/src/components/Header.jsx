@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useSiteName } from '../context/SiteNameContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
+import { useModules } from '../context/ModulesContext.jsx'
 import Avatar from './Avatar.jsx'
 import HeaderSearch from './HeaderSearch.jsx'
 import Logo from './Logo.jsx'
@@ -78,6 +79,7 @@ function ThemeToggle() {
 export default function Header({ onMenuClick }) {
   const { user, logout } = useAuth()
   const { siteName } = useSiteName()
+  const { isEnabled } = useModules()
   const navigate = useNavigate()
   const showSiteName = siteName && siteName !== 'Keep Track'
 
@@ -132,7 +134,9 @@ export default function Header({ onMenuClick }) {
         )}
       </Link>
 
-      {user && <HeaderSearch expanded={searchExpanded} onExpandedChange={setSearchExpanded} />}
+      {user && isEnabled('full_text_search') && (
+        <HeaderSearch expanded={searchExpanded} onExpandedChange={setSearchExpanded} />
+      )}
 
       {user && <NotificationBell />}
 

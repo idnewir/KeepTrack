@@ -10,6 +10,7 @@ export const HELP_TOPICS = [
   { key: 'reconciliation-guide', label: 'Reconciliation', file: 'reconciliation-guide.md' },
   { key: 'reports-guide', label: 'Reports', file: 'reports-guide.md' },
   { key: 'settings-guide', label: 'Settings Guide', file: 'settings-guide.md' },
+  { key: 'feature-modules', label: 'Feature Modules', file: 'feature-modules.md' },
 ]
 
 export const DEFAULT_HELP_TOPIC = 'getting-started'

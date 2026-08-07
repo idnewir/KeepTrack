@@ -2,6 +2,7 @@ from models.audit_log import AuditLog, AuditLogArchive
 from models.category import Category
 from models.contribution import Contribution
 from models.error_log import ErrorLog
+from models.feature_module import FeatureModule
 from models.financial_year import FinancialYear
 from models.import_batch import ImportBatch
 from models.invoice import Invoice
@@ -21,6 +22,7 @@ __all__ = [
     "Category",
     "Contribution",
     "ErrorLog",
+    "FeatureModule",
     "FinancialYear",
     "ImportBatch",
     "Invoice",

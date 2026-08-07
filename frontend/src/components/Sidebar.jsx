@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
+import { useModules } from '../context/ModulesContext.jsx'
 
 function HelpIcon() {
   return (
@@ -19,16 +19,15 @@ function HelpIcon() {
 }
 
 export default function Sidebar({ open, onNavigate }) {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
   const terminology = useTerminology()
+  const { isEnabled } = useModules()
 
   const navItems = [
     { label: 'Dashboard', to: '/' },
     { label: terminology.term_expenses, to: '/invoices' },
     { label: terminology.term_income, to: '/contributions' },
-    { label: terminology.term_reconciliation, to: '/reconciliation' },
-    { label: terminology.term_projects, to: '/projects' },
+    ...(isEnabled('reconciliation') ? [{ label: terminology.term_reconciliation, to: '/reconciliation' }] : []),
+    ...(isEnabled('planned_projects') ? [{ label: terminology.term_projects, to: '/projects' }] : []),
     { label: 'Reports', to: '/reports' },
   ]
 
@@ -67,19 +66,20 @@ export default function Sidebar({ open, onNavigate }) {
               Help
             </NavLink>
           </li>
-          {isAdmin && (
-            <li>
-              <NavLink
-                to="/settings"
-                onClick={onNavigate}
-                className={({ isActive }) =>
-                  `kt-nav-link${isActive ? ' active' : ''}`
-                }
-              >
-                Settings
-              </NavLink>
-            </li>
-          )}
+          {/* Reachable by every role now — Settings → General's Feature
+              Modules section is visible (though only interactive for
+              Admins) to Standard and Read Only too. See docs/decisions-log.md. */}
+          <li>
+            <NavLink
+              to="/settings"
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                `kt-nav-link${isActive ? ' active' : ''}`
+              }
+            >
+              Settings
+            </NavLink>
+          </li>
         </ul>
       </nav>
       <div

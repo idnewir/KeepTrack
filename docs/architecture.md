@@ -53,6 +53,14 @@ Keep Track is a containerised web application with a React single-page frontend,
   - Extracting text content to feed to the AI extraction step.
   - Overlaying a signature image and date at a user-chosen position/size, producing a signed PDF saved alongside the original.
 
+## Feature Modules
+
+- **Storage:** a `feature_modules` table (`backend/models/feature_module.py`) — `module_key`, `enabled`, `label`, `description`, `default_enabled`, `requires_setup` — seeded by migration `0038` with the modules listed in [features.md](features.md#9-feature-modules).
+- **Backend enforcement:** `utils/deps.py`'s `require_module(module_key)` is a dependency factory, applied at router level (`dependencies=[Depends(require_module(...))]`) to every router that belongs entirely to one module (`routers/reconciliation.py`, `routers/projects.py`, `routers/ai_settings.py`, `routers/imports.py`, `routers/search.py`) and at endpoint level for the one exception that shares a router with ungated endpoints (`POST /invoices/{id}/sign`, gated on `signing_export`). A disabled module's endpoints return `403` with the message `"This feature is not enabled. Enable it in Settings → General"`. `services/modules_service.py` is the single place enabled state is read, written, and audit-logged (`get_all_modules`, `get_module`, `is_enabled`, `enable_module`, `disable_module`).
+- **Background logic keeps running regardless of module state** — forecasting, reconciliation staleness checks, notification generation, and the folder watcher are never gated. Only UI visibility and API access change. See [decisions-log.md](decisions-log.md) for why.
+- **Frontend state:** `frontend/src/context/ModulesContext.jsx` fetches `GET /modules` once on load and re-syncs from the `modules` object embedded in `GET /notifications/count` (the header notification bell's own 30-second poll) — no dedicated polling endpoint of its own. Exposes a `useModules()` hook returning `{ modules, isEnabled(moduleKey), isLoading, refresh }`. Sidebar links, the header search bar, dashboard panels, and the invoice review card all read `isEnabled()` to decide what to render; `Settings → General`'s Feature Modules list (`components/settings/FeatureModulesSettings.jsx`) is the only place that also fetches the full module records (label, description, `requires_setup`) directly via `GET /modules`, since toggling needs more than a boolean.
+- **Endpoints:** `GET /modules` (any logged-in user), `PUT /modules/{module_key}` (Admin only, toggles `enabled`), `PUT /modules/{module_key}/label` (Admin only, renames a module — used by the Debt Tracking/Budget Planning setup prompts).
+
 ## Authentication & Security
 
 - **First run:** a setup wizard (`POST /auth/setup`) creates the first Admin account and is only reachable while no non-Superadmin user exists yet.

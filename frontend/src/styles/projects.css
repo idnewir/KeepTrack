@@ -420,3 +420,70 @@
 .kt-panel-list-row.kt-project-urgency-overdue {
   background: rgba(var(--kt-danger-rgb), 0.08);
 }
+
+/* "I am saving toward this project" funding target mode */
+
+.kt-funding-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kt-funding-toggle-label input {
+  width: auto;
+}
+
+.kt-project-funding {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--kt-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kt-project-funding-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.kt-project-funding-surplus {
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+}
+
+.kt-project-funding-notes {
+  margin: 0;
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+  font-style: italic;
+}
+
+.kt-funding-track-indicator {
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.kt-funding-track-on {
+  color: var(--kt-accent);
+}
+
+.kt-funding-track-off {
+  color: var(--kt-amber-strong, var(--kt-amber));
+}
+
+.kt-project-progress-fill.kt-funding-track-on-fill {
+  background: var(--kt-accent);
+}
+
+.kt-project-progress-fill.kt-funding-track-off-fill {
+  background: var(--kt-amber-strong, var(--kt-amber));
+}

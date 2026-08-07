@@ -11,6 +11,7 @@ from database import get_db
 from models.notification import Notification
 from models.schemas import NotificationCountOut, NotificationListOut, NotificationOut
 from models.user import User
+from services import modules_service
 from utils.deps import get_current_user
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -63,12 +64,16 @@ def count_notifications(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Also carries the current feature-module state — ModulesContext polls
+    this endpoint every 30s (rather than a separate one of its own) so module
+    toggles made in another tab/session propagate on the same cadence the
+    header notification bell already polls at. See docs/decisions-log.md."""
     unread_count = (
         _not_expired(db.query(Notification))
         .filter(Notification.user_id == user.id, Notification.read.is_(False), Notification.dismissed.is_(False))
         .count()
     )
-    return {"unread_count": unread_count}
+    return {"unread_count": unread_count, "modules": modules_service.modules_state(db)}
 
 
 @router.put("/read-all", response_model=NotificationCountOut)

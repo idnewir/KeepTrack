@@ -167,6 +167,54 @@ def average_monthly_spend(db: Session, today: date | None = None, months: int = 
     return sum(totals.values(), Decimal("0")) / Decimal(months)
 
 
+def average_monthly_income(db: Session, today: date | None = None, months: int = 3) -> Decimal:
+    """Rolling average monthly contributions over the most recent `months`
+    calendar months — the income-side counterpart to average_monthly_spend,
+    used by project_service.funding_progress to gauge whether a funding
+    target project is on track."""
+    recent_months = recent_actual_months(today or date.today(), months)
+    month_numbers = {m for (_y, m) in recent_months}
+    total = (
+        db.query(Contribution)
+        .filter(Contribution.month.in_(month_numbers), Contribution.deleted.is_(False))
+        .with_entities(Contribution.amount)
+        .all()
+    )
+    return sum((row[0] for row in total), Decimal("0")) / Decimal(months)
+
+
+def current_money_on_hand(db: Session, today: date | None = None) -> Decimal:
+    """Opening balance plus contributions to date minus invoices to date for
+    the financial year containing `today` — the same "money on hand"
+    calculation as the dashboard summary's current_balance, factored out so
+    project_service.funding_progress can call it without re-running the rest
+    of build_summary for every funding-target project on the list."""
+    today = today or date.today()
+    fy = get_or_create_financial_year(db, today)
+    opening = fy.opening_balance or Decimal("0")
+
+    invoices_total = (
+        db.query(Invoice)
+        .filter(
+            Invoice.reviewed.is_(True),
+            Invoice.deleted.is_(False),
+            Invoice.invoice_date >= fy.start_date,
+            Invoice.invoice_date <= fy.end_date,
+        )
+        .with_entities(Invoice.amount)
+        .all()
+    )
+    contributions_total = (
+        db.query(Contribution)
+        .filter(Contribution.financial_year_id == fy.id, Contribution.deleted.is_(False))
+        .with_entities(Contribution.amount)
+        .all()
+    )
+    total_spent = sum((row[0] for row in invoices_total), Decimal("0"))
+    total_contributions = sum((row[0] for row in contributions_total), Decimal("0"))
+    return opening + total_contributions - total_spent
+
+
 def target_reserve(db: Session, today: date | None = None) -> tuple[Decimal, dict]:
     """The configured target reserve amount, plus the reserve settings used to
     compute it (so callers — the dashboard summary — can also report the
@@ -330,6 +378,7 @@ def build_summary(db: Session, today: date | None = None) -> dict:
     for p in projects:
         actual_cost, invoice_count = project_service.actual_cost_and_invoice_count(db, p.id)
         variance = p.estimated_cost - actual_cost
+        funding = project_service.funding_progress(db, p, today) or {}
         planned_projects.append({
             "id": p.id,
             "name": p.name,
@@ -342,6 +391,12 @@ def build_summary(db: Session, today: date | None = None) -> dict:
             "variance": variance,
             "variance_percent": (variance / p.estimated_cost * 100) if p.estimated_cost else Decimal("0"),
             "project_status": project_service.compute_status(p, actual_cost),
+            "is_funding_target": p.is_funding_target,
+            "funding_target_amount": p.funding_target_amount,
+            "funding_target_date": p.funding_target_date,
+            "monthly_surplus_needed": funding.get("monthly_surplus_needed"),
+            "on_track": funding.get("on_track"),
+            "current_balance": funding.get("current_balance"),
         })
 
     upcoming_expected_invoices = _build_upcoming_expected_invoices(db, today)

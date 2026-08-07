@@ -4,9 +4,21 @@ Settings control how Keep Track behaves for everyone. Most settings are only ava
 
 ## Who can access Settings
 
-Only **Administrators** (and the Superadmin recovery account) can view and change settings. If you're a Standard or Read-only user, you won't see this option.
+Most of Settings is only available to **Administrators** (and the Superadmin recovery account). Standard and Read-only users can now open Settings too, but they'll only see **General → Feature Modules** — everything else on this page stays Admin-only. See [Feature Modules](feature-modules.md) for the full picture of what modules are and how they work; this guide covers just how to turn them on and off.
 
 ## What you can configure
+
+### Feature Modules
+
+To get there: **Settings → General → Feature Modules** — visible to every role, but only Admins can flip the switches.
+
+This is where you turn whole feature areas of Keep Track on or off — Reconciliation, Planned Projects, AI Extraction, and more. It's what makes the same installation work for a full charity committee or a stripped-down personal budget tracker, without menus for features you'll never use. Full detail on what each module does and what happens to your data is in the dedicated [Feature Modules](feature-modules.md) guide — this section is just the how-to for the toggle itself.
+
+- Each module shows its **name**, a one-line **description**, an **Active**/**Inactive** status, and a toggle switch.
+- **Standard and Read Only users** see the same list, with a note to contact an Administrator — the toggle is greyed out and can't be clicked.
+- **To turn a module on:** click its toggle. It switches on immediately, with a confirmation message. If the module needs a little extra setup (AI Extraction, Folder Integration, Debt Tracking, or Budget Planning), a short prompt appears straight after — you can act on it right away or click **Skip for now** and come back to it later.
+- **To turn a module off:** click its toggle, then confirm. Keep Track is explicit that this only hides the module from navigation — nothing is deleted, and turning it back on brings everything back exactly as it was, instantly.
+- Changes reach every other open tab or session within about 30 seconds; the person making the change sees it immediately.
 
 ### Signing and export
 

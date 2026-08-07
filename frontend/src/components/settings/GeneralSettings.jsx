@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { settingsApi } from '../../utils/api.js'
+import { useAuth } from '../../hooks/AuthContext.jsx'
 import { useTerminology } from '../../context/TerminologyContext.jsx'
 import { useSiteName } from '../../context/SiteNameContext.jsx'
 import { formatMonthYear, MONTH_NAMES } from '../../utils/format.js'
+import FeatureModulesSettings from './FeatureModulesSettings.jsx'
 
 function currentMonthValue() {
   const now = new Date()
@@ -13,6 +15,8 @@ function currentMonthValue() {
 const RESERVE_MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1)
 
 export default function GeneralSettings({ token }) {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
   const terminology = useTerminology()
   const siteName = useSiteName()
 
@@ -184,6 +188,14 @@ export default function GeneralSettings({ token }) {
     reserveCalculationInput !== reserveCalculation ||
     (reserveCalculationInput === 'automatic' && reserveMonthsInput !== reserveMonths) ||
     (reserveCalculationInput === 'manual' && reserveManualAmountInput !== reserveManualAmount)
+
+  // Standard and Read Only users can now reach Settings → General (so they
+  // can see, though not change, Feature Modules) but every other General
+  // control here is Admin-only — skip straight to just that section rather
+  // than showing inputs that would 403 on submit. See docs/decisions-log.md.
+  if (!isAdmin) {
+    return <FeatureModulesSettings token={token} />
+  }
 
   return (
     <div>
@@ -444,6 +456,8 @@ export default function GeneralSettings({ token }) {
           )}
         </div>
       </div>
+
+      <FeatureModulesSettings token={token} />
     </div>
   )
 }

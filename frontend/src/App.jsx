@@ -95,9 +95,14 @@ export default function App() {
             <Route
               path="/settings"
               element={
-                <RequireAdmin>
+                // Any authenticated role can reach Settings now — the
+                // Feature Modules section (under General) is visible to
+                // Standard and Read Only too, with its toggle greyed out
+                // for them. SettingsPage/SettingsNav restrict everything
+                // else back down to Admin-only. See docs/decisions-log.md.
+                <RequireAuth>
                   <SettingsPage />
-                </RequireAdmin>
+                </RequireAuth>
               }
             />
             <Route

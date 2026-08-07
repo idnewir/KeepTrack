@@ -24,7 +24,7 @@ from services.settings_service import get_site_name, is_signing_enabled
 from services.signing_service import sign_invoice_pdf
 from services.storage_service import save_invoice_pdf
 from utils.csv_export import csv_response
-from utils.deps import get_current_user, require_standard
+from utils.deps import get_current_user, require_module, require_standard
 from utils.file_validation import MAX_INVOICE_PDF_BYTES, looks_like_pdf, sanitise_filename
 from utils.pagination import paginate
 
@@ -435,7 +435,7 @@ def unlink_invoice_project(
     return _invoice_to_out(db, invoice)
 
 
-@router.post("/{invoice_id}/sign", response_model=InvoiceOut)
+@router.post("/{invoice_id}/sign", response_model=InvoiceOut, dependencies=[Depends(require_module("signing_export"))])
 def sign_invoice(
     invoice_id: int,
     payload: InvoiceSignRequest,

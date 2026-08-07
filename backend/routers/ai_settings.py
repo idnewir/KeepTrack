@@ -20,9 +20,9 @@ from services.ai_provider_service import (
     DEFAULT_MODEL_FOR_PROVIDER,
 )
 from utils.crypto import encrypt_secret
-from utils.deps import get_current_user, require_admin
+from utils.deps import get_current_user, require_admin, require_module
 
-router = APIRouter(prefix="/ai", tags=["ai"])
+router = APIRouter(prefix="/ai", tags=["ai"], dependencies=[Depends(require_module("ai_extraction"))])
 
 
 @router.get("/status", response_model=AIStatusOut)

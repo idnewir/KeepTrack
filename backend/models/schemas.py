@@ -311,6 +311,14 @@ class DashboardPlannedProject(BaseModel):
     variance: Decimal
     variance_percent: Decimal
     project_status: str
+    # Only set for a "saving toward this project" funding-target project —
+    # see services/project_service.funding_progress.
+    is_funding_target: bool = False
+    funding_target_amount: Decimal | None = None
+    funding_target_date: date | None = None
+    monthly_surplus_needed: Decimal | None = None
+    on_track: bool | None = None
+    current_balance: Decimal | None = None
 
 
 class DashboardUpcomingInvoice(BaseModel):
@@ -502,6 +510,23 @@ class ProjectOut(BaseModel):
     variance_percent: Decimal
     project_status: str
     linked_invoices: list[ProjectLinkedInvoiceOut] = Field(default_factory=list)
+    # "I am saving toward this project" mode — a savings goal tracked
+    # against the app's overall current balance rather than this project's
+    # own actual/estimated spend. is_funding_target/funding_target_amount/
+    # funding_target_date/funding_notes are stored columns; the rest are
+    # computed live (never stored) by services/project_service.funding_progress
+    # the same "compute, don't cache" reasoning as actual_cost/project_status
+    # above — and are None/absent unless is_funding_target is set. See
+    # docs/decisions-log.md.
+    is_funding_target: bool = False
+    funding_target_amount: Decimal | None = None
+    funding_target_date: date | None = None
+    funding_notes: str | None = None
+    current_balance: Decimal | None = None
+    monthly_surplus_needed: Decimal | None = None
+    current_monthly_surplus: Decimal | None = None
+    on_track: bool | None = None
+    projected_completion: date | None = None
 
     model_config = {"from_attributes": True}
 
@@ -512,6 +537,10 @@ class ProjectCreate(BaseModel):
     estimated_cost: Decimal = Field(gt=0)
     expected_month: date
     financial_year_id: int | None = None
+    is_funding_target: bool = False
+    funding_target_amount: Decimal | None = Field(default=None, gt=0)
+    funding_target_date: date | None = None
+    funding_notes: str | None = Field(default=None, max_length=1000)
 
 
 class ProjectUpdate(BaseModel):
@@ -525,6 +554,10 @@ class ProjectUpdate(BaseModel):
     # the router, since the requirement is conditional).
     admin_override: bool = False
     edit_reason: str | None = Field(default=None, min_length=1)
+    is_funding_target: bool | None = None
+    funding_target_amount: Decimal | None = Field(default=None, gt=0)
+    funding_target_date: date | None = None
+    funding_notes: str | None = Field(default=None, max_length=1000)
 
 
 class ReportOut(BaseModel):
@@ -885,3 +918,35 @@ class NotificationListOut(BaseModel):
 
 class NotificationCountOut(BaseModel):
     unread_count: int
+    # Present on GET /notifications/count (absent — defaults to {} — on the
+    # read/dismiss-all endpoints that reuse this same response model, which
+    # have no reason to recompute module state). The frontend's ModulesContext
+    # polls this endpoint every 30s specifically to pick this up. See
+    # docs/decisions-log.md.
+    modules: dict[str, bool] = Field(default_factory=dict)
+
+
+class FeatureModuleOut(BaseModel):
+    id: int
+    module_key: str
+    enabled: bool
+    label: str
+    description: str
+    default_enabled: bool
+    requires_setup: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class FeatureModuleUpdate(BaseModel):
+    enabled: bool
+
+
+class FeatureModuleLabelUpdate(BaseModel):
+    # Debt Tracking / Budget Planning's setup prompt lets an Admin rename the
+    # module ("What would you like to call this module?") — the only field
+    # that prompt writes back, so it gets its own narrow schema rather than
+    # reusing FeatureModuleUpdate.
+    label: str = Field(min_length=1, max_length=100)

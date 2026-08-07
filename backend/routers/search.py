@@ -13,10 +13,10 @@ from database import get_db
 from models.schemas import SearchResponse
 from models.user import User
 from services import audit_service, search_service
-from utils.deps import get_current_user
+from utils.deps import get_current_user, require_module
 from utils.pagination import MAX_PER_PAGE
 
-router = APIRouter(prefix="/search", tags=["search"])
+router = APIRouter(prefix="/search", tags=["search"], dependencies=[Depends(require_module("full_text_search"))])
 
 # The contributions/projects sections aren't independently paginated on the
 # full results page (see docs/decisions-log.md) — capped at a generous but

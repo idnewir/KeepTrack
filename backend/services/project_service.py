@@ -13,6 +13,7 @@ Only confirmed (reviewed, non-deleted) invoices count toward actual spend —
 the same "confirmed invoice" definition used everywhere else actual spend is
 totalled (dashboard summary, reports, reconciliation).
 """
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import func
@@ -23,6 +24,75 @@ from models.invoice import Invoice
 from models.planned_project import PlannedProject
 
 PROJECT_STATUSES = ("planning", "in_progress", "completed", "over_budget")
+
+
+def _add_months(d: date, months: int) -> date:
+    total = d.month - 1 + months
+    year = d.year + total // 12
+    month = total % 12 + 1
+    return date(year, month, 1)
+
+
+def funding_progress(db: Session, project: PlannedProject, today: date | None = None) -> dict | None:
+    """Progress toward a "saving toward this project" funding target —
+    None unless is_funding_target is set and both funding_target_amount and
+    funding_target_date are present.
+
+    monthly_surplus_needed and current_monthly_surplus are both measured
+    against the app's overall current balance and its recent income/spend
+    trend (services/financial_year_service), not this project's own
+    estimated/actual cost — a funding target project is a savings goal
+    ("save £3,000 by June"), a different question from "has actual spend
+    stayed under the estimate", which is what actual_cost/variance above
+    already answer. See docs/decisions-log.md.
+    """
+    if not project.is_funding_target or project.funding_target_amount is None or project.funding_target_date is None:
+        return None
+
+    # Imported locally to avoid a circular import — financial_year_service
+    # already imports this module for planned_project_cost_for_month.
+    from services import financial_year_service as fy_service
+
+    today = today or date.today()
+    current_balance = fy_service.current_money_on_hand(db, today)
+    remaining_needed = project.funding_target_amount - current_balance
+
+    months_remaining = (
+        (project.funding_target_date.year - today.year) * 12
+        + (project.funding_target_date.month - today.month)
+    )
+    overdue = project.funding_target_date < today or months_remaining <= 0
+
+    if overdue:
+        monthly_surplus_needed = remaining_needed if remaining_needed > 0 else Decimal("0")
+    else:
+        monthly_surplus_needed = (remaining_needed / months_remaining) if remaining_needed > 0 else Decimal("0")
+
+    current_monthly_surplus = fy_service.average_monthly_income(db, today) - fy_service.average_monthly_spend(db, today)
+
+    if remaining_needed <= 0:
+        on_track = True
+        projected_completion = today
+    elif overdue:
+        on_track = False
+        projected_completion = None
+    else:
+        on_track = current_monthly_surplus >= monthly_surplus_needed
+        if current_monthly_surplus > 0:
+            months_to_complete = -(-remaining_needed // current_monthly_surplus)  # ceiling division
+            projected_completion = _add_months(today, int(months_to_complete))
+        else:
+            # No surplus at the current trajectory — the goal is never
+            # reached at this rate, so there's nothing meaningful to project.
+            projected_completion = None
+
+    return {
+        "current_balance": current_balance,
+        "monthly_surplus_needed": monthly_surplus_needed,
+        "current_monthly_surplus": current_monthly_surplus,
+        "on_track": on_track,
+        "projected_completion": projected_completion,
+    }
 
 
 def _confirmed_invoices_query(db: Session, project_id: int):

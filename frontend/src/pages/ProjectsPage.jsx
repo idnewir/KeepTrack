@@ -9,7 +9,18 @@ const DESCRIPTION_TRUNCATE_LENGTH = 140
 
 const YEAR_OPTIONS_AHEAD = 5
 
-const emptyForm = { name: '', description: '', estimatedCost: '', expectedMonth: '', expectedYear: '', financialYearId: '' }
+const emptyForm = {
+  name: '',
+  description: '',
+  estimatedCost: '',
+  expectedMonth: '',
+  expectedYear: '',
+  financialYearId: '',
+  isFundingTarget: false,
+  fundingTargetAmount: '',
+  fundingTargetDate: '',
+  fundingNotes: '',
+}
 
 function currentMonthYear() {
   const now = new Date()
@@ -128,9 +139,33 @@ export default function ProjectsPage() {
       expectedMonth: String(Number(month)),
       expectedYear: year,
       financialYearId: project.financial_year_id != null ? String(project.financial_year_id) : '',
+      isFundingTarget: Boolean(project.is_funding_target),
+      fundingTargetAmount: project.funding_target_amount != null ? String(project.funding_target_amount) : '',
+      fundingTargetDate: project.funding_target_date || '',
+      fundingNotes: project.funding_notes || '',
     })
     setEditingId(project.id)
     setShowForm(true)
+  }
+
+  // Turning the funding toggle on pre-fills the target amount/date from the
+  // project's own estimate/expected month (per this feature's brief) — only
+  // when those fields are still empty, so re-toggling doesn't clobber
+  // something the user already typed.
+  const handleToggleFundingTarget = () => {
+    setForm((f) => {
+      const turningOn = !f.isFundingTarget
+      if (!turningOn) return { ...f, isFundingTarget: false }
+      return {
+        ...f,
+        isFundingTarget: true,
+        fundingTargetAmount: f.fundingTargetAmount || f.estimatedCost,
+        fundingTargetDate:
+          f.fundingTargetDate || (f.expectedYear && f.expectedMonth
+            ? `${f.expectedYear}-${String(f.expectedMonth).padStart(2, '0')}-01`
+            : ''),
+      }
+    })
   }
 
   const handleSubmit = async (e) => {
@@ -144,6 +179,10 @@ export default function ProjectsPage() {
         estimated_cost: Number(form.estimatedCost),
         expected_month: `${form.expectedYear}-${String(form.expectedMonth).padStart(2, '0')}-01`,
         financial_year_id: form.financialYearId ? Number(form.financialYearId) : null,
+        is_funding_target: form.isFundingTarget,
+        funding_target_amount: form.isFundingTarget && form.fundingTargetAmount ? Number(form.fundingTargetAmount) : null,
+        funding_target_date: form.isFundingTarget && form.fundingTargetDate ? form.fundingTargetDate : null,
+        funding_notes: form.isFundingTarget ? form.fundingNotes.trim() || null : null,
       }
       if (editingId) {
         await projectsApi.update(editingId, payload, token)
@@ -383,6 +422,58 @@ export default function ProjectsPage() {
                 )}
             </select>
           </div>
+
+          <div className="kt-field kt-field-wide">
+            <label className="kt-funding-toggle-label">
+              <input
+                type="checkbox"
+                checked={form.isFundingTarget}
+                onChange={handleToggleFundingTarget}
+              />
+              I am saving toward this project
+            </label>
+          </div>
+
+          {form.isFundingTarget && (
+            <>
+              <div className="kt-field">
+                <label htmlFor="project-funding-amount">Funding target amount</label>
+                <div className="kt-amount-input">
+                  <span className="kt-amount-prefix">£</span>
+                  <input
+                    id="project-funding-amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={form.fundingTargetAmount}
+                    onChange={(e) => setForm((f) => ({ ...f, fundingTargetAmount: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="kt-field">
+                <label htmlFor="project-funding-date">Target date</label>
+                <input
+                  id="project-funding-date"
+                  type="date"
+                  value={form.fundingTargetDate}
+                  onChange={(e) => setForm((f) => ({ ...f, fundingTargetDate: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="kt-field kt-field-wide">
+                <label htmlFor="project-funding-notes">Notes</label>
+                <textarea
+                  id="project-funding-notes"
+                  rows={2}
+                  value={form.fundingNotes}
+                  onChange={(e) => setForm((f) => ({ ...f, fundingNotes: e.target.value }))}
+                  placeholder="Optional notes about this savings goal"
+                />
+              </div>
+            </>
+          )}
+
           <button className="kt-auth-button" type="submit" disabled={saving}>
             {saving ? 'Saving…' : editingId ? 'Save changes' : 'Add project'}
           </button>
@@ -642,6 +733,28 @@ function ProjectCard({
             </ul>
           )}
         </div>
+
+        {project.is_funding_target && project.funding_target_amount != null && (
+          <div className="kt-project-funding">
+            <div className="kt-project-funding-row">
+              <span>
+                Saving toward: <strong>{formatCurrency(project.funding_target_amount)}</strong>
+                {project.funding_target_date && <> by {formatMonthYear(project.funding_target_date)}</>}
+              </span>
+              {project.on_track != null && (
+                <span className={`kt-funding-track-indicator kt-funding-track-${project.on_track ? 'on' : 'off'}`}>
+                  {project.on_track ? '✓ On track' : '⚠ Behind target'}
+                </span>
+              )}
+            </div>
+            {project.monthly_surplus_needed != null && (
+              <span className="kt-project-funding-surplus">
+                Monthly surplus needed: {formatCurrency(project.monthly_surplus_needed)}/month
+              </span>
+            )}
+            {project.funding_notes && <p className="kt-project-funding-notes">{project.funding_notes}</p>}
+          </div>
+        )}
       </div>
 
       {!readOnly && canManage && (
