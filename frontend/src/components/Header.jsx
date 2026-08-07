@@ -6,6 +6,15 @@ import { useTheme } from '../context/ThemeContext.jsx'
 import Avatar from './Avatar.jsx'
 import HeaderSearch from './HeaderSearch.jsx'
 import Logo from './Logo.jsx'
+import NotificationBell from './NotificationBell.jsx'
+
+// 6am-12pm / 12pm-6pm / 6pm-6am, per this feature's brief — deliberately
+// simple local-clock buckets rather than anything sunrise/timezone-aware.
+function greetingForHour(hour) {
+  if (hour >= 6 && hour < 12) return 'Good morning'
+  if (hour >= 12 && hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
 
 const THEME_LABELS = {
   light: 'Light mode',
@@ -125,6 +134,8 @@ export default function Header({ onMenuClick }) {
 
       {user && <HeaderSearch expanded={searchExpanded} onExpandedChange={setSearchExpanded} />}
 
+      {user && <NotificationBell />}
+
       {user && (
         <div className="kt-header-user" ref={menuRef}>
           <ThemeToggle />
@@ -136,7 +147,10 @@ export default function Header({ onMenuClick }) {
             aria-expanded={menuOpen}
           >
             <Avatar userId={user.id} token={user.token} size={32} title={user.display_name || user.username} />
-            <span className="kt-header-username">{user.display_name || user.username}</span>
+            <span className="kt-header-username">
+              <span className="kt-header-greeting-prefix">{greetingForHour(new Date().getHours())}, </span>
+              {user.display_name || user.username}
+            </span>
             <span className={`kt-header-caret${menuOpen ? ' open' : ''}`} aria-hidden="true">
               ▾
             </span>

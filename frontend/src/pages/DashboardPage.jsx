@@ -4,10 +4,28 @@ import FinancialChart from '../components/FinancialChart.jsx'
 import HelpIconLink from '../components/HelpIconLink.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
-import { dashboardApi } from '../utils/api.js'
+import { dashboardApi, notificationsApi } from '../utils/api.js'
 import { formatCurrency, projectUrgency, singularize } from '../utils/format.js'
 
 const STATUS_LABEL = { above: 'Above target', near: 'Near target', below: 'Below target' }
+
+// Maps a live dashboard banner's own `type` (routers/dashboard.py's
+// DashboardNotification.type) to the `type` its persistent counterpart was
+// written under (services/notification_service.py) — used only so
+// dismissing a banner here can also dismiss that same underlying
+// notification in the header notification centre. invoice_unconfirmed has
+// no persistent counterpart (only unsigned invoices are persisted per this
+// feature's brief), so it's intentionally absent and just dismisses locally.
+// See docs/decisions-log.md.
+const PERSISTENT_NOTIFICATION_TYPE = {
+  balance_below_target: 'balance_warning',
+  invoice_unsigned: 'unsigned_invoice',
+  reconciliation_overdue: 'reconciliation_overdue',
+  stale_reconciliation: 'stale_reconciliation',
+  project_overdue: 'project_overdue',
+  critical_errors_detected: 'critical_error',
+  audit_log_archived: 'audit_archived',
+}
 
 // The backend's own `link` field predates the dashboard notification-links
 // task and still points at plain query filters (e.g. reviewed=true) or the
@@ -46,6 +64,10 @@ export default function DashboardPage() {
 
   const [notifications, setNotifications] = useState([])
   const [dismissed, setDismissed] = useState(() => new Set())
+  // type -> persistent notification id, so dismissing a banner here can also
+  // dismiss its underlying row in the header notification centre. See the
+  // PERSISTENT_NOTIFICATION_TYPE comment above.
+  const [persistentIdByType, setPersistentIdByType] = useState({})
 
   useEffect(() => {
     let cancelled = false
@@ -82,12 +104,42 @@ export default function DashboardPage() {
     }
   }, [token])
 
-  const dismissNotification = (id) =>
+  useEffect(() => {
+    if (!token) return undefined
+    let cancelled = false
+    notificationsApi
+      .list({ dismissed: 'false' }, token)
+      .then((data) => {
+        if (cancelled) return
+        const byType = {}
+        // First (most recent, since the API orders created_at DESC) row per
+        // type wins — create_notification's own dedup means there's at most
+        // one still-live row per user/type anyway.
+        for (const n of data.notifications) {
+          if (!(n.type in byType)) byType[n.type] = n.id
+        }
+        setPersistentIdByType(byType)
+      })
+      .catch(() => {
+        if (!cancelled) setPersistentIdByType({})
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  const dismissNotification = (notification) => {
     setDismissed((prev) => {
       const next = new Set(prev)
-      next.add(id)
+      next.add(notification.id)
       return next
     })
+    const persistentType = PERSISTENT_NOTIFICATION_TYPE[notification.type]
+    const persistentId = persistentType ? persistentIdByType[persistentType] : undefined
+    if (persistentId !== undefined) {
+      notificationsApi.dismiss(persistentId, token).catch(() => {})
+    }
+  }
 
   const handleSeriesClick = useCallback(
     (series) => {
@@ -156,7 +208,7 @@ export default function DashboardPage() {
                   type="button"
                   className="kt-notification-dismiss"
                   aria-label="Dismiss notification"
-                  onClick={() => dismissNotification(n.id)}
+                  onClick={() => dismissNotification(n)}
                 >
                   ×
                 </button>

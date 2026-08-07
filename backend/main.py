@@ -18,6 +18,7 @@ from routers.financial_years import router as financial_years_router
 from routers.imports import router as imports_router
 from routers.invoices import router as invoices_router
 from routers.logs import router as logs_router
+from routers.notifications import router as notifications_router
 from routers.profile import router as profile_router
 from routers.projects import router as projects_router
 from routers.reconciliation import router as reconciliation_router
@@ -143,6 +144,7 @@ app.include_router(financial_years_router)
 app.include_router(imports_router)
 app.include_router(invoices_router)
 app.include_router(logs_router)
+app.include_router(notifications_router)
 app.include_router(profile_router)
 app.include_router(projects_router)
 app.include_router(reconciliation_router)

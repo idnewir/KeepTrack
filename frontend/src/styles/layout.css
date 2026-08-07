@@ -92,6 +92,16 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--kt-text-secondary);
+  white-space: nowrap;
+}
+
+/* The "Good morning/afternoon/evening" prefix is dropped below 720px (this
+   app's established mobile breakpoint — see search.css) so the profile
+   button just shows the name, per this feature's brief. */
+@media (max-width: 720px) {
+  .kt-header-greeting-prefix {
+    display: none;
+  }
 }
 
 .kt-header-profile-button {

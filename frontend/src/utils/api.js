@@ -128,6 +128,21 @@ export const dashboardApi = {
   notifications: (token) => request('/dashboard/notifications', { token }),
 }
 
+export const notificationsApi = {
+  list: (params = {}, token) => {
+    const query = new URLSearchParams()
+    if (params.read) query.set('read', params.read)
+    if (params.dismissed !== undefined) query.set('dismissed', params.dismissed)
+    const qs = query.toString()
+    return request(`/notifications${qs ? `?${qs}` : ''}`, { token })
+  },
+  count: (token) => request('/notifications/count', { token }),
+  markRead: (id, token) => request(`/notifications/${id}/read`, { method: 'PUT', token }),
+  dismiss: (id, token) => request(`/notifications/${id}/dismiss`, { method: 'PUT', token }),
+  markAllRead: (token) => request('/notifications/read-all', { method: 'PUT', token }),
+  dismissAll: (token) => request('/notifications/dismiss-all', { method: 'PUT', token }),
+}
+
 export const settingsApi = {
   list: (token) => request('/settings', { token }),
   update: (key, value, token) =>

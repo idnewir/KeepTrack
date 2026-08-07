@@ -23,6 +23,7 @@ import './styles/imports.css'
 import './styles/welcome.css'
 import './styles/help.css'
 import './styles/search.css'
+import './styles/notifications.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -861,3 +861,27 @@ class SearchResponse(BaseModel):
     projects: SearchProjectsSection
     query: str
     total: int
+
+
+class NotificationOut(BaseModel):
+    id: int
+    type: str
+    title: str
+    message: str
+    link: str | None
+    severity: str
+    read: bool
+    dismissed: bool
+    created_at: datetime
+    expires_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class NotificationListOut(BaseModel):
+    notifications: list[NotificationOut]
+    unread_count: int
+
+
+class NotificationCountOut(BaseModel):
+    unread_count: int

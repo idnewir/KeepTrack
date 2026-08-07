@@ -49,6 +49,26 @@ export function formatRelativeTime(dateStr) {
   return formatDate(dateStr)
 }
 
+// Time-ago for the notification centre — same shape as formatRelativeTime
+// above but says "Yesterday" for a 1-day-old notification (per this
+// feature's brief) rather than "1 day ago", which formatRelativeTime's
+// existing callers (e.g. "Last login" columns) don't ask for.
+export function formatNotificationTime(dateStr) {
+  if (!dateStr) return ''
+  const then = new Date(dateStr)
+  const diffMs = Date.now() - then.getTime()
+  const diffMin = Math.round(diffMs / 60000)
+  const diffHour = Math.round(diffMin / 60)
+  const diffDay = Math.round(diffHour / 24)
+
+  if (diffMin < 1) return 'Just now'
+  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`
+  if (diffHour < 24) return `${diffHour} hour${diffHour === 1 ? '' : 's'} ago`
+  if (diffDay === 1) return 'Yesterday'
+  if (diffDay < 30) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`
+  return formatDate(dateStr)
+}
+
 // Full absolute date + time for log tables, where "3 days ago" is less
 // useful than knowing exactly when something happened.
 export function formatDateTime(dateStr) {
