@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { projectsApi } from '../utils/api.js'
 import { MONTH_NAMES, formatCurrency, formatMonthYear, projectUrgency, singularize } from '../utils/format.js'
+import { PROJECT_BADGE_TOOLTIPS } from '../utils/badgeTooltips.js'
+import Tooltip from '../components/Tooltip.jsx'
 
 const DESCRIPTION_TRUNCATE_LENGTH = 140
 
@@ -663,13 +665,23 @@ function ProjectCard({
           <span className={`kt-category-status${project.completed ? '' : ' inactive'}`}>
             {project.completed ? 'Complete' : 'Active'}
           </span>
-          <span className={`kt-project-status-badge kt-project-status-${project.project_status}`}>
-            {STATUS_LABELS[project.project_status] || project.project_status}
-          </span>
-          {urgency && urgency.status !== 'normal' && (
-            <span className={`kt-project-urgency-badge kt-project-urgency-badge-${urgency.status}`}>
-              {urgency.label}
+          {project.project_status === 'over_budget' ? (
+            <Tooltip content={PROJECT_BADGE_TOOLTIPS.overBudget}>
+              <span className={`kt-project-status-badge kt-project-status-${project.project_status}`}>
+                {STATUS_LABELS[project.project_status] || project.project_status}
+              </span>
+            </Tooltip>
+          ) : (
+            <span className={`kt-project-status-badge kt-project-status-${project.project_status}`}>
+              {STATUS_LABELS[project.project_status] || project.project_status}
             </span>
+          )}
+          {urgency && urgency.status !== 'normal' && (
+            <Tooltip content={urgency.status === 'overdue' ? PROJECT_BADGE_TOOLTIPS.overdue : PROJECT_BADGE_TOOLTIPS.dueSoon}>
+              <span className={`kt-project-urgency-badge kt-project-urgency-badge-${urgency.status}`}>
+                {urgency.label}
+              </span>
+            </Tooltip>
           )}
         </div>
 
@@ -742,9 +754,11 @@ function ProjectCard({
                 {project.funding_target_date && <> by {formatMonthYear(project.funding_target_date)}</>}
               </span>
               {project.on_track != null && (
-                <span className={`kt-funding-track-indicator kt-funding-track-${project.on_track ? 'on' : 'off'}`}>
-                  {project.on_track ? '✓ On track' : '⚠ Behind target'}
-                </span>
+                <Tooltip content={project.on_track ? PROJECT_BADGE_TOOLTIPS.fundingOnTrack : PROJECT_BADGE_TOOLTIPS.fundingBehind}>
+                  <span className={`kt-funding-track-indicator kt-funding-track-${project.on_track ? 'on' : 'off'}`}>
+                    {project.on_track ? '✓ On track' : '⚠ Behind target'}
+                  </span>
+                </Tooltip>
               )}
             </div>
             {project.monthly_surplus_needed != null && (

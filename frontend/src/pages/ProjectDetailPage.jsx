@@ -4,6 +4,8 @@ import { useTerminology } from '../context/TerminologyContext.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { projectsApi } from '../utils/api.js'
 import { formatCurrency, formatDateTime, singularize } from '../utils/format.js'
+import { PROJECT_BADGE_TOOLTIPS } from '../utils/badgeTooltips.js'
+import Tooltip from '../components/Tooltip.jsx'
 
 const STATUS_LABELS = {
   planning: 'Planning',
@@ -80,9 +82,17 @@ export default function ProjectDetailPage() {
 
       <div className="kt-project-detail-header">
         <h1 className="kt-page-title">{project.name}</h1>
-        <span className={`kt-project-status-badge kt-project-status-${project.project_status}`}>
-          {STATUS_LABELS[project.project_status] || project.project_status}
-        </span>
+        {project.project_status === 'over_budget' ? (
+          <Tooltip content={PROJECT_BADGE_TOOLTIPS.overBudget}>
+            <span className={`kt-project-status-badge kt-project-status-${project.project_status}`}>
+              {STATUS_LABELS[project.project_status] || project.project_status}
+            </span>
+          </Tooltip>
+        ) : (
+          <span className={`kt-project-status-badge kt-project-status-${project.project_status}`}>
+            {STATUS_LABELS[project.project_status] || project.project_status}
+          </span>
+        )}
       </div>
       {project.description && <p className="kt-page-subtitle">{project.description}</p>}
 

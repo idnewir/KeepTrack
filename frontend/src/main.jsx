@@ -29,6 +29,7 @@ import './styles/search.css'
 import './styles/notifications.css'
 import './styles/debts.css'
 import './styles/budget.css'
+import './styles/tooltip.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -5,8 +5,10 @@ import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { financialYearsApi, reconciliationApi, triggerBlobDownload } from '../utils/api.js'
 import { formatCurrency, monthsInFinancialYear } from '../utils/format.js'
+import { RECONCILIATION_BADGE_TOOLTIPS } from '../utils/badgeTooltips.js'
 import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
+import Tooltip from '../components/Tooltip.jsx'
 
 function discrepancyTone(reason) {
   if (!reason) return ''
@@ -298,9 +300,30 @@ export default function ReconciliationPage() {
               onClick={() => setSelected(m)}
             >
               <span className="kt-month-tile-label">{m.month_label}</span>
-              <span className={`kt-month-tile-status kt-tone-${tone || (m.reconciled ? 'zero' : 'pending')}`}>
-                {isStale ? 'Reconciled — stale' : m.reconciled ? 'Reconciled' : isOverdue ? 'Overdue' : 'Not reconciled'}
-              </span>
+              {(() => {
+                const statusText = isStale
+                  ? 'Reconciled — stale'
+                  : m.reconciled
+                    ? 'Reconciled'
+                    : isOverdue
+                      ? 'Overdue'
+                      : 'Not reconciled'
+                const statusClass = `kt-month-tile-status kt-tone-${tone || (m.reconciled ? 'zero' : 'pending')}`
+                const tooltipText = isStale
+                  ? RECONCILIATION_BADGE_TOOLTIPS.stale
+                  : m.reconciled
+                    ? RECONCILIATION_BADGE_TOOLTIPS.reconciled
+                    : !isOverdue
+                      ? RECONCILIATION_BADGE_TOOLTIPS.not_reconciled
+                      : null
+                return tooltipText ? (
+                  <Tooltip content={tooltipText}>
+                    <span className={statusClass}>{statusText}</span>
+                  </Tooltip>
+                ) : (
+                  <span className={statusClass}>{statusText}</span>
+                )
+              })()}
             </button>
           )
         })}
@@ -561,11 +584,13 @@ export default function ReconciliationPage() {
                   </td>
                   <td>
                     {r.is_stale ? (
-                      <span className="kt-month-tile-status kt-tone-stale" title={r.stale_reason || ''}>
-                        Stale
-                      </span>
+                      <Tooltip content={RECONCILIATION_BADGE_TOOLTIPS.stale}>
+                        <span className="kt-month-tile-status kt-tone-stale">Stale</span>
+                      </Tooltip>
                     ) : (
-                      <span className="kt-month-tile-status kt-tone-zero">Up to date</span>
+                      <Tooltip content={RECONCILIATION_BADGE_TOOLTIPS.reconciled}>
+                        <span className="kt-month-tile-status kt-tone-zero">Up to date</span>
+                      </Tooltip>
                     )}
                   </td>
                   <td>{r.reconciled_by_username || 'someone'}</td>

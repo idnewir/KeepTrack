@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import FinancialChart from '../components/FinancialChart.jsx'
 import HelpIconLink from '../components/HelpIconLink.jsx'
+import { InfoTooltip } from '../components/Tooltip.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { useDebtTerminology } from '../context/DebtTerminologyContext.jsx'
@@ -9,6 +10,7 @@ import { useBudgetTerminology } from '../context/BudgetTerminologyContext.jsx'
 import { useModules } from '../context/ModulesContext.jsx'
 import { dashboardApi, notificationsApi } from '../utils/api.js'
 import { formatCurrency, formatDate, projectUrgency, singularize } from '../utils/format.js'
+import { NOTIFICATION_TOOLTIPS } from '../utils/notificationTooltips.js'
 
 const STATUS_LABEL = { above: 'Above target', near: 'Near target', below: 'Below target' }
 
@@ -43,7 +45,7 @@ function notificationLink(notification) {
       return '/invoices?filter=unsigned'
     case 'balance_below_target':
       return '/reconciliation'
-    case 'planned_project_overdue':
+    case 'project_overdue':
       return '/projects'
     case 'critical_errors_detected':
     case 'audit_log_archived':
@@ -220,6 +222,7 @@ export default function DashboardPage() {
           {visibleNotifications.map((n) => (
             <div key={n.id} className={`kt-notification kt-notification-${n.severity}`}>
               <span className="kt-notification-message">{n.message}</span>
+              <InfoTooltip content={NOTIFICATION_TOOLTIPS[PERSISTENT_NOTIFICATION_TYPE[n.type]]} />
               <div className="kt-notification-actions">
                 <Link to={notificationLink(n)} className="kt-notification-view">
                   View <span aria-hidden="true">→</span>

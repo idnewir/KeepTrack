@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { folderApi, notificationsApi } from '../utils/api.js'
 import { formatNotificationTime } from '../utils/format.js'
+import { InfoTooltip } from './Tooltip.jsx'
+import { NOTIFICATION_TOOLTIPS } from '../utils/notificationTooltips.js'
 
 const POLL_MS = 30000
 
@@ -233,6 +235,11 @@ export default function NotificationBell() {
                   <span className="kt-notification-row-body">
                     <span className={`kt-notification-row-title${n.read ? '' : ' kt-notification-row-title-unread'}`}>
                       {n.title}
+                      {NOTIFICATION_TOOLTIPS[n.type] && (
+                        <span onClick={(e) => e.stopPropagation()}>
+                          <InfoTooltip content={NOTIFICATION_TOOLTIPS[n.type]} label={`What does "${n.title}" mean?`} />
+                        </span>
+                      )}
                     </span>
                     <span className="kt-notification-row-message">{n.message}</span>
                     <span className="kt-notification-row-time">{formatNotificationTime(n.created_at)}</span>

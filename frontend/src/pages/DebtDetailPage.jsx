@@ -3,8 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useDebtTerminology } from '../context/DebtTerminologyContext.jsx'
 import Modal from '../components/Modal.jsx'
+import Tooltip from '../components/Tooltip.jsx'
 import { debtsApi } from '../utils/api.js'
 import { addMonthsFromToday, formatCurrency, formatDate, formatDateTime } from '../utils/format.js'
+import { DEBT_BADGE_TOOLTIPS } from '../utils/badgeTooltips.js'
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
@@ -756,12 +758,23 @@ export default function DebtDetailPage() {
         )}
 
         {!editing && (
-          <div className="kt-debt-progress-track kt-project-progress-track-large" style={{ marginTop: 20 }}>
-            <div
-              className={`kt-debt-progress-fill kt-debt-progress-${Number(debt.percent_paid) > 50 ? 'good' : Number(debt.percent_paid) >= 25 ? 'amber' : 'bad'}`}
-              style={{ width: `${Math.min(100, Number(debt.percent_paid))}%` }}
-            />
-          </div>
+          <Tooltip
+            content={
+              Number(debt.percent_paid) > 50
+                ? DEBT_BADGE_TOOLTIPS.progressGood
+                : Number(debt.percent_paid) >= 25
+                  ? DEBT_BADGE_TOOLTIPS.progressAmber
+                  : DEBT_BADGE_TOOLTIPS.progressBad
+            }
+            className="kt-tooltip-wrap-block"
+          >
+            <div className="kt-debt-progress-track kt-project-progress-track-large" style={{ marginTop: 20 }}>
+              <div
+                className={`kt-debt-progress-fill kt-debt-progress-${Number(debt.percent_paid) > 50 ? 'good' : Number(debt.percent_paid) >= 25 ? 'amber' : 'bad'}`}
+                style={{ width: `${Math.min(100, Number(debt.percent_paid))}%` }}
+              />
+            </div>
+          </Tooltip>
         )}
         {!editing && (
           <p className="kt-panel-subtitle" style={{ marginTop: 8 }}>

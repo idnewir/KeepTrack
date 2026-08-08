@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/AuthContext.jsx'
 import { useDebtTerminology } from '../context/DebtTerminologyContext.jsx'
 import Modal from '../components/Modal.jsx'
 import HelpIconLink from '../components/HelpIconLink.jsx'
+import Tooltip from '../components/Tooltip.jsx'
 import { debtsApi } from '../utils/api.js'
 import {
   addMonthsFromToday,
@@ -11,6 +12,7 @@ import {
   formatCurrency,
   formatDate,
 } from '../utils/format.js'
+import { DEBT_BADGE_TOOLTIPS, promoWarningTooltip } from '../utils/badgeTooltips.js'
 
 const DEBT_TYPE_LABELS = {
   credit_card: 'Credit Card',
@@ -65,6 +67,12 @@ function progressLevel(percentPaid) {
   if (p > 50) return 'good'
   if (p >= 25) return 'amber'
   return 'bad'
+}
+
+const PROGRESS_TOOLTIP_BY_LEVEL = {
+  good: DEBT_BADGE_TOOLTIPS.progressGood,
+  amber: DEBT_BADGE_TOOLTIPS.progressAmber,
+  bad: DEBT_BADGE_TOOLTIPS.progressBad,
 }
 
 export default function DebtsPage() {
@@ -570,9 +578,14 @@ function DebtCard({ debt, termPaymentLower, canManage, onLogPayment }) {
   return (
     <li className="kt-debt-card">
       {debt.promo_expiring_soon && (
-        <div className="kt-debt-promo-warning">
-          Promotional rate expires in {debt.days_until_promo_ends} day{debt.days_until_promo_ends === 1 ? '' : 's'}
-        </div>
+        <Tooltip
+          content={promoWarningTooltip(debt.days_until_promo_ends, debt.standard_rate_after_promo)}
+          className="kt-tooltip-wrap-block"
+        >
+          <div className="kt-debt-promo-warning">
+            Promotional rate expires in {debt.days_until_promo_ends} day{debt.days_until_promo_ends === 1 ? '' : 's'}
+          </div>
+        </Tooltip>
       )}
       <div className="kt-debt-card-header">
         <h3 className="kt-debt-name">
@@ -594,9 +607,11 @@ function DebtCard({ debt, termPaymentLower, canManage, onLogPayment }) {
         </span>
       </div>
 
-      <div className="kt-debt-progress-track">
-        <div className={`kt-debt-progress-fill kt-debt-progress-${level}`} style={{ width: `${percentPaid}%` }} />
-      </div>
+      <Tooltip content={PROGRESS_TOOLTIP_BY_LEVEL[level]} className="kt-tooltip-wrap-block">
+        <div className="kt-debt-progress-track">
+          <div className={`kt-debt-progress-fill kt-debt-progress-${level}`} style={{ width: `${percentPaid}%` }} />
+        </div>
+      </Tooltip>
       <p className="kt-panel-subtitle" style={{ marginTop: 4 }}>
         {percentPaid.toFixed(0)}% paid off
       </p>

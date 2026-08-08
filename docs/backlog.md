@@ -57,7 +57,6 @@ Small improvements that make V1 feel complete and considered, but do not block l
 - **Settings → AI & Extraction:** rename or expand the page to make extraction settings clearer (related to the Section 1 bug — this is the longer-term polish once that gap is addressed).
 - **MFA issuer:** consider adding the Keep Track logo to the QR code once the app is publicly accessible (currently works best self-hosted, where a logo adds less value).
 - **Error log:** review whether the "clear all" UX could be improved further.
-- **Callout tooltips:** hovering over notifications/errors should give an explanation.
 - **Help guides:** review all content for accuracy after recent changes.
 - **Transaction rules** — auto-categorise invoices by supplier name. Define rules like "Any invoice from Corona Energy → Electricity". Rules applied automatically during AI extraction and manual review. Works even when AI is disabled. Rules manageable in Settings. Improves categorisation accuracy over time.
 - **Cash flow enhancement** — update the dashboard financial chart to show separate income and expense visualisations more clearly, inspired by Actual Budget's cash flow report. Show how available funds fluctuate month by month with income and expenses as distinct areas.

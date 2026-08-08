@@ -5,8 +5,10 @@ import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { categoriesApi, invoicesApi, projectsApi, triggerBlobDownload } from '../utils/api.js'
 import { singularize } from '../utils/format.js'
+import { INVOICE_BADGE_TOOLTIPS } from '../utils/badgeTooltips.js'
 import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
+import Tooltip from '../components/Tooltip.jsx'
 
 const REVIEWED_OPTIONS = [
   { value: '', label: 'All' },
@@ -267,9 +269,9 @@ export default function InvoicesPage() {
                   <td className="kt-invoices-col-supplier">
                     {invoice.supplier || <em>Unknown supplier</em>}
                     {invoice.is_historical && (
-                      <span className="kt-status-badge kt-status-historical" title="Imported as historical data — skipped review and signing">
-                        Historical
-                      </span>
+                      <Tooltip content={INVOICE_BADGE_TOOLTIPS.historical}>
+                        <span className="kt-status-badge kt-status-historical">Historical</span>
+                      </Tooltip>
                     )}
                   </td>
                   <td className="kt-invoices-col-amount">{formatAmount(invoice.amount)}</td>
@@ -291,21 +293,31 @@ export default function InvoicesPage() {
                     {invoice.is_historical ? (
                       <em>N/A</em>
                     ) : invoice.signed ? (
-                      <span className="kt-status-badge kt-status-signed">Signed</span>
+                      <Tooltip content={INVOICE_BADGE_TOOLTIPS.signed}>
+                        <span className="kt-status-badge kt-status-signed">Signed</span>
+                      </Tooltip>
                     ) : (
                       invoice.reviewed && (
-                        <span className="kt-status-badge kt-status-unsigned">Unsigned</span>
+                        <Tooltip content={INVOICE_BADGE_TOOLTIPS.unsigned}>
+                          <span className="kt-status-badge kt-status-unsigned">Unsigned</span>
+                        </Tooltip>
                       )
                     )}
                   </td>
                   <td className="kt-invoices-col-status">
                     {invoice.reviewed ? (
-                      <span className="kt-status-badge kt-status-reviewed">Reviewed</span>
+                      <Tooltip content={INVOICE_BADGE_TOOLTIPS.reviewed}>
+                        <span className="kt-status-badge kt-status-reviewed">Reviewed</span>
+                      </Tooltip>
                     ) : (
-                      <span className="kt-status-badge kt-status-unreviewed">Unreviewed</span>
+                      <Tooltip content={INVOICE_BADGE_TOOLTIPS.unreviewed}>
+                        <span className="kt-status-badge kt-status-unreviewed">Unreviewed</span>
+                      </Tooltip>
                     )}
                     {invoice.duplicate_flag && (
-                      <span className="kt-status-badge kt-status-duplicate">Possible duplicate</span>
+                      <Tooltip content={INVOICE_BADGE_TOOLTIPS.duplicate}>
+                        <span className="kt-status-badge kt-status-duplicate">Possible duplicate</span>
+                      </Tooltip>
                     )}
                   </td>
                 </tr>

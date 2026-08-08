@@ -5,14 +5,21 @@ import { useModules } from '../context/ModulesContext.jsx'
 import { useBudgetTerminology } from '../context/BudgetTerminologyContext.jsx'
 import Modal from '../components/Modal.jsx'
 import HelpIconLink from '../components/HelpIconLink.jsx'
+import Tooltip from '../components/Tooltip.jsx'
 import { budgetsApi, categoriesApi, projectsApi, savingsGoalsApi } from '../utils/api.js'
 import { formatCurrency, formatDate, monthsInFinancialYear, MONTH_NAMES } from '../utils/format.js'
+import { BUDGET_BADGE_TOOLTIPS } from '../utils/badgeTooltips.js'
 
 const VIEW_MODE_KEY = 'keeptrack-budget-view-mode'
 const FY_OPTION_LABELS = ['Current', 'Next', 'Year after next']
 
 const STATUS_LEVEL = { under_budget: 'good', warning: 'amber', over_budget: 'bad' }
 const STATUS_LABEL = { under_budget: 'On Track', warning: 'Warning', over_budget: 'Over Budget' }
+const STATUS_TOOLTIP = {
+  under_budget: BUDGET_BADGE_TOOLTIPS.onTrack,
+  warning: BUDGET_BADGE_TOOLTIPS.warning,
+  over_budget: BUDGET_BADGE_TOOLTIPS.overBudget,
+}
 
 function statusLevel(status) {
   return STATUS_LEVEL[status] || 'good'
@@ -499,9 +506,11 @@ function BudgetsTab({
                       <td>{formatCurrency(monthActual)}</td>
                       <td>{formatCurrency(variance)}</td>
                       <td>
-                        <span className={`kt-budget-status-badge kt-budget-status-badge-${statusLevel(status)}`}>
-                          {STATUS_LABEL[status]}
-                        </span>
+                        <Tooltip content={STATUS_TOOLTIP[status]}>
+                          <span className={`kt-budget-status-badge kt-budget-status-badge-${statusLevel(status)}`}>
+                            {STATUS_LABEL[status]}
+                          </span>
+                        </Tooltip>
                       </td>
                     </tr>
                   )
@@ -663,7 +672,9 @@ function BudgetTable({ budgets, onRowClick }) {
               <span className="kt-align-right">{formatCurrency(b.ytd_variance)}</span>
               <span className={`kt-align-right kt-budget-percent-${level}`}>{Number(b.percent_used).toFixed(0)}%</span>
               <span className="kt-align-right">
-                <span className={`kt-budget-status-badge kt-budget-status-badge-${level}`}>{STATUS_LABEL[b.status]}</span>
+                <Tooltip content={STATUS_TOOLTIP[b.status]}>
+                  <span className={`kt-budget-status-badge kt-budget-status-badge-${level}`}>{STATUS_LABEL[b.status]}</span>
+                </Tooltip>
               </span>
             </div>
             <div className="kt-budget-row-progress">
@@ -691,7 +702,9 @@ function BudgetCards({ budgets, onCardClick }) {
                 <span className="kt-category-swatch" style={{ background: b.category_colour }} aria-hidden="true" />
                 {b.category_name}
               </span>
-              <span className={`kt-budget-status-badge kt-budget-status-badge-${level}`}>{STATUS_LABEL[b.status]}</span>
+              <Tooltip content={STATUS_TOOLTIP[b.status]}>
+                <span className={`kt-budget-status-badge kt-budget-status-badge-${level}`}>{STATUS_LABEL[b.status]}</span>
+              </Tooltip>
             </div>
             <div className="kt-budget-card-amounts">
               <strong>{formatCurrency(b.ytd_actual)}</strong>

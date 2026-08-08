@@ -5,7 +5,9 @@ import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js
 import { searchApi } from '../utils/api.js'
 import { formatCurrency, MONTH_NAMES } from '../utils/format.js'
 import { renderHighlightedSnippet } from '../utils/highlight.jsx'
+import { INVOICE_BADGE_TOOLTIPS, PROJECT_BADGE_TOOLTIPS } from '../utils/badgeTooltips.js'
 import PaginationBar from '../components/PaginationBar.jsx'
+import Tooltip from '../components/Tooltip.jsx'
 
 const MIN_QUERY_LENGTH = 2
 
@@ -118,7 +120,9 @@ export default function SearchResultsPage() {
                         <td>
                           {r.supplier || <em>Unknown supplier</em>}
                           {r.is_historical && (
-                            <span className="kt-status-badge kt-status-historical">Historical</span>
+                            <Tooltip content={INVOICE_BADGE_TOOLTIPS.historical}>
+                              <span className="kt-status-badge kt-status-historical">Historical</span>
+                            </Tooltip>
                           )}
                         </td>
                         <td>{formatCurrency(r.amount)}</td>
@@ -138,11 +142,19 @@ export default function SearchResultsPage() {
                         </td>
                         <td>
                           {r.reviewed ? (
-                            <span className="kt-status-badge kt-status-reviewed">Reviewed</span>
+                            <Tooltip content={INVOICE_BADGE_TOOLTIPS.reviewed}>
+                              <span className="kt-status-badge kt-status-reviewed">Reviewed</span>
+                            </Tooltip>
                           ) : (
-                            <span className="kt-status-badge kt-status-unreviewed">Unreviewed</span>
+                            <Tooltip content={INVOICE_BADGE_TOOLTIPS.unreviewed}>
+                              <span className="kt-status-badge kt-status-unreviewed">Unreviewed</span>
+                            </Tooltip>
                           )}
-                          {r.signed && <span className="kt-status-badge kt-status-signed">Signed</span>}
+                          {r.signed && (
+                            <Tooltip content={INVOICE_BADGE_TOOLTIPS.signed}>
+                              <span className="kt-status-badge kt-status-signed">Signed</span>
+                            </Tooltip>
+                          )}
                         </td>
                         <td className="kt-search-snippet-cell">
                           {r.snippet ? renderHighlightedSnippet(r.snippet) : <em>—</em>}
@@ -199,9 +211,17 @@ export default function SearchResultsPage() {
                       <span className="kt-search-list-item-main">
                         <span className="kt-search-list-item-title">{r.name}</span>
                         {r.status && (
-                          <span className={`kt-project-status-badge kt-project-status-${r.status}`}>
-                            {PROJECT_STATUS_LABELS[r.status] || r.status}
-                          </span>
+                          r.status === 'over_budget' ? (
+                            <Tooltip content={PROJECT_BADGE_TOOLTIPS.overBudget}>
+                              <span className={`kt-project-status-badge kt-project-status-${r.status}`}>
+                                {PROJECT_STATUS_LABELS[r.status] || r.status}
+                              </span>
+                            </Tooltip>
+                          ) : (
+                            <span className={`kt-project-status-badge kt-project-status-${r.status}`}>
+                              {PROJECT_STATUS_LABELS[r.status] || r.status}
+                            </span>
+                          )
                         )}
                       </span>
                       <span className="kt-search-list-item-amount">{formatCurrency(r.estimated_cost)}</span>
