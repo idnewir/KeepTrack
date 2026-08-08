@@ -2,6 +2,8 @@
 
 This guide explains how to add a new invoice to Keep Track.
 
+"Invoices" is the default label — an Administrator can rename it (e.g. to "Bills" or "Expenses") from **Settings → Appearance**; see the [Settings Guide](settings-guide.md). This guide uses the default name throughout.
+
 ## Two ways to add an invoice
 
 ### Option A: Upload it yourself
@@ -17,7 +19,7 @@ Only Standard users and Administrators can upload invoices. Read Only accounts c
 
 ### Option B: Drop it in the watched folder
 
-If your organisation has a shared network folder set up for this, invoices saved there will be picked up automatically and enter the same review queue as a manual upload. Ask your administrator whether this has been configured for your organisation.
+If your organisation has switched on and configured the optional [Folder Integration](folder-integration.md) module, invoices saved to a shared network folder are picked up automatically and enter the same review queue as a manual upload. Ask your administrator whether this has been set up for your organisation, or see the [Folder Integration](folder-integration.md) guide for how to configure it.
 
 ## Checking what Keep Track found
 
@@ -89,3 +91,12 @@ Below the import tabs, **Import history** lists every CSV and PDF import that's 
 
 - **View invoices** — jump to the Invoices list filtered to just that batch.
 - **Delete** *(Administrators only)* — removes the whole batch in one go. Keep Track shows you exactly how many invoices will be deleted before asking you to confirm. Any invoice from that batch you've since gone in and corrected is automatically protected and left alone, so a bulk delete can't undo work you've already checked.
+
+The Import page is also reachable from **Settings → Data → Import Data** — both paths lead to the same page (see the [Settings Guide](settings-guide.md)).
+
+## Related guides
+
+- [Reviewing and Signing](reviewing-and-signing.md) — what happens after you confirm an invoice.
+- [Folder Integration](folder-integration.md) — automatic import from a shared network folder.
+- [Dashboard Guide](dashboard-guide.md) — where uploaded invoices show up once confirmed.
+- [Settings Guide](settings-guide.md) — the Import Data section in Settings.

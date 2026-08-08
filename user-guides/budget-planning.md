@@ -239,3 +239,11 @@ Not in this version — see the V1 scope note below.
 Budget Planning V1 focuses on annual budgets and savings goals. Full
 envelope budgeting with income allocation is planned for a future
 version.
+
+## Related guides
+
+- [Debt Tracking](debt-tracking.md) — Personal Finance mode, where the Savings Goals panel also appears.
+- [Dashboard Guide](dashboard-guide.md) — the Budget Summary panel in organisational mode.
+- [Reports Guide](reports-guide.md) — including a budget vs actual comparison in a PDF report.
+- [Feature Modules](feature-modules.md) — how enabling and disabling modules works generally.
+- [Settings Guide](settings-guide.md) — renaming "Budget Planning", "Budget", and "Savings Goal".

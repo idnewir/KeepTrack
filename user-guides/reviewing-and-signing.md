@@ -2,6 +2,8 @@
 
 Some organisations using Keep Track require invoices to be signed off before they're filed — a bit like initialling a paper invoice to show it's been checked and approved. This guide explains that step. If your organisation doesn't use signing, you can skip ahead to "If signing is turned off" below — you'll simply confirm invoices without signing them.
 
+"Invoices" is the default label for this content — an Administrator can rename it from **Settings → Appearance**; see the [Settings Guide](settings-guide.md). This guide uses the default name throughout.
+
 ## Step 1: Review the details
 
 Every uploaded invoice lands on a **review card** before it's saved anywhere. Make sure the details are correct before you continue:
@@ -22,11 +24,16 @@ Clicking **Continue to sign** (or **Sign and export** / **Re-sign and export** f
 - On a computer, your **signing tools** (signature pad, date, and the Place signature/Cancel buttons) appear in a floating panel on the right.
 - On a phone or tablet, the same tools slide up from the bottom as a **drawer**. Tap its handle (labelled "Signature tools") to collapse it down to a small tab, giving you the full screen to drag the signature box around — tap it again to bring the tools back.
 
-## Step 3: Draw your signature
+## Step 3: Provide your signature
 
-1. In the **Your signature** box, draw your signature with your mouse, or your finger/stylus on a touchscreen. Made a mistake? Click **Clear signature** and try again.
-2. Check (or change) the **Date** field — it's pre-filled with today's date.
-3. Add anything else worth recording — a name, a note, a reference number — in **Additional text (optional)**. It's stamped just below the date on the signed PDF.
+If you've saved a signature to your profile before (see **My Profile** — [Getting Started](getting-started.md) covers setting a profile picture the same way), Keep Track uses it automatically:
+
+1. The **Use saved signature** option is selected by default, showing a preview of the signature you saved. Prefer to sign fresh this time? Click **Draw signature** to switch to the canvas below instead.
+2. If you don't have a saved signature yet (or it can't be loaded), you land straight on the **Your signature** box — draw your signature with your mouse, or your finger/stylus on a touchscreen. Made a mistake? Click **Clear signature** and try again.
+3. Check (or change) the **Date** field — it's pre-filled with today's date.
+4. Add anything else worth recording — a note, a reference number — in **Additional text (optional)**. It's stamped just below the date on the signed PDF.
+
+Your name is added automatically underneath your signature on the signed PDF — you don't need to type it yourself.
 
 ## Step 4: Position the signature
 
@@ -54,4 +61,12 @@ If your organisation doesn't use signing, the review card's button reads **Confi
 ## Good to know
 
 - You can always find the signed PDF again later from the invoice's detail page.
-- Signing is a setting that an Administrator can turn on or off for the whole organisation (see the [Settings Guide](settings-guide.md)). If your review card goes straight to a **Confirm** button with no signing step, it's likely been turned off.
+- Signing is a setting that an Administrator can turn on or off for the whole organisation, from **Settings → Security** (see the [Settings Guide](settings-guide.md)). If your review card goes straight to a **Confirm** button with no signing step, it's likely been turned off.
+- You can save a signature to reuse every time from **My Profile** — click your name in the top-right corner, then **My profile**, and look for the signature section. Once saved, it's offered as the default choice every time you sign, saving you from redrawing it each time.
+
+## Related guides
+
+- [Uploading Invoices](uploading-invoices.md) — how an invoice gets to the review card in the first place.
+- [Getting Started](getting-started.md) — setting up your profile, including a saved signature.
+- [Settings Guide](settings-guide.md) — turning the signing step on or off for everyone.
+- [Folder Integration](folder-integration.md) — automatically saving signed PDFs to an output folder.

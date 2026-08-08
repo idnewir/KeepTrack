@@ -24,9 +24,17 @@ If you don't have an authenticator app yet, download **Google Authenticator** or
 
 If nobody has an account yet (this is a brand-new Keep Track installation), the login screen shows a banner: **"Welcome to Keep Track. No accounts exist yet."** Click **Set up Keep Track** on that banner to start a short **setup wizard** — whoever completes it becomes the first Administrator. Once the wizard finishes, you're sent back to the login screen to sign in properly with your new account (including the MFA step below).
 
-As the last step of the wizard, you'll be asked **"When did you start using Keep Track?"** — pick the month you're starting to use it, or choose **Skip for now**. This is optional but useful: any month before the date you choose is hidden across the whole app, so you don't see empty rows and zero values for months before you actually started tracking anything (handy if your financial year began earlier than when you set Keep Track up). The same step also asks **"When does your financial year start?"** — pick the month your organisation's (or your own) financial year begins; September is pre-selected since that's common for UK charities, but pick whatever fits. Both settings can be changed at any time afterwards from **Settings**.
+After scanning the QR code, you'll be asked **"When did you start using Keep Track?"** — pick the month you're starting to use it, or choose **Skip for now**. This is optional but useful: any month before the date you choose is hidden across the whole app, so you don't see empty rows and zero values for months before you actually started tracking anything (handy if your financial year began earlier than when you set Keep Track up). The same step also asks **"When does your financial year start?"** — pick the month your organisation's (or your own) financial year begins; September is pre-selected since that's common for UK charities, but pick whatever fits.
+
+The last step, **"Configure AI features (optional)"**, sets up the AI provider that reads uploaded invoices automatically and writes report summaries — pick Anthropic, OpenAI, or a self-hosted model (Ollama), and optionally enter an API key. This is also entirely optional: click **Skip for now** and configure it later, or leave AI switched off altogether — Keep Track works perfectly well without it, you'll just fill in invoice details by hand (see [Feature Modules](feature-modules.md#ai-degradation--what-works-without-ai)).
+
+All three settings — app start date, financial year start month, and AI configuration — can be changed at any time afterwards from **Settings** (see the [Settings Guide](settings-guide.md)).
 
 If an account already exists, click **Register** on the login screen, fill in your details, and set up your authenticator app. Your request will then be **pending** until an Administrator approves you and gives you a role.
+
+## 3a. Your first login: the welcome overlay
+
+The first time you log in, a **welcome card** appears over the dashboard with a short greeting and four quick-start shortcuts (upload your first invoice, record income, view the dashboard, run a report). Click any of them to jump straight there, or **Get started** / **Don't show this again** to dismiss it — either way, it only appears once. You can always find the same help content again later from the **Help** link in the sidebar.
 
 ## 4. Finding your way around
 
@@ -51,6 +59,8 @@ Either way, if you set neither, your initials are shown instead.
 
 A Gravatar picture is downloaded once and **saved to Keep Track**, not loaded live from Gravatar on every page view — this keeps things fast and doesn't depend on Gravatar's own website being reachable. If you update your picture on Gravatar's website afterwards, Keep Track won't notice on its own: go back to **My profile → Gravatar** and click **Refresh from Gravatar** to pick up the change.
 
+The same **My profile** page also lets you save a **signature** to reuse every time you sign an invoice, instead of drawing it fresh each time — see [Reviewing and Signing](reviewing-and-signing.md) for how it's used.
+
 ## 7. Optional: tracking your own debts
 
 If you're using Keep Track for your own or your household's finances,
@@ -71,6 +81,10 @@ Administrator turns it on the same way, from **Settings → General →
 Feature Modules**. See the [Budget Planning](budget-planning.md) guide for
 the full walkthrough.
 
+## 7b. Optional: picking up invoices from a shared folder
+
+A third optional module, **Folder Integration**, lets Keep Track watch a shared network folder and automatically import any invoice saved there — and automatically save signed PDFs back out to a folder too, once they're signed. Unlike Debt Tracking and Budget Planning, it doesn't add a page of its own; an Administrator turns it on from **Settings → General → Feature Modules** and configures it from **Settings → Data → Folder Integration**. See the [Folder Integration](folder-integration.md) guide for the full setup.
+
 ## 8. Where to go next
 
 - To upload your first invoice, see [Uploading Invoices](uploading-invoices.md).
@@ -78,3 +92,11 @@ the full walkthrough.
 - To record money coming in, see [Managing Contributions](managing-contributions.md).
 - To track your own debts, see [Debt Tracking](debt-tracking.md).
 - To set budgets and savings goals, see [Budget Planning](budget-planning.md).
+- To pick up invoices automatically from a shared folder, see [Folder Integration](folder-integration.md).
+
+## Related guides
+
+- [Uploading Invoices](uploading-invoices.md) — adding your first invoice.
+- [Dashboard Guide](dashboard-guide.md) — understanding what you see after logging in.
+- [Settings Guide](settings-guide.md) — every setting mentioned in this guide, in full detail.
+- [Feature Modules](feature-modules.md) — the full picture of what modules are and how they work.

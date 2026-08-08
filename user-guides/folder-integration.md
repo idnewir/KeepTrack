@@ -109,3 +109,10 @@ Below the configuration on the Folder Integration settings page, a live status p
 - **Guest access fails** — some SMB servers don't accept true guest/anonymous logins even when configured to allow them; try a dedicated read/write user account instead.
 - **Files aren't being picked up** — confirm the toggle is switched on and saved, that files are PDFs sitting directly in the folder (not inside `processed/` or another subfolder), and check the poll interval — a 30-minute interval means a genuine wait before a new file appears.
 - Whenever something goes wrong processing a specific file, check **Settings → Notifications & Logs → Logs** — background failures are always recorded there with the underlying error message, alongside the file's own entry in the folder watcher log.
+
+## Related guides
+
+- [Uploading Invoices](uploading-invoices.md) — how a folder-imported invoice compares to a manual upload.
+- [Reviewing and Signing](reviewing-and-signing.md) — what happens once a folder-imported invoice is signed and exported.
+- [Feature Modules](feature-modules.md) — how enabling and disabling modules works generally.
+- [Settings Guide](settings-guide.md) — where Folder Integration is configured.

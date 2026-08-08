@@ -4,6 +4,11 @@ Reconciliation is the monthly check to make sure Keep Track's numbers match
 what the bank actually shows. This guide walks you through it on the
 **Reconciliation** page.
 
+"Reconciliation" is the default label — an Administrator can rename it from
+**Settings → Appearance** if it doesn't suit how you use Keep Track; see the
+[Settings Guide](settings-guide.md). This guide uses the default name
+throughout.
+
 ## Who can do this
 
 Administrators and Standard users can carry out reconciliation and add
@@ -46,10 +51,35 @@ balance) and shows a suggested reason, colour-coded:
 - **Red, large** — likely a missing invoice or contribution, worth checking
   closely.
 
-A month, once reconciled, is locked — the actual balance and discrepancy
-can't be changed. If you need to explain what you found (or are still
-investigating), use the **Notes** box underneath; notes can be added or
-updated at any time, even after the month is reconciled.
+A month, once reconciled, is locked for everyday editing — the actual
+balance and discrepancy can't be changed by a Standard user. If you need to
+explain what you found (or are still investigating), use the **Notes** box
+underneath; notes can be added or updated at any time, by anyone who can
+reconcile, even after the month is reconciled.
+
+## Correcting a reconciled month (Administrators only)
+
+Sometimes a reconciled month turns out to need fixing — a figure was
+mistyped, or new information comes to light. An Administrator can click
+**Edit (Admin)** on a reconciled month to reopen it: change the actual
+balance and notes, add a reason for the correction, and save. Keep Track
+recalculates the discrepancy from the new figure and records the
+correction — including who made it, when, and why — against your account.
+
+If a month has been flagged **stale** (see below), the same button reads
+**Edit now — bring up to date** instead, making it obvious that a
+correction is expected, not just possible.
+
+## Why a reconciliation can go stale
+
+If an invoice or contribution affecting an already-reconciled month is
+added, edited, or deleted afterwards, Keep Track automatically marks that
+month's reconciliation as **stale** — a clear signal that the actual
+balance you entered may no longer match the recalculated figures. A stale
+month shows an amber "⚠ Data changed since reconciliation" banner with the
+details of what changed (the original balance when reconciled, the current
+calculated balance, and the difference), and stays marked stale until an
+Administrator corrects it using **Edit now — bring up to date** above.
 
 ## Unreconciled and overdue months
 
@@ -65,3 +95,10 @@ the page listing every overdue month at a glance — reconcile these first.
 - If you can't find the cause of a discrepancy straight away, reconcile
   anyway with a note explaining what you know so far — you can always add
   more detail to the note later.
+
+## Related guides
+
+- [Managing Contributions](managing-contributions.md) — setting the opening balance reconciliation depends on.
+- [Uploading Invoices](uploading-invoices.md) — confirmed invoices feed into the calculated balance.
+- [Dashboard Guide](dashboard-guide.md) — the target reserve gauge, which also depends on an accurate balance.
+- [Settings Guide](settings-guide.md) — renaming "Reconciliation" and setting the financial year.

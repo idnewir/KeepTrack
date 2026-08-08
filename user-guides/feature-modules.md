@@ -48,3 +48,10 @@ AI Extraction is a little different from the other modules, because Keep Track w
 - **With AI Extraction switched off as a module**, or if it's on but hasn't been given an API key: every field on the review card is simply blank, and you fill it in yourself. Nothing about uploading, reviewing, confirming, signing, or reporting invoices stops working — the only thing missing is the automatic reading step.
 
 So turning AI Extraction off (or leaving it unconfigured) is a genuine, supported way to use Keep Track — not a degraded or broken state. It's the right choice if you'd rather not send invoice content to an external AI provider at all.
+
+## Related guides
+
+- [Settings Guide](settings-guide.md) — the Feature Modules toggle, and every other setting mentioned here.
+- [Debt Tracking](debt-tracking.md) — the full guide for that module.
+- [Budget Planning](budget-planning.md) — the full guide for that module.
+- [Folder Integration](folder-integration.md) — the full guide for that module.

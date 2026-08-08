@@ -171,9 +171,12 @@ Below that, a **Debt summary** panel lists every active debt with its
 balance, rate, and next payment date (promotional rates expiring soon are
 highlighted in amber), and a **payments due this month** panel lists
 what's due and when, in order, with anything overdue shown in red. A
-**Savings goals** panel is also shown — this is a placeholder until Budget
-Planning is built; it currently just points you at Settings → General →
-Feature Modules if you want to explore that module.
+**Savings goals** panel is also shown: if the [Budget Planning](budget-planning.md)
+module is also enabled, this shows your real active savings goals — name,
+progress bar, and an on-track indicator — with a **View all goals** link
+through to the Savings Goals tab. If Budget Planning isn't enabled yet,
+this panel just points you at Settings → General → Feature Modules to
+explore that module.
 
 ## The collapsible financial chart
 
@@ -236,3 +239,10 @@ a promotional rate, if applicable) is the way to fix it.
 Any logged-in user can view the Debts list and detail pages. Adding debts,
 editing them, marking them paid, and logging payments needs a Standard or
 Admin role; deleting a debt or a payment needs an Admin.
+
+## Related guides
+
+- [Budget Planning](budget-planning.md) — savings goals, shown alongside debts in Personal Finance mode.
+- [Dashboard Guide](dashboard-guide.md) — the full picture of Personal Finance mode, including the collapsible chart.
+- [Feature Modules](feature-modules.md) — how enabling and disabling modules works generally.
+- [Settings Guide](settings-guide.md) — renaming "Debt Tracking", "Debt", and "Payment".

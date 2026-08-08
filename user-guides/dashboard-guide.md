@@ -4,6 +4,19 @@ The Dashboard is the first thing you see after logging in. It gives you an
 immediate financial health snapshot of the site, without needing to dig
 into detail — and everything on it can be clicked to see more.
 
+This guide uses Keep Track's default labels — Invoices, Contributions,
+Projects, Target Reserve — throughout. An Administrator can rename any of
+these from **Settings → Appearance** (see the [Settings Guide](settings-guide.md)),
+and the dashboard updates to match automatically.
+
+## The header
+
+The header at the top of every page — not just the dashboard — shows:
+
+- A personal greeting on the right (**Good morning**, **Good afternoon**, or **Good evening**, followed by your name), which changes automatically through the day.
+- A **search bar** in the middle. Click it, or press **Cmd+K** (Mac) / **Ctrl+K** (Windows/Linux) from anywhere in the app, to jump straight to it and search across invoices, projects, and contributions without touching the mouse.
+- A **notification bell** — click it to open a dropdown list of your notifications (the same underlying alerts as the dashboard banners below, plus a few that only appear here). Unread ones are highlighted; click one to go straight to what it's about, or use **Mark all read** / **Dismiss all** to clear the list down.
+
 ## Notification banners
 
 If something needs your attention, you'll see a coloured banner at the very
@@ -154,3 +167,11 @@ goals shown here.
 The dashboard is fully responsive: the sidebar tucks behind the menu
 button, the four metric cards stack, and the panels move to a single
 column, so everything is still readable and clickable on a phone browser.
+
+## Related guides
+
+- [Getting Started](getting-started.md) — logging in and finding your way around for the first time.
+- [Debt Tracking](debt-tracking.md) — the full picture behind Personal Finance mode.
+- [Budget Planning](budget-planning.md) — the full picture behind the Budget Summary and Savings Goals panels.
+- [Managing Contributions](managing-contributions.md) — where the income side of the chart comes from.
+- [Uploading Invoices](uploading-invoices.md) — where the spend side of the chart comes from.

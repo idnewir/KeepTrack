@@ -4,6 +4,8 @@
 different groups that support your organisation. This guide explains how to
 record and review them on the **Contributions** page.
 
+"Contributions" is the default label — if your organisation uses different wording (e.g. "Income" for a personal budget), an Administrator can rename it from **Settings → Appearance**; see the [Settings Guide](settings-guide.md). This guide uses the default name throughout.
+
 ## Who can do this
 
 - **Administrators and Standard users** can record, edit, and view
@@ -67,3 +69,9 @@ summary table.
 - If a monthly reconciliation doesn't balance, a missing or mistyped
   contribution is one of the most common reasons — see the
   [Reconciliation Guide](reconciliation-guide.md).
+
+## Related guides
+
+- [Reconciliation Guide](reconciliation-guide.md) — checking the running balance against your bank statement.
+- [Dashboard Guide](dashboard-guide.md) — where contributions feed into the income line of the chart.
+- [Settings Guide](settings-guide.md) — renaming "Contributions" and setting the financial year.

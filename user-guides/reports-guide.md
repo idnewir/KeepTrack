@@ -2,6 +2,8 @@
 
 Reports let you produce a clear, professional PDF summary of the finances — perfect for sharing with a committee, trustees, or just for your own records. Everyone can generate and download reports, no matter their role.
 
+This guide uses Keep Track's default labels (Invoices, Contributions) — an Administrator can rename these from **Settings → Appearance**; see the [Settings Guide](settings-guide.md).
+
 ## Step 1: Go to Reports
 
 Click **Reports** in the sidebar. You'll see two sections: **Generate new report** at the top, and **Previous reports** below it.
@@ -44,6 +46,8 @@ Once it's done:
 
 Every report you've ever generated stays listed in the **Previous reports** table — title, type, date range, categories, who generated it, and when. Click **Download** on any row to get the PDF again at any time; generating a report never changes your underlying data, so it's safe to run as many as you like.
 
+Click **Export CSV** below the table to download the whole Previous reports list itself as a spreadsheet — useful for keeping an external record of what's been generated and when, separate from downloading any individual report's PDF.
+
 ## Deleting a report
 
 Only Admins can delete a report, and it asks for confirmation first. Deleting a report removes it from the list — it doesn't affect any invoices, contributions, or other data it was generated from.
@@ -53,3 +57,10 @@ Only Admins can delete a report, and it asks for confirmation first. Deleting a 
 - If a report doesn't look right, double-check that the invoices and contributions for that period have been entered and confirmed correctly first — reports only include **confirmed** invoices.
 - The AI summary is written for a general, non-technical audience — ideal for trustees or committee members who don't need the raw figures explained.
 - If the AI summary is ever missing from a report, it's usually because AI summaries were switched off for that report, or the AI call didn't succeed — the rest of the report (figures, tables, charts) is unaffected either way.
+- The AI summary needs AI to be configured and enabled first — see **Settings → AI & Extraction** in the [Settings Guide](settings-guide.md). Without it, reports still generate normally; you just won't get the written narrative.
+
+## Related guides
+
+- [Uploading Invoices](uploading-invoices.md) and [Managing Contributions](managing-contributions.md) — the data reports are built from.
+- [Budget Planning](budget-planning.md) — the budget vs actual comparison option.
+- [Settings Guide](settings-guide.md) — configuring AI for report summaries.
