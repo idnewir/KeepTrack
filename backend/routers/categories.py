@@ -6,6 +6,7 @@ from database import get_db
 from models.category import Category
 from models.schemas import CategoryCreate, CategoryOut, CategoryUpdate
 from models.user import User
+from services import audit_service
 from utils.deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -31,7 +32,7 @@ def list_all_categories(
 def create_category(
     payload: CategoryCreate,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     if db.query(Category).filter(Category.name == payload.name).first():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "A category with that name already exists")
@@ -40,6 +41,11 @@ def create_category(
     db.add(category)
     db.commit()
     db.refresh(category)
+
+    audit_service.log_action(
+        db, "category.created", f"Created category '{category.name}'",
+        user_id=admin.id, affected_table="categories", affected_record_id=category.id,
+    )
     return category
 
 
@@ -48,22 +54,33 @@ def update_category(
     category_id: int,
     payload: CategoryUpdate,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     category = db.get(Category, category_id)
     if category is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Category not found")
 
+    changed_fields: dict = {}
+
     if payload.name is not None and payload.name != category.name:
         if db.query(Category).filter(Category.name == payload.name).first():
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "A category with that name already exists")
+        changed_fields["name"] = {"before": category.name, "after": payload.name}
         category.name = payload.name
 
-    if payload.colour is not None:
+    if payload.colour is not None and payload.colour != category.colour:
+        changed_fields["colour"] = {"before": category.colour, "after": payload.colour}
         category.colour = payload.colour
 
     db.commit()
     db.refresh(category)
+
+    if changed_fields:
+        audit_service.log_action(
+            db, "category.edited", f"Edited category '{category.name}' ({', '.join(changed_fields)})",
+            user_id=admin.id, affected_table="categories", affected_record_id=category.id,
+            metadata={"changed_fields": changed_fields},
+        )
     return category
 
 
@@ -71,7 +88,7 @@ def update_category(
 def deactivate_category(
     category_id: int,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     category = db.get(Category, category_id)
     if category is None:
@@ -80,6 +97,11 @@ def deactivate_category(
     category.active = False
     db.commit()
     db.refresh(category)
+
+    audit_service.log_action(
+        db, "category.deactivated", f"Deactivated category '{category.name}'",
+        user_id=admin.id, affected_table="categories", affected_record_id=category.id,
+    )
     return category
 
 
@@ -87,7 +109,7 @@ def deactivate_category(
 def restore_category(
     category_id: int,
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    admin: User = Depends(require_admin),
 ):
     category = db.get(Category, category_id)
     if category is None:
@@ -96,4 +118,9 @@ def restore_category(
     category.active = True
     db.commit()
     db.refresh(category)
+
+    audit_service.log_action(
+        db, "category.restored", f"Restored category '{category.name}'",
+        user_id=admin.id, affected_table="categories", affected_record_id=category.id,
+    )
     return category

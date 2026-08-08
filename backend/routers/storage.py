@@ -352,6 +352,7 @@ def restore_backup(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Incorrect Superadmin password.")
 
     superadmin_id = superadmin.id
+    superadmin_username = superadmin.username
     # require_superadmin's own get_current_user dependency already loaded
     # superadmin via this same request-scoped session (FastAPI caches
     # Depends(get_db) per request) and never closes it until this function
@@ -370,7 +371,7 @@ def restore_backup(
 
         backup_service.enter_maintenance_mode()
         try:
-            result = backup_service.restore_from_zip(tmp_path)
+            result = backup_service.restore_from_zip(tmp_path, actor_username=superadmin_username)
         except ValueError as exc:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
         except RuntimeError as exc:

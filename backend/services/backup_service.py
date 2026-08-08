@@ -560,11 +560,21 @@ def _discard_staged_aside(staged: dict | None) -> None:
         shutil.rmtree(staging_dir, ignore_errors=True)
 
 
-def restore_from_zip(zip_path: str) -> dict:
+def restore_from_zip(zip_path: str, actor_username: str | None = None) -> dict:
     """Restores the database, then the storage files, checks Superadmin
     consistency, and invalidates every existing login session. The caller
     (routers/storage.py) is responsible for entering/exiting maintenance
     mode around this call and for deleting `zip_path` afterwards.
+
+    `actor_username` (the pre-restore Superadmin's username, captured by the
+    caller before the database underneath them is replaced) is recorded as
+    plain text in the resulting audit_log entry's description/metadata —
+    deliberately not as `user_id`. By the time that entry is written, the
+    `users` table is the *restored* one, which may be a different database
+    entirely (a different install's backup); the pre-restore actor's numeric
+    id has no guaranteed row to point to there, and audit_log.user_id is a
+    real foreign key — attaching it could reference the wrong user or fail
+    outright. See docs/decisions-log.md.
 
     Order (per the task brief): verify checksums (upfront, via
     validate_backup_zip — failing fast before touching anything is safer
@@ -637,8 +647,9 @@ def restore_from_zip(zip_path: str) -> dict:
             audit_service.log_action(
                 db,
                 "system.restored",
-                f"System restored from a backup created {manifest.get('created_at')}",
-                metadata={"record_counts": manifest.get("record_counts")},
+                f"System restored from a backup created {manifest.get('created_at')}"
+                + (f" (restored by '{actor_username}')" if actor_username else ""),
+                metadata={"record_counts": manifest.get("record_counts"), "restored_by_username": actor_username},
             )
 
             return {

@@ -35,6 +35,14 @@ export function useSessionTimeout() {
       } catch {
         // Best effort — a failed revoke must not block the client-side logout.
       }
+      // Records the timeout to the audit log while the still-valid token can
+      // still authenticate the call — best effort, same shape as the revoke
+      // above, since neither should block the actual client-side logout.
+      try {
+        await authApi.reportSessionTimeout(token)
+      } catch {
+        // Best effort.
+      }
     }
     forceLogout()
     navigate('/login', { replace: true, state: { inactivityLogout: true } })

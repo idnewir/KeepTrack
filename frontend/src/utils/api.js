@@ -55,6 +55,7 @@ export const authApi = {
       headers: rememberToken ? { 'X-MFA-Remember-Token': rememberToken } : undefined,
     }),
   revokeMfaRemember: (token) => request('/auth/mfa-remember', { method: 'DELETE', token }),
+  reportSessionTimeout: (token) => request('/auth/session-timeout', { method: 'POST', token }),
   dismissWelcome: (token) => request('/auth/welcome/dismiss', { method: 'POST', token }),
   updateProfile: (payload, token) =>
     request('/auth/me/profile', { method: 'PUT', body: payload, token }),

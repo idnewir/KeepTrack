@@ -415,6 +415,23 @@ def logout(
     )
 
 
+@router.post("/session-timeout", status_code=status.HTTP_204_NO_CONTENT)
+def report_session_timeout(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Purely an audit hook, called by the frontend's inactivity timer
+    (useSessionTimeout.js) right before it clears local auth state — the
+    counterpart to POST /auth/logout for a session that ended because the
+    user walked away rather than clicked Logout. Like logout, there is no
+    server-side session to actually end; the still-valid access token used
+    to make this call is discarded client-side immediately afterwards."""
+    audit_service.log_action(
+        db, "user.session_timeout", f"'{user.username}' was logged out after inactivity",
+        user_id=user.id,
+    )
+
+
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     ip_address = _client_ip(request)
@@ -722,6 +739,10 @@ def dismiss_welcome(
         user.has_seen_welcome = True
         db.commit()
         db.refresh(user)
+        audit_service.log_action(
+            db, "user.welcome_dismissed", f"'{user.username}' dismissed the welcome overlay",
+            user_id=user.id,
+        )
     return user
 
 

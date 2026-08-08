@@ -60,7 +60,6 @@ Small improvements that make V1 feel complete and considered, but do not block l
 - **Error log:** review whether the "clear all" UX could be improved further.
 - **Callout tooltips:** hovering over notifications/errors should give an explanation.
 - **Help guides:** review all content for accuracy after recent changes.
-- **Audit log:** confirm all actions are being captured correctly.
 - **Transaction rules** — auto-categorise invoices by supplier name. Define rules like "Any invoice from Corona Energy → Electricity". Rules applied automatically during AI extraction and manual review. Works even when AI is disabled. Rules manageable in Settings. Improves categorisation accuracy over time.
 - **Cash flow enhancement** — update the dashboard financial chart to show separate income and expense visualisations more clearly, inspired by Actual Budget's cash flow report. Show how available funds fluctuate month by month with income and expenses as distinct areas.
 
