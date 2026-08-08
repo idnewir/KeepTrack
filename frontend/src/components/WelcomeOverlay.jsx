@@ -105,14 +105,14 @@ export default function WelcomeOverlay() {
       key: 'upload',
       icon: <UploadIcon />,
       title: `Upload your first ${expenseSingular}`,
-      description: 'Add an invoice or bill to get started',
+      description: `Add your first ${expenseSingular} to get started`,
       to: '/upload',
     },
     {
       key: 'income',
       icon: <IncomeIcon />,
       title: `Record ${incomeLower}`,
-      description: 'Log your monthly income or contributions',
+      description: `Log your ${incomeLower} to get started`,
       to: '/contributions',
     },
     {
@@ -156,8 +156,8 @@ export default function WelcomeOverlay() {
         <div className="kt-welcome-body">
           <p className="kt-welcome-greeting">Hi {user.display_name || user.username},</p>
           <p className="kt-welcome-message">
-            Keep Track helps you manage your {expensesLower}, record {incomeLower}, and understand
-            your financial position at a glance. Everything is in one place, updated in real time.
+            Keep Track helps you manage your {expensesLower}, record {incomeLower}, and stay on top
+            of your finances — all in one place.
           </p>
 
           <div className="kt-welcome-quickstart-grid">

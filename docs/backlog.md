@@ -59,8 +59,6 @@ Small improvements that make V1 feel complete and considered, but do not block l
 - **User management:** add permanent delete with GDPR anonymisation.
 - **Error log:** review whether the "clear all" UX could be improved further.
 - **Callout tooltips:** hovering over notifications/errors should give an explanation.
-- **Report footer:** confirm the instance name appears correctly on all pages.
-- **Welcome page:** review copy for personal finance vs. organisational tone.
 - **Help guides:** review all content for accuracy after recent changes.
 - **Audit log:** confirm all actions are being captured correctly.
 - **Transaction rules** — auto-categorise invoices by supplier name. Define rules like "Any invoice from Corona Energy → Electricity". Rules applied automatically during AI extraction and manual review. Works even when AI is disabled. Rules manageable in Settings. Improves categorisation accuracy over time.
