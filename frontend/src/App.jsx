@@ -29,6 +29,7 @@ import ProjectsPage from './pages/ProjectsPage.jsx'
 import ReconciliationPage from './pages/ReconciliationPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import ReportsPage from './pages/ReportsPage.jsx'
+import RulesPage from './pages/RulesPage.jsx'
 import SearchResultsPage from './pages/SearchResultsPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import SetupPage from './pages/SetupPage.jsx'
@@ -116,6 +117,14 @@ export default function App() {
               element={
                 <RequireAdmin>
                   <CategoriesPage />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/settings/rules"
+              element={
+                <RequireAdmin>
+                  <RulesPage />
                 </RequireAdmin>
               }
             />

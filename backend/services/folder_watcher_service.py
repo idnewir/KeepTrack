@@ -185,6 +185,12 @@ def _process_new_file(
 
         categories = db.query(Category).filter(Category.active.is_(True)).order_by(Category.name).all()
         category_ids = {c.id for c in categories}
+        # extract_invoice_data applies transaction rules itself (rules
+        # override the AI's own category guess) — see
+        # services/ai_provider_service.py's _apply_rule_override and
+        # docs/decisions-log.md — so watched-folder invoices get the same
+        # rule-based categorisation as a manual upload with no extra call
+        # needed here.
         extracted = extract_invoice_data(content, categories, db)
         category_id = extracted["category_id"] if extracted["category_id"] in category_ids else None
         duplicate_flag = check_duplicate(db, extracted["supplier"], extracted["amount"], extracted["invoice_date"])

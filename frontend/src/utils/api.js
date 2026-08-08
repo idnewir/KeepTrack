@@ -133,6 +133,17 @@ export const categoriesApi = {
   restore: (id, token) => request(`/categories/${id}/restore`, { method: 'POST', token }),
 }
 
+export const rulesApi = {
+  list: (token) => request('/rules', { token }),
+  create: (payload, token) => request('/rules', { method: 'POST', body: payload, token }),
+  update: (id, payload, token) => request(`/rules/${id}`, { method: 'PUT', body: payload, token }),
+  remove: (id, token) => request(`/rules/${id}`, { method: 'DELETE', token }),
+  toggle: (id, token) => request(`/rules/${id}/toggle`, { method: 'POST', token }),
+  suggestions: (token) => request('/rules/suggestions', { token }),
+  test: (supplierName, token) =>
+    request('/rules/test', { method: 'POST', body: { supplier_name: supplierName }, token }),
+}
+
 export const dashboardApi = {
   summary: (token) => request('/dashboard/summary', { token }),
   notifications: (token) => request('/dashboard/notifications', { token }),

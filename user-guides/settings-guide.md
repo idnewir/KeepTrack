@@ -50,6 +50,10 @@ Click **Manage categories** on the General page to go to the dedicated Categorie
 
 Category names must be unique — Keep Track will tell you if you try to add or rename one to something already in use.
 
+### Transaction Rules
+
+Transaction rules automatically categorise invoices based on their supplier name, taking priority over AI's own suggestion and working even when AI is switched off. Click **Manage rules** on the General page to go to the dedicated Transaction Rules page. Full detail — match types, priority, suggestions from your invoice history, and the test tool — is in the dedicated [Transaction Rules](transaction-rules.md) guide.
+
 ### Target Reserve
 
 The target reserve (whatever you've renamed it to — see Terminology, below) is the dashboard gauge that shows how your current balance compares to a healthy amount held in reserve.
@@ -374,6 +378,7 @@ For security, every reset attempt — whether it succeeds, fails, or is blocked 
 ## Related guides
 
 - [Getting Started](getting-started.md) — the first-run setup wizard, which configures some of the same settings covered here.
+- [Transaction Rules](transaction-rules.md) — full detail for the Transaction Rules section above.
 - [Feature Modules](feature-modules.md) — the full picture of what each module does, referenced throughout this guide.
 - [Folder Integration](folder-integration.md) — full setup detail for the Folder Integration section above.
 - [Debt Tracking](debt-tracking.md) and [Budget Planning](budget-planning.md) — the modules behind the Appearance terminology sections above.

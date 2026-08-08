@@ -33,6 +33,8 @@ Keep Track uses AI to read the invoice and fill in the details for you:
 
 The amount Keep Track extracts is always the **total inclusive of VAT** — the actual amount that was paid or is due — not the amount before VAT.
 
+If an Administrator has set up a [transaction rule](transaction-rules.md) matching this invoice's supplier, its category is set by the rule rather than AI's own guess — you'll see a small **Set by rule** badge next to the Category field. You can still change it yourself if needed; the badge disappears once you do.
+
 **Always check these details carefully.** The AI does a good job most of the time, but it can make mistakes — especially with handwritten, scanned, or unusual invoices.
 
 1. You'll see the invoice PDF on one side of the screen and the details it found on the other.
@@ -73,7 +75,8 @@ Use this if your historical records are already in a spreadsheet (Keep Track was
 
 A few things Keep Track does automatically while importing a CSV:
 - Dates are read flexibly — `DD/MM/YYYY`, `YYYY-MM-DD`, and `MM/YYYY` (assumed to be the 1st of the month) are all understood.
-- Each row's category is matched against your active categories by name (a close partial match is fine). If nothing matches, the invoice is still imported but assigned to **General Maintenance**, with a note added so you can easily find and recategorise it later.
+- If a [transaction rule](transaction-rules.md) matches a row's supplier name, its category always wins over the CSV's own Category column.
+- Otherwise, each row's category is matched against your active categories by name (a close partial match is fine). If nothing matches, the invoice is still imported but assigned to **General Maintenance**, with a note added so you can easily find and recategorise it later.
 
 ### PDF import
 
@@ -97,6 +100,7 @@ The Import page is also reachable from **Settings → Data → Import Data** —
 ## Related guides
 
 - [Reviewing and Signing](reviewing-and-signing.md) — what happens after you confirm an invoice.
+- [Transaction Rules](transaction-rules.md) — automatic categorisation by supplier name, applied during upload and import.
 - [Folder Integration](folder-integration.md) — automatic import from a shared network folder.
 - [Dashboard Guide](dashboard-guide.md) — where uploaded invoices show up once confirmed.
 - [Settings Guide](settings-guide.md) — the Import Data section in Settings.

@@ -29,7 +29,7 @@ from models.schemas import (
     InvoiceOut,
 )
 from models.user import User
-from services import audit_service, import_service
+from services import audit_service, import_service, rules_service
 from services.ai_provider_service import extract_invoice_data
 from services.ai_service import check_duplicate
 from services.financial_year_service import get_or_create_financial_year
@@ -192,6 +192,16 @@ def import_csv(
         if parsed["skip_reason"]:
             skipped.append({"row": row_number, "reason": parsed["skip_reason"]})
             continue
+
+        # Transaction rules take priority over the CSV's own Category column
+        # — see services/rules_service.py and docs/decisions-log.md. This is
+        # the one import path with no AI step, so it's rules_service's only
+        # chance to categorise a historical row by supplier.
+        matched_rule = rules_service.find_matching_rule(db, parsed["supplier"])
+        if matched_rule is not None:
+            parsed["category_id"] = matched_rule.category_id
+            note = f"Category set by rule: {matched_rule.name}"
+            parsed["notes"] = f"{parsed['notes']}\n\n{note}" if parsed["notes"] else note
 
         invoice_date = parsed["invoice_date"] or date.today()
         invoice = Invoice(

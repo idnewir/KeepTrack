@@ -13,6 +13,12 @@ function isMissing(value) {
   return value === '' || value === null || value === undefined
 }
 
+// Rules leave their trace as a line in the invoice's notes (see
+// services/ai_provider_service.py's _apply_rule_override) rather than a
+// dedicated column, so the "Set by rule" badge is recovered by pattern
+// matching that line rather than a first-class field on the invoice.
+const RULE_NOTE_RE = /Category set by rule: (.+?)(?:\n|$)/
+
 export default function ReviewCard({ invoice, file, categories, projects = [], signingEnabled, aiStatus, historical = false, onConfirm, onDiscard }) {
   const { user } = useAuth()
   const token = user?.token
@@ -31,10 +37,13 @@ export default function ReviewCard({ invoice, file, categories, projects = [], s
   const [amount, setAmount] = useState(
     Number(invoice.amount) > 0 ? String(invoice.amount) : ''
   )
-  const [categoryId, setCategoryId] = useState(
-    invoice.category_id != null ? String(invoice.category_id) : ''
-  )
+  const initialCategoryId = invoice.category_id != null ? String(invoice.category_id) : ''
+  const [categoryId, setCategoryId] = useState(initialCategoryId)
   const [notes, setNotes] = useState(invoice.notes || '')
+
+  const ruleMatch = invoice.notes ? invoice.notes.match(RULE_NOTE_RE) : null
+  const appliedRuleName = ruleMatch ? ruleMatch[1].trim() : null
+  const showRuleBadge = appliedRuleName != null && categoryId === initialCategoryId
   const [projectId, setProjectId] = useState(
     invoice.project_id != null ? String(invoice.project_id) : ''
   )
@@ -287,7 +296,10 @@ export default function ReviewCard({ invoice, file, categories, projects = [], s
           </div>
 
           <div className="kt-field">
-            <label htmlFor={`category-${invoice.id}`}>Category</label>
+            <label htmlFor={`category-${invoice.id}`}>
+              Category
+              {showRuleBadge && <span className="kt-rule-badge">Set by rule: {appliedRuleName}</span>}
+            </label>
             <select
               id={`category-${invoice.id}`}
               value={categoryId}

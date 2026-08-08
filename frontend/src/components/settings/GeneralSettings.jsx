@@ -458,6 +458,25 @@ export default function GeneralSettings({ token }) {
       </div>
 
       <FeatureModulesSettings token={token} />
+
+      <h2 className="kt-panel-title" style={{ marginTop: 32 }}>
+        Transaction Rules
+      </h2>
+      <div className="kt-settings-list">
+        <div className="kt-settings-row">
+          <div className="kt-settings-row-text">
+            <span className="kt-settings-row-title">Transaction Rules</span>
+            <p className="kt-settings-row-description">
+              Rules automatically categorise invoices based on supplier name. Rules take priority
+              over AI suggestions and work even when AI is disabled. Rules are applied when
+              invoices are uploaded, imported, or picked up from the watched folder.
+            </p>
+          </div>
+          <Link to="/settings/rules" className="kt-auth-button kt-settings-link-button">
+            Manage rules
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

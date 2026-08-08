@@ -26,6 +26,7 @@ GUIDES = [
     {"key": "reconciliation-guide", "title": "Reconciliation", "filename": "reconciliation-guide.md"},
     {"key": "reports-guide", "title": "Reports", "filename": "reports-guide.md"},
     {"key": "settings-guide", "title": "Settings Guide", "filename": "settings-guide.md"},
+    {"key": "transaction-rules", "title": "Transaction Rules", "filename": "transaction-rules.md"},
     {"key": "feature-modules", "title": "Feature Modules", "filename": "feature-modules.md"},
     {"key": "folder-integration", "title": "Folder Integration", "filename": "folder-integration.md"},
     {"key": "debt-tracking", "title": "Debt Tracking", "filename": "debt-tracking.md"},

@@ -57,7 +57,6 @@ Small improvements that make V1 feel complete and considered, but do not block l
 - **Settings → AI & Extraction:** rename or expand the page to make extraction settings clearer (related to the Section 1 bug — this is the longer-term polish once that gap is addressed).
 - **MFA issuer:** consider adding the Keep Track logo to the QR code once the app is publicly accessible (currently works best self-hosted, where a logo adds less value).
 - **Error log:** review whether the "clear all" UX could be improved further.
-- **Transaction rules** — auto-categorise invoices by supplier name. Define rules like "Any invoice from Corona Energy → Electricity". Rules applied automatically during AI extraction and manual review. Works even when AI is disabled. Rules manageable in Settings. Improves categorisation accuracy over time.
 - **Cash flow enhancement** — update the dashboard financial chart to show separate income and expense visualisations more clearly, inspired by Actual Budget's cash flow report. Show how available funds fluctuate month by month with income and expenses as distinct areas.
 
 ---
@@ -102,3 +101,6 @@ Longer-term ideas for future versions of Keep Track. These are explicitly out of
 - **Scheduled transactions** — define expected recurring invoices (e.g. electricity bill expected on the 1st of each month for approximately £X). App tracks whether they arrived and alerts if an expected invoice is overdue. More structured than the current upcoming invoices panel which is pattern-based.
 - **Transaction import formats** — support importing transactions from popular financial file formats: QIF, OFX, QFX, CSV. Inspired by Actual Budget's import capabilities. Complements the existing CSV import for historical data.
 - **Bank sync** — connect directly to UK bank accounts via GoCardless open banking API for automatic transaction import. Inspired by Actual Budget's bank sync feature.
+- **Transaction rules — advanced conditions** — match rules against invoice amount range or date range, not just supplier name.
+- **Transaction rules — bulk creation from invoice history** — create several rules at once from patterns found across historical invoices, rather than one suggestion at a time.
+- **Transaction rules — hit count tracking** — record how many times each rule has actually fired, shown on the rules table, so it's easy to see which rules are doing real work and which are unused.

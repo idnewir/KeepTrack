@@ -206,6 +206,63 @@ class CategoryUpdate(BaseModel):
     colour: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
 
 
+_MATCH_TYPE_PATTERN = r"^(exact|contains|starts_with)$"
+
+
+class TransactionRuleOut(BaseModel):
+    id: int
+    name: str
+    match_type: str
+    match_value: str
+    category_id: int
+    category_name: str
+    category_colour: str
+    priority: int
+    active: bool
+    created_by: int | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TransactionRuleCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    match_type: str = Field(pattern=_MATCH_TYPE_PATTERN)
+    match_value: str = Field(min_length=1, max_length=255)
+    category_id: int
+    priority: int = 0
+    active: bool = True
+
+
+class TransactionRuleUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    match_type: str | None = Field(default=None, pattern=_MATCH_TYPE_PATTERN)
+    match_value: str | None = Field(default=None, min_length=1, max_length=255)
+    category_id: int | None = None
+    priority: int | None = None
+    active: bool | None = None
+
+
+class TransactionRuleSuggestionOut(BaseModel):
+    supplier: str
+    category_id: int
+    category_name: str
+    category_colour: str
+    occurrence_count: int
+
+
+class TransactionRuleTestRequest(BaseModel):
+    supplier_name: str = Field(min_length=1, max_length=255)
+
+
+class TransactionRuleTestResult(BaseModel):
+    matched: bool
+    rule_id: int | None = None
+    rule_name: str | None = None
+    category_id: int | None = None
+    category_name: str | None = None
+    category_colour: str | None = None
+
+
 class InvoiceOut(BaseModel):
     id: int
     filename: str

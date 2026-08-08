@@ -28,6 +28,7 @@ from routers.profile import router as profile_router
 from routers.projects import router as projects_router
 from routers.reconciliation import router as reconciliation_router
 from routers.reports import router as reports_router
+from routers.rules import router as rules_router
 from routers.savings_goals import router as savings_goals_router
 from routers.search import router as search_router
 from routers.settings import router as settings_router
@@ -160,6 +161,7 @@ app.include_router(profile_router)
 app.include_router(projects_router)
 app.include_router(reconciliation_router)
 app.include_router(reports_router)
+app.include_router(rules_router)
 app.include_router(savings_goals_router)
 app.include_router(search_router)
 app.include_router(settings_router)

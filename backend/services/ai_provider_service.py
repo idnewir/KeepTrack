@@ -49,7 +49,7 @@ from config import settings as app_config
 from models.category import Category
 from models.setting import Setting
 from models.system_event import SystemEvent
-from services import error_service
+from services import error_service, rules_service
 from services.settings_service import get_reserve_settings, get_terminology
 from utils.crypto import decrypt_secret
 
@@ -606,7 +606,23 @@ def extract_invoice_data(pdf_bytes: bytes, categories: list[Category], db: Sessi
         )
         return dict(EMPTY_EXTRACTION)
 
-    return _parse_extraction_response(text, db)
+    return _apply_rule_override(db, _parse_extraction_response(text, db))
+
+
+def _apply_rule_override(db: Session, result: dict) -> dict:
+    """Transaction rules always take priority over the AI's own category
+    guess — a rule matching the extracted supplier name replaces
+    category_id and leaves a note recording that it did, so both the
+    invoice review card and anyone reading the invoice later can see why.
+    See docs/decisions-log.md."""
+    rule = rules_service.find_matching_rule(db, result.get("supplier"))
+    if rule is None:
+        return result
+
+    result["category_id"] = rule.category_id
+    note = f"Category set by rule: {rule.name}"
+    result["notes"] = f"{result['notes']}\n\n{note}" if result.get("notes") else note
+    return result
 
 
 def _parse_extraction_response(text: str, db: Session | None = None) -> dict:
