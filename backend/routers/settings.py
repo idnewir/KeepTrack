@@ -9,7 +9,7 @@ from models.schemas import SettingOut, SettingUpdate, TerminologyOut, Terminolog
 from models.setting import Setting
 from models.user import User
 from services import audit_service
-from services.settings_service import get_terminology
+from services.settings_service import NOTIF_PREFERENCE_DEFAULTS, get_terminology
 from utils.deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -19,6 +19,16 @@ _VALID_MONTHS = {str(m) for m in range(1, 13)}
 # 0 means "Never" (no inactivity timeout) — see docs/decisions-log.md.
 _VALID_SESSION_TIMEOUT_MINUTES = {"0", "30", "60", "120", "240", "480"}
 _VALID_MFA_REMEMBER_HOURS = {"4", "8", "12", "24", "48", "168"}
+
+# Matches the dropdown options on Settings -> Notifications & Logs ->
+# Notifications -> Notification thresholds. See docs/decisions-log.md.
+_VALID_NOTIF_THRESHOLDS = {
+    "notif_reconciliation_overdue_days": {"7", "14", "30", "60", "90"},
+    "notif_promo_rate_warning_days": {"7", "14", "30", "60"},
+    "notif_unconfirmed_invoice_days": {"1", "3", "7", "14"},
+    "notif_budget_warning_percent": {"70", "75", "80", "85", "90"},
+}
+_VALID_BOOL_STRINGS = {"true", "false"}
 
 
 @router.get("", response_model=list[SettingOut])
@@ -113,6 +123,13 @@ def update_setting(
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, "Reserve manual amount must not be negative")
         except InvalidOperation:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Reserve manual amount must be a number")
+
+    if key in _VALID_NOTIF_THRESHOLDS and payload.value not in _VALID_NOTIF_THRESHOLDS[key]:
+        allowed = ", ".join(sorted(_VALID_NOTIF_THRESHOLDS[key], key=int))
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"'{key}' must be one of: {allowed}")
+
+    if key in NOTIF_PREFERENCE_DEFAULTS and payload.value.lower() not in _VALID_BOOL_STRINGS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"'{key}' must be 'true' or 'false'")
 
     before = setting.value
     setting.value = payload.value

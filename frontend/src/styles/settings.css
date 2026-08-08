@@ -824,6 +824,11 @@
   opacity: 0.6;
 }
 
+.kt-users-table tr.kt-notification-history-dismissed td {
+  opacity: 0.55;
+  font-style: italic;
+}
+
 .kt-users-name-cell {
   display: flex;
   align-items: center;

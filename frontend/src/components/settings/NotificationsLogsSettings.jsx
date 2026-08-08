@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import LogsSettings from './LogsSettings.jsx'
+import NotificationSettings from './NotificationSettings.jsx'
 
 const TABS = [
   { key: 'notifications', label: 'Notifications' },
@@ -7,8 +8,9 @@ const TABS = [
 ]
 
 export default function NotificationsLogsSettings({ token, initialTab }) {
-  // Notifications is still a placeholder, so Logs is the default tab
-  // regardless of how this section was reached.
+  // Logs is the default tab regardless of how this section was reached —
+  // dashboard deep links (?section=logs&tab=errors) always target it, and
+  // it's the more frequently used of the two day to day.
   const [tab, setTab] = useState('logs')
 
   return (
@@ -31,12 +33,7 @@ export default function NotificationsLogsSettings({ token, initialTab }) {
       </div>
 
       {tab === 'notifications' ? (
-        <>
-          <p className="kt-panel-subtitle">
-            Choose which alerts you and your team receive, and when.
-          </p>
-          <div className="kt-settings-coming-soon">Coming soon.</div>
-        </>
+        <NotificationSettings token={token} />
       ) : (
         <LogsSettings token={token} initialTab={initialTab} />
       )}

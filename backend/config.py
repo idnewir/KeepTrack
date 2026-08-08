@@ -67,7 +67,6 @@ class Settings(BaseSettings):
     # month is always derived as the month before this one, so there's no
     # separate end-month setting.
     default_financial_year_start_month: int = 9
-    unconfirmed_invoice_alert_days: int = 5
 
 
 settings = Settings()

@@ -1,7 +1,7 @@
 """Header notification centre endpoints — the persistent counterpart to
 routers/dashboard.py's live-computed banners. See docs/decisions-log.md.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_
@@ -9,12 +9,25 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models.notification import Notification
-from models.schemas import NotificationCountOut, NotificationListOut, NotificationOut
+from models.schemas import NotificationCountOut, NotificationListOut, NotificationOut, PaginatedResponse
 from models.user import User
 from services import modules_service
-from utils.deps import get_current_user
+from utils.csv_export import csv_response
+from utils.deps import get_current_user, require_admin
+from utils.pagination import paginate
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
+
+# Settings -> Notifications & Logs -> Notifications -> Notification history
+# shows a fixed 30-day window, matching the error log's own fixed
+# retention window rather than being a user-chosen filter — see
+# docs/decisions-log.md.
+HISTORY_WINDOW_DAYS = 30
+
+
+def _history_query(db: Session):
+    cutoff = datetime.now(timezone.utc) - timedelta(days=HISTORY_WINDOW_DAYS)
+    return db.query(Notification).filter(Notification.created_at >= cutoff).order_by(Notification.created_at.desc())
 
 
 def _not_expired(query):
@@ -57,6 +70,46 @@ def list_notifications(
         .count()
     )
     return {"notifications": notifications, "unread_count": unread_count}
+
+
+@router.get("/history", response_model=PaginatedResponse[NotificationOut])
+def notification_history(
+    page: int = 1,
+    per_page: int = 25,
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """Every notification (any user, read/unread, dismissed or not) from
+    the last 30 days — a site-wide audit view for Settings -> Notifications
+    & Logs, the same shape as the Audit/Error log tables elsewhere on that
+    page, rather than "my own notifications" (which the header bell/GET
+    /notifications above already covers). See docs/decisions-log.md."""
+    items, pagination = paginate(_history_query(db), page, per_page)
+    return {"data": items, "pagination": pagination}
+
+
+@router.get("/history/export/csv")
+def export_notification_history_csv(
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    rows = _history_query(db).all()
+    csv_rows = [
+        [
+            n.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            n.type,
+            n.severity,
+            n.message,
+            "Yes" if n.read else "No",
+            "Yes" if n.dismissed else "No",
+        ]
+        for n in rows
+    ]
+    return csv_response(
+        "notification_history.csv",
+        ["Date", "Type", "Severity", "Message", "Read", "Dismissed"],
+        csv_rows,
+    )
 
 
 @router.get("/count", response_model=NotificationCountOut)

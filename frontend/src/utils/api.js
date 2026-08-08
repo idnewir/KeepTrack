@@ -151,6 +151,14 @@ export const notificationsApi = {
   dismiss: (id, token) => request(`/notifications/${id}/dismiss`, { method: 'PUT', token }),
   markAllRead: (token) => request('/notifications/read-all', { method: 'PUT', token }),
   dismissAll: (token) => request('/notifications/dismiss-all', { method: 'PUT', token }),
+  history: (params = {}, token) => {
+    const query = new URLSearchParams()
+    if (params.page) query.set('page', params.page)
+    if (params.perPage !== undefined) query.set('per_page', params.perPage)
+    const qs = query.toString()
+    return request(`/notifications/history${qs ? `?${qs}` : ''}`, { token })
+  },
+  historyExportCsv: (token) => requestBlob('/notifications/history/export/csv', { token }),
 }
 
 export const settingsApi = {

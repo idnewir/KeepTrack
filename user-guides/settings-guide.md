@@ -199,11 +199,46 @@ Anyone who self-registers shows up here first, with their username, email, and r
 
 To get there: **Settings → Notifications & Logs** (only Admins and the Superadmin see this section). There are two tabs — **Notifications** and **Logs**.
 
-The **Notifications** tab is reserved for upcoming notification preferences (which alerts you receive, and when) and doesn't have anything to configure yet. **Logs** is where the real content is today.
+### Notifications
+
+Controls which notifications Keep Track raises — both the coloured banners at the top of the Dashboard and the persistent entries in the header notification bell — and when. These are site-wide settings, not a personal preference: turning one off means nobody is alerted for that condition until it's turned back on.
+
+#### Notification preferences
+
+A toggle per notification type, each with a plain-English description of when it fires:
+
+- **Balance warning** — your balance falls below the target reserve.
+- **Unsigned invoices** — confirmed invoices have not been signed.
+- **Stale reconciliation** — a reconciled month has new data added to it.
+- **Reconciliation overdue** — a month has not been reconciled within the configured number of days.
+- **Critical system errors** — a critical error occurs in the system.
+- **Overdue projects** — a planned project passes its expected date.
+- **Promotional rate expiring** *(only shown if [Debt Tracking](debt-tracking.md) is enabled)* — a promotional interest rate is about to expire.
+- **Budget warning** and **Over budget** *(only shown if [Budget Planning](budget-planning.md) is enabled)* — a budget category reaches the warning threshold, or exceeds it.
+- **Debt milestones** *(only shown if [Debt Tracking](debt-tracking.md) is enabled)* — a debt reaches 25%, 50%, 75%, or 100% paid off.
+
+Flip any toggle, then click **Save preferences** — it stays greyed out until something's actually changed. Turning a notification off never deletes anything already sent; it just stops new ones of that type from being created.
+
+#### Notification thresholds
+
+Four dropdowns controlling *when* certain conditions count as worth notifying about, distinct from whether the notification itself is switched on above:
+
+- **Reconciliation overdue after** — 7, 14, 30 (default), 60, or 90 days after a month ends before it's flagged as overdue.
+- **Promotional rate warning** — 7, 14, 30 (default), or 60 days before a promotional rate expires.
+- **Unconfirmed invoice warning after** — 1, 3 (default), 7, or 14 days an invoice can sit unreviewed before triggering a warning.
+- **Budget warning threshold** *(only shown if [Budget Planning](budget-planning.md) is enabled)* — 70%, 75%, 80% (default), 85%, or 90% of a budget used before warning. This only affects when the *notification* fires — the On Track/Warning/Over Budget traffic light shown throughout the Budget Planning page itself always uses the fixed 80%/100% convention described in that guide.
+
+Change any dropdown, then click **Save thresholds**. Changes take effect the next time each condition is checked — instantly for anything computed live on the Dashboard, within a day for the background checks behind budget and promotional-rate notifications.
+
+#### Notification history
+
+A table of every notification sent in the last 30 days, across every user, including ones already read or dismissed — dismissed entries are shown in a lighter, italic style so they're easy to tell apart at a glance. Columns: date, type, a colour-coded severity badge, and the message. Click **Export CSV** to download the same list as a spreadsheet, or **Clear all dismissed** to mark all of your own outstanding notifications as dismissed (the same action as **Dismiss all** in the header notification bell).
+
+### Logs
 
 Keep Track automatically manages your logs to keep the app fast and your data clean. Audit logs are archived every 90 days — archived entries are kept permanently and can be exported at any time. Error logs are automatically deleted after 90 days. These settings cannot be changed to ensure data integrity.
 
-### Audit log
+#### Audit log
 
 A record of who did what and when — logins, uploads, edits, deletions, approvals, settings changes, and more. The status bar at the top shows how many entries are currently active (the last 90 days), how many have been permanently archived, and when the log was last archived.
 
@@ -214,7 +249,7 @@ A record of who did what and when — logins, uploads, edits, deletions, approva
 - **Archive now** — normally archiving happens automatically every 90 days, but an Admin can trigger it immediately from here if needed.
 - **Export CSV** — exports whatever's currently filtered (and switches to exporting the archive too, if that toggle is on).
 
-### Error log
+#### Error log
 
 A rolling record of things that went wrong in the background — a failed AI extraction, a PDF that couldn't be signed, a failed login, or an unexpected error — kept for 90 days and then automatically deleted. The status bar shows the total in the last 90 days, a breakdown by severity, and when the log was last cleaned up.
 

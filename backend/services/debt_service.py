@@ -15,9 +15,9 @@ from models.debt import Debt, DebtMilestone, DebtPayment
 from models.setting import Setting
 from models.user import User
 from services import debt_calculator, notification_service
+from services.settings_service import get_notification_preferences, get_notification_thresholds
 
 MILESTONE_THRESHOLDS = (25, 50, 75, 100)
-PROMO_WARNING_DAYS = 30
 
 DEBT_TERMINOLOGY_DEFAULTS = {
     "debt_term_module": "Debt Tracking",
@@ -60,9 +60,17 @@ def compute_percent_paid(debt: Debt) -> Decimal:
     return percent if percent > 0 else Decimal("0")
 
 
-def debt_computed_fields(debt: Debt, today: date | None = None) -> dict:
+def debt_computed_fields(debt: Debt, today: date | None = None, *, promo_warning_days: int) -> dict:
     """Every field GET /debts and GET /debts/{id} report beyond the debt's
-    own stored columns."""
+    own stored columns. `promo_warning_days` is a plain int, not a `db`
+    session, and required rather than defaulted, deliberately — callers
+    that compute this once per request (a debt list, the dashboard's debt
+    summary) pass the same resolved value to every debt instead of this
+    function re-querying the setting once per debt; a caller that only
+    ever handles one debt (debt_to_out below) resolves it itself and can
+    afford the single query. No fallback default here on purpose: silently
+    using the wrong (stale or built-in) number would be worse than a
+    TypeError at the one call site that forgot to resolve it."""
     today = today or date.today()
 
     payoff = debt_calculator.calculate_payoff(debt.current_balance, debt.interest_rate, debt.monthly_payment)
@@ -71,7 +79,12 @@ def debt_computed_fields(debt: Debt, today: date | None = None) -> dict:
     promo_expiring_soon = False
     if debt.rate_type in ("promotional", "zero") and debt.promotional_end_date is not None:
         days_until_promo_ends = (debt.promotional_end_date - today).days
-        promo_expiring_soon = 0 <= days_until_promo_ends <= PROMO_WARNING_DAYS
+        # Same notif_promo_rate_warning_days setting used by
+        # services/debt_notification_service.py's background check —
+        # this is a single "is this expiring soon" concept shared by the
+        # amber card/panel highlight here and the notification there, not
+        # two independent thresholds. See docs/decisions-log.md.
+        promo_expiring_soon = 0 <= days_until_promo_ends <= promo_warning_days
 
     return {
         "percent_paid": compute_percent_paid(debt),
@@ -116,7 +129,11 @@ def recent_payments(db: Session, debt_id: int, limit: int = 3) -> list[dict]:
     return [payment_to_out(p, username_map) for p in payments]
 
 
-def debt_to_out(db: Session, debt: Debt, today: date | None = None) -> dict:
+def debt_to_out(
+    db: Session, debt: Debt, today: date | None = None, *, promo_warning_days: int | None = None
+) -> dict:
+    if promo_warning_days is None:
+        promo_warning_days = get_notification_thresholds(db)["notif_promo_rate_warning_days"]
     return {
         "id": debt.id,
         "name": debt.name,
@@ -140,7 +157,7 @@ def debt_to_out(db: Session, debt: Debt, today: date | None = None) -> dict:
         "created_at": debt.created_at,
         "updated_at": debt.updated_at,
         "active": debt.active,
-        **debt_computed_fields(debt, today),
+        **debt_computed_fields(debt, today, promo_warning_days=promo_warning_days),
         "recent_payments": recent_payments(db, debt.id),
     }
 
@@ -217,21 +234,29 @@ def check_and_fire_milestones(db: Session, debt: Debt, user_id: int) -> list[int
         m.milestone_percent
         for m in db.query(DebtMilestone).filter(DebtMilestone.debt_id == debt.id).all()
     }
+    # The DebtMilestone row (below) is always recorded once a threshold is
+    # crossed, regardless of this preference — it's the "once ever" guard
+    # against re-firing, and disabling notifications shouldn't cause a
+    # flood of backdated ones for milestones already passed once the
+    # preference is switched back on. Only the notification itself is
+    # gated. See docs/decisions-log.md.
+    notify = get_notification_preferences(db)["notif_debt_milestone"]
 
     newly_fired = []
     for threshold in MILESTONE_THRESHOLDS:
         if percent_paid >= threshold and threshold not in already_fired:
             db.add(DebtMilestone(debt_id=debt.id, milestone_percent=threshold))
             db.commit()
-            notification_service.create_notification(
-                db,
-                user_id,
-                type=f"debt_milestone_{debt.id}_{threshold}",
-                title="Debt milestone reached!",
-                message=f"You have paid off {threshold}% of {debt.name}! Keep it up!",
-                severity="info",
-                link=f"/debts/{debt.id}",
-            )
+            if notify:
+                notification_service.create_notification(
+                    db,
+                    user_id,
+                    type=f"debt_milestone_{debt.id}_{threshold}",
+                    title="Debt milestone reached!",
+                    message=f"You have paid off {threshold}% of {debt.name}! Keep it up!",
+                    severity="info",
+                    link=f"/debts/{debt.id}",
+                )
             newly_fired.append(threshold)
     return newly_fired
 
@@ -286,6 +311,7 @@ def build_dashboard_fields(db: Session, today: date | None = None) -> dict:
 
     today = today or date.today()
     debts = db.query(Debt).filter(Debt.active.is_(True), Debt.is_paid_off.is_(False)).all()
+    promo_warning_days = get_notification_thresholds(db)["notif_promo_rate_warning_days"]
 
     total_debt = sum((d.current_balance for d in debts), Decimal("0"))
     monthly_debt_payments = sum((d.monthly_payment for d in debts), Decimal("0"))
@@ -294,7 +320,7 @@ def build_dashboard_fields(db: Session, today: date | None = None) -> dict:
     highest_interest_debt = None
     debts_summary = []
     for d in debts:
-        fields = debt_computed_fields(d, today)
+        fields = debt_computed_fields(d, today, promo_warning_days=promo_warning_days)
         if fields["promo_expiring_soon"]:
             debts_with_promo_expiring.append({
                 "id": d.id,

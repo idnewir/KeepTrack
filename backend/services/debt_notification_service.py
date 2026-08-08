@@ -14,7 +14,8 @@ from datetime import date, datetime, timezone
 from database import SessionLocal
 from models.debt import Debt
 from models.notification import Notification
-from services import debt_service, notification_service
+from services import notification_service
+from services.settings_service import get_notification_preferences, get_notification_thresholds
 
 logger = logging.getLogger("keep_track.debt_notifications")
 
@@ -45,6 +46,10 @@ def check_promo_expiries(today: date | None = None) -> int:
     today = today or date.today()
     db = SessionLocal()
     try:
+        if not get_notification_preferences(db)["notif_promo_rate_expiring"]:
+            return 0
+
+        promo_warning_days = get_notification_thresholds(db)["notif_promo_rate_warning_days"]
         debts = (
             db.query(Debt)
             .filter(
@@ -59,7 +64,7 @@ def check_promo_expiries(today: date | None = None) -> int:
         notified = 0
         for debt in debts:
             days_remaining = (debt.promotional_end_date - today).days
-            if not (0 <= days_remaining <= debt_service.PROMO_WARNING_DAYS):
+            if not (0 <= days_remaining <= promo_warning_days):
                 continue
             if _already_notified_today(db, debt.id):
                 continue

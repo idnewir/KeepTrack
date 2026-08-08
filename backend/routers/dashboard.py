@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from config import settings
 from database import get_db
 from models.audit_log import AuditLogArchive
 from models.error_log import ErrorLog
@@ -15,18 +14,22 @@ from models.planned_project import PlannedProject
 from models.schemas import DashboardNotification, DashboardSummary
 from models.user import User
 from services import budget_service, date_service, debt_service, financial_year_service as fy_service, modules_service, notification_service
-from services.settings_service import get_terminology, is_signing_enabled
+from services.settings_service import get_notification_preferences, get_notification_thresholds, get_terminology, is_signing_enabled
 from utils.deps import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
-def _overdue_reconciliation_months(db: Session, today: date) -> list[date]:
+def _overdue_reconciliation_months(db: Session, today: date, grace_days: int) -> list[date]:
     """Every calendar month from the app's effective start date up to (not
-    including) the current month that has no MonthlyReconciliation row.
+    including) the current month that has no MonthlyReconciliation row and
+    whose own last day was at least `grace_days` days ago (Settings ->
+    Notifications & Logs -> notif_reconciliation_overdue_days) — a month
+    that only just ended isn't "overdue" yet, it just hasn't been gotten to.
     Mirrors ReconciliationPage.jsx's own client-side overdue definition
     (a past, unreconciled month within the visible range) rather than
-    re-deriving a second one server-side. See docs/decisions-log.md.
+    re-deriving a second one server-side, aside from this grace period,
+    which is purely a notification-timing concern. See docs/decisions-log.md.
     """
     cursor = date_service.get_effective_start_date(db, today)
     cursor = date(cursor.year, cursor.month, 1)
@@ -39,7 +42,10 @@ def _overdue_reconciliation_months(db: Session, today: date) -> list[date]:
     }
     overdue = []
     while cursor < current_month_start:
-        if cursor not in reconciled_months:
+        month_end = (
+            date(cursor.year, cursor.month + 1, 1) if cursor.month < 12 else date(cursor.year + 1, 1, 1)
+        ) - timedelta(days=1)
+        if cursor not in reconciled_months and today >= month_end + timedelta(days=grace_days):
             overdue.append(cursor)
         cursor = date(cursor.year + 1, 1, 1) if cursor.month == 12 else date(cursor.year, cursor.month + 1, 1)
     return overdue
@@ -84,6 +90,13 @@ def get_notifications(
     summary = fy_service.build_summary(db, today)
     notifications: list[dict] = []
 
+    # Checked before every notification-generating block below (both the
+    # live banner and its persistent counterpart together — see
+    # docs/decisions-log.md) and before computing anything threshold-
+    # dependent. See Settings -> Notifications & Logs -> Notifications.
+    prefs = get_notification_preferences(db)
+    thresholds = get_notification_thresholds(db)
+
     # Uses the org's own configured terms (e.g. "Rainy Day Fund" instead of
     # the default "Target Reserve", "Bills" instead of "Invoices") so these
     # notification banners speak the same vocabulary as the rest of the app.
@@ -101,7 +114,7 @@ def get_notifications(
     # request. create_notification's dedup means calling this on every
     # dashboard load is safe: an already-live notification of the same type
     # is updated in place, not duplicated. See docs/decisions-log.md.
-    if summary["balance_status"] == "below":
+    if prefs["notif_balance_warning"] and summary["balance_status"] == "below":
         message = (
             f"Current balance (£{summary['current_balance']:,.2f}) is below the "
             f"{reserve_label_lower} (£{summary['target_reserve']:,.2f})."
@@ -121,7 +134,7 @@ def get_notifications(
             link="/",
             severity="warning",
         )
-    elif summary["balance_status"] == "near":
+    elif prefs["notif_balance_warning"] and summary["balance_status"] == "near":
         notifications.append({
             "id": "balance_near_target",
             "type": "balance_below_target",
@@ -133,10 +146,13 @@ def get_notifications(
             "link": "/",
         })
 
-    # Configurable via UNCONFIRMED_INVOICE_ALERT_DAYS (config.py) rather than a
-    # fixed number — matches docs/features.md's "configurable number of days"
-    # notification threshold. See docs/decisions-log.md.
-    threshold_days = settings.unconfirmed_invoice_alert_days
+    # Configurable from Settings -> Notifications & Logs -> Notifications
+    # (notif_unconfirmed_invoice_days) rather than a fixed number — matches
+    # docs/features.md's "configurable number of days" notification
+    # threshold. No on/off preference exists for this one (only the live
+    # banner, no persistent counterpart — see docs/decisions-log.md), so
+    # there's nothing to gate beyond the threshold itself.
+    threshold_days = thresholds["notif_unconfirmed_invoice_days"]
     cutoff = datetime.now(timezone.utc) - timedelta(days=threshold_days)
     stale_count = (
         db.query(Invoice)
@@ -168,7 +184,7 @@ def get_notifications(
             Invoice.is_historical.is_(False),
         )
         unsigned_count = unsigned_query.count()
-        if unsigned_count:
+        if unsigned_count and prefs["notif_unsigned_invoice"]:
             noun = expenses_label_singular_lower if unsigned_count == 1 else expenses_label_lower
             message = f"{unsigned_count} confirmed {noun} still need signing."
             notifications.append({
@@ -212,8 +228,8 @@ def get_notifications(
                     severity="info",
                 )
 
-    overdue_months = _overdue_reconciliation_months(db, today)
-    if overdue_months:
+    overdue_months = _overdue_reconciliation_months(db, today, thresholds["notif_reconciliation_overdue_days"])
+    if overdue_months and prefs["notif_reconciliation_overdue"]:
         month_count = len(overdue_months)
         noun = "month" if month_count == 1 else "months"
         message = f"{month_count} {noun} still not reconciled."
@@ -236,7 +252,7 @@ def get_notifications(
     stale_reconciliation_count = (
         db.query(MonthlyReconciliation).filter(MonthlyReconciliation.is_stale.is_(True)).count()
     )
-    if stale_reconciliation_count:
+    if stale_reconciliation_count and prefs["notif_stale_reconciliation"]:
         noun = "month" if stale_reconciliation_count == 1 else "months"
         message = (
             f"{stale_reconciliation_count} reconciled {noun} need review after later changes "
@@ -268,7 +284,7 @@ def get_notifications(
         )
         .count()
     )
-    if overdue_project_count:
+    if overdue_project_count and prefs["notif_project_overdue"]:
         noun = _singularize(projects_label_lower) if overdue_project_count == 1 else projects_label_lower
         message = f"{overdue_project_count} {noun} overdue."
         notifications.append({
@@ -304,7 +320,7 @@ def get_notifications(
         )
         .count()
     )
-    if critical_count:
+    if critical_count and prefs["notif_critical_error"]:
         noun = "error" if critical_count == 1 else "errors"
         message = (
             f"{critical_count} unresolved critical {noun} detected — please review the "

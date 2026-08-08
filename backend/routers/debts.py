@@ -19,6 +19,7 @@ from models.schemas import (
 )
 from models.user import User
 from services import audit_service, debt_service
+from services.settings_service import get_notification_thresholds
 from utils.deps import get_current_user, require_admin, require_module, require_standard
 
 router = APIRouter(prefix="/debts", tags=["debts"], dependencies=[Depends(require_module("debt_tracking"))])
@@ -58,7 +59,8 @@ def list_debts(
     _user: User = Depends(get_current_user),
 ):
     debts = db.query(Debt).filter(Debt.active.is_(True)).all()
-    items = [debt_service.debt_to_out(db, d) for d in debts]
+    promo_warning_days = get_notification_thresholds(db)["notif_promo_rate_warning_days"]
+    items = [debt_service.debt_to_out(db, d, promo_warning_days=promo_warning_days) for d in debts]
     return debt_service.sort_debts(items, sort)
 
 

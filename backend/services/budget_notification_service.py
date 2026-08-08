@@ -13,11 +13,14 @@ import threading
 import time
 from datetime import date
 
+from decimal import Decimal
+
 from database import SessionLocal
 from models.budget import BudgetNotificationSent, CategoryBudget
 from models.category import Category
 from services import budget_service, notification_service
 from services.financial_year_service import MONTH_LABELS_FULL, get_or_create_financial_year
+from services.settings_service import get_notification_preferences, get_notification_thresholds
 
 logger = logging.getLogger("keep_track.budget_notifications")
 
@@ -56,6 +59,17 @@ def check_budget_thresholds(today: date | None = None) -> int:
     today = today or date.today()
     db = SessionLocal()
     try:
+        prefs = get_notification_preferences(db)
+        # Independent of budget_service.WARNING_THRESHOLD, which drives the
+        # On Track/Warning/Over Budget status badge shown throughout the
+        # app (table, cards, monthly detail, dashboard panel, PDF report) —
+        # notif_budget_warning_percent only controls when *this background
+        # check* raises a notification, deliberately decoupled so changing
+        # it doesn't retroactively redefine what "Warning" means on an
+        # already-documented, already-tested traffic light elsewhere. See
+        # docs/decisions-log.md.
+        warning_threshold = Decimal(get_notification_thresholds(db)["notif_budget_warning_percent"])
+
         fy = get_or_create_financial_year(db, today)
         budgets = db.query(CategoryBudget).filter(CategoryBudget.financial_year_id == fy.id).all()
         categories = {c.id: c for c in db.query(Category).all()}
@@ -76,33 +90,40 @@ def check_budget_thresholds(today: date | None = None) -> int:
             if percent_used >= budget_service.OVER_BUDGET_THRESHOLD and not _already_sent(
                 db, category.id, fy.id, today.month, "over_budget"
             ):
-                over_by = month_actual - month_budget_amount
-                notification_service.notify_admins(
-                    db,
-                    type=f"budget_over_{category.id}_{fy.id}_{today.month}",
-                    title=f"{category.name} is over budget",
-                    message=f"{category.name} has exceeded its {month_label} budget by £{over_by:,.2f}.",
-                    link="/budget",
-                    severity="error",
-                )
+                # The "already sent" guard is recorded regardless of the
+                # on/off preference below, so a category that crossed the
+                # threshold while notifications were switched off doesn't
+                # flood out a backdated notification the moment they're
+                # switched back on.
+                if prefs["notif_budget_over"]:
+                    over_by = month_actual - month_budget_amount
+                    notification_service.notify_admins(
+                        db,
+                        type=f"budget_over_{category.id}_{fy.id}_{today.month}",
+                        title=f"{category.name} is over budget",
+                        message=f"{category.name} has exceeded its {month_label} budget by £{over_by:,.2f}.",
+                        link="/budget",
+                        severity="error",
+                    )
+                    sent += 1
                 _record_sent(db, category.id, fy.id, today.month, "over_budget")
-                sent += 1
-            elif percent_used >= budget_service.WARNING_THRESHOLD and not _already_sent(
+            elif percent_used >= warning_threshold and not _already_sent(
                 db, category.id, fy.id, today.month, "warning_80"
             ):
-                notification_service.notify_admins(
-                    db,
-                    type=f"budget_warning_{category.id}_{fy.id}_{today.month}",
-                    title=f"{category.name} budget at {percent_used:.0f}%",
-                    message=(
-                        f"{category.name} has used {percent_used:.0f}% of its {month_label} budget. "
-                        f"£{month_actual:,.2f} of £{month_budget_amount:,.2f} budgeted has been spent."
-                    ),
-                    link="/budget",
-                    severity="warning",
-                )
+                if prefs["notif_budget_warning"]:
+                    notification_service.notify_admins(
+                        db,
+                        type=f"budget_warning_{category.id}_{fy.id}_{today.month}",
+                        title=f"{category.name} budget at {percent_used:.0f}%",
+                        message=(
+                            f"{category.name} has used {percent_used:.0f}% of its {month_label} budget. "
+                            f"£{month_actual:,.2f} of £{month_budget_amount:,.2f} budgeted has been spent."
+                        ),
+                        link="/budget",
+                        severity="warning",
+                    )
+                    sent += 1
                 _record_sent(db, category.id, fy.id, today.month, "warning_80")
-                sent += 1
         return sent
     finally:
         db.close()
