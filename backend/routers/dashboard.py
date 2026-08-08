@@ -1,5 +1,6 @@
 """Dashboard endpoints: financial summary and login notifications."""
 from datetime import date, datetime, timedelta, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
@@ -11,7 +12,7 @@ from models.error_log import ErrorLog
 from models.invoice import Invoice
 from models.monthly_reconciliation import MonthlyReconciliation
 from models.planned_project import PlannedProject
-from models.schemas import DashboardNotification, DashboardSummary
+from models.schemas import DashboardMonthlyBreakdownResponse, DashboardNotification, DashboardSummary
 from models.user import User
 from services import budget_service, date_service, debt_service, financial_year_service as fy_service, modules_service, notification_service
 from services.settings_service import get_notification_preferences, get_notification_thresholds, get_terminology, is_signing_enabled
@@ -79,6 +80,36 @@ def get_summary(
     if modules_service.is_enabled(db, "budget_planning"):
         summary.update(budget_service.build_dashboard_fields(db, date.today()))
     return summary
+
+
+@router.get("/monthly-breakdown", response_model=DashboardMonthlyBreakdownResponse)
+def get_monthly_breakdown(
+    period: Literal["current", "previous"] = "current",
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+):
+    """Chart-only data for the current or previous financial year — powers
+    the dashboard cash flow chart's 'This year' / 'Last year' toggle without
+    re-fetching the whole /dashboard/summary payload (whose other fields —
+    metric cards, notifications, planned projects — always describe the
+    current FY regardless of which chart period is selected). See
+    docs/decisions-log.md."""
+    today = date.today()
+    fy = (
+        fy_service.get_or_create_financial_year(db, today)
+        if period == "current"
+        else fy_service.get_previous_financial_year(db, today)
+    )
+    return {
+        "financial_year": {
+            "id": fy.id,
+            "label": fy.label,
+            "start_date": fy.start_date,
+            "end_date": fy.end_date,
+            "opening_balance": fy.opening_balance,
+        },
+        "monthly_breakdown": fy_service.monthly_breakdown_for_fy(db, fy, today),
+    }
 
 
 @router.get("/notifications", response_model=list[DashboardNotification])

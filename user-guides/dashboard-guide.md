@@ -61,7 +61,22 @@ Across the top of the page:
 ## The main chart
 
 "Financial year at a glance" plots the whole financial year, September
-through August, with three lines:
+through August, combining a cash flow bar chart with three lines — inspired
+by Actual Budget's cash flow report, so you can see at a glance not just how
+much came in and went out, but which months left you better off and which
+months didn't.
+
+**Net cash flow bars**, drawn faintly behind the lines, show one bar per
+month:
+
+- A **green** bar means that month was a surplus — income was higher than
+  spend.
+- A **red** bar means that month was a deficit — spend was higher than
+  income.
+- The taller the bar, the bigger that month's surplus or deficit was,
+  relative to the other months shown.
+
+On top of the bars, three lines:
 
 - **Income** (blue) — contributions recorded each month.
 - **Actual spend** (green) — confirmed invoices each month.
@@ -69,19 +84,45 @@ through August, with three lines:
   matches actual spend; for months still to come, it's an estimate built
   from the average monthly spend per category over the last 3 months.
 
+A fourth line, **Running balance** (grey, dashed), is available but hidden
+by default — click it in the legend to show your cumulative balance
+(opening balance plus everything in and out since) across the whole year,
+useful for spotting whether your overall position is trending up or down
+rather than just looking month to month.
+
 Any month with a **planned project** due shows a purple marker on the
 forecast line, so a big one-off cost is easy to tell apart from routine
 running costs.
 
-Move your mouse over the chart to see the exact figures for any month.
-Click anywhere on the chart, or click one of the coloured labels above it,
-to drill in:
+**Hovering over a month** (or tapping it, on a phone or tablet) shows a
+detailed tooltip: the month's income and its top 3 sources, expenses and
+their top 3 categories, the net surplus/deficit for that month, the running
+balance at that point, and — for a future month — the forecast amount
+expected.
 
-- Click **Income** to go to the Contributions page.
-- Click **Actual spend** to see the full list of invoices, already filtered
-  to this financial year.
-- Click **Forecast spend** to see the forecast broken down by category —
-  how much each category is expected to cost for the rest of the year.
+**The legend above the chart is clickable** — click any label (Income,
+Actual spend, Forecast spend, Surplus month, Deficit month, Running balance)
+to show or hide that element. A dimmed label means it's currently hidden;
+click it again to bring it back. This is separate from clicking directly on
+a line in the chart itself, which still drills through to the detail behind
+it:
+
+- Click the **Income** line to go to the Contributions page.
+- Click the **Actual spend** line to see the full list of invoices, already
+  filtered to this financial year.
+- Click the **Forecast spend** line to see the forecast broken down by
+  category — how much each category is expected to cost for the rest of the
+  year.
+
+**This year / Last year** — a small toggle above the chart, top right, lets
+you flip straight to the previous financial year's figures for a quick
+comparison, without needing to change any other setting on the page. It only
+shows the chart itself; the metric cards, notifications, and everything else
+on the dashboard always describe the current financial year.
+
+On a small screen, the chart simplifies automatically: the surplus/deficit
+bars and the Running balance line drop out (there just isn't room to read
+them clearly), and the legend moves below the chart instead of above it.
 
 ## Target reserve
 
@@ -153,9 +194,10 @@ on, and switches back the moment it's turned off. In this mode:
 In Personal Finance mode, the "Financial year at a glance" chart described
 above is still there, but starts **collapsed** behind a **Show financial
 detail** toggle, so debt and net worth take priority on the page. Click the
-toggle to expand it smoothly — everything about the chart (hovering for
-detail, clicking a series to drill in) works exactly the same once
-expanded.
+toggle to expand it smoothly — everything about the chart (the cash flow
+bars, hovering or tapping for detail, the clickable legend, the This
+year/Last year toggle, clicking a line to drill in) works exactly the same
+once expanded.
 
 See the [Debt Tracking](debt-tracking.md) guide for the full picture,
 including the payoff calculator and milestone notifications, and the

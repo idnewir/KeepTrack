@@ -363,6 +363,16 @@ class DashboardFinancialYear(BaseModel):
     opening_balance: Decimal | None = None
 
 
+class DashboardIncomeBreakdownItem(BaseModel):
+    group_name: str
+    amount: Decimal
+
+
+class DashboardSpendBreakdownItem(BaseModel):
+    category_name: str
+    amount: Decimal
+
+
 class DashboardMonthBreakdown(BaseModel):
     year: int
     month: int
@@ -372,6 +382,20 @@ class DashboardMonthBreakdown(BaseModel):
     forecast_spend: Decimal
     planned_project_cost: Decimal
     is_elapsed: bool
+    # Cash-flow chart enhancement (V1 Polish) — see docs/decisions-log.md.
+    net_cashflow: Decimal
+    cumulative_balance: Decimal
+    income_breakdown: list[DashboardIncomeBreakdownItem] = []
+    spend_breakdown: list[DashboardSpendBreakdownItem] = []
+
+
+class DashboardMonthlyBreakdownResponse(BaseModel):
+    """A single financial year's chart data on its own — lets the dashboard
+    fetch the previous FY's breakdown for the 'Last year' chart toggle
+    without pulling in the whole /dashboard/summary payload. See
+    docs/decisions-log.md."""
+    financial_year: DashboardFinancialYear
+    monthly_breakdown: list[DashboardMonthBreakdown]
 
 
 class DashboardPlannedProject(BaseModel):

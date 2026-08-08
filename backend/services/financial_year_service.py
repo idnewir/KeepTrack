@@ -76,6 +76,18 @@ def get_current_financial_year(db: Session, for_date: date | None = None) -> Fin
     return get_or_create_financial_year(db, for_date)
 
 
+def get_previous_financial_year(db: Session, today: date | None = None) -> FinancialYear:
+    """The FY immediately before the one containing `today` — used by the
+    dashboard chart's 'Last year' toggle. Shifting `today` back exactly one
+    year (clamped to day 28, so Feb 29 never overflows into March) always
+    lands inside the prior FY regardless of the configured
+    financial_year_start_month, since FYs always span 12 full calendar
+    months. See docs/decisions-log.md."""
+    today = today or date.today()
+    prior_date = date(today.year - 1, today.month, min(today.day, 28))
+    return get_or_create_financial_year(db, prior_date)
+
+
 def get_or_create_financial_year(db: Session, for_date: date | None = None) -> FinancialYear:
     start, end, label = fy_bounds_for(db, for_date or date.today())
 
@@ -279,12 +291,142 @@ def active_planned_projects(db: Session, fy: FinancialYear) -> list[PlannedProje
     )
 
 
+def _build_monthly_breakdown(
+    db: Session,
+    fy: FinancialYear,
+    today: date,
+    invoices: list[Invoice],
+    contributions: list[Contribution],
+    monthly_forecast_base: Decimal,
+) -> dict:
+    """Per-month chart data for one financial year: actual/forecast spend,
+    income, net cash flow, cumulative running balance, and top-3 income/spend
+    breakdowns for tooltips (cash flow chart enhancement, V1 Polish). Shared
+    by build_summary (current FY) and monthly_breakdown_for_fy (an arbitrary
+    other FY, used by the chart's 'Last year' toggle) so both agree on the
+    same figures. See docs/decisions-log.md.
+    """
+    months = month_sequence(fy)
+    current_month_key = (today.year, today.month)
+    # Months before app_start_date (or, if unset, before the FY start — a
+    # no-op) are dropped entirely from the chart rather than shown as empty
+    # rows. See docs/decisions-log.md.
+    effective_start = get_effective_start_date(db, today)
+    effective_start_key = (effective_start.year, effective_start.month)
+
+    invoice_month_totals: dict[tuple[int, int], Decimal] = {}
+    invoice_month_category_totals: dict[tuple[int, int], dict[int | None, Decimal]] = {}
+    for inv in invoices:
+        key = (inv.invoice_date.year, inv.invoice_date.month)
+        invoice_month_totals[key] = invoice_month_totals.get(key, Decimal("0")) + inv.amount
+        cat_totals = invoice_month_category_totals.setdefault(key, {})
+        cat_totals[inv.category_id] = cat_totals.get(inv.category_id, Decimal("0")) + inv.amount
+
+    contribution_month_totals: dict[int, Decimal] = {}
+    contribution_month_group_totals: dict[int, dict[str, Decimal]] = {}
+    for c in contributions:
+        contribution_month_totals[c.month] = contribution_month_totals.get(c.month, Decimal("0")) + c.amount
+        group_totals = contribution_month_group_totals.setdefault(c.month, {})
+        group_totals[c.group_name] = group_totals.get(c.group_name, Decimal("0")) + c.amount
+
+    # Not filtered to active=True — an invoice can reference a category that
+    # was since deactivated, and the tooltip breakdown should still show its
+    # real name rather than falling back to "Uncategorised". Matches
+    # _build_recent_activity's own precedent. See docs/decisions-log.md.
+    categories_by_id = {c.id: c for c in db.query(Category).all()}
+
+    breakdown = []
+    elapsed_months = 0
+    visible_elapsed_spend = Decimal("0")
+    # Running balance starts at the FY's own opening balance and accumulates
+    # every month from the FY's actual start (not just the visible/effective
+    # start), so cumulative_balance on the first visible month already
+    # reflects any activity in months hidden from the chart. See
+    # docs/decisions-log.md.
+    running_balance = fy.opening_balance or Decimal("0")
+    for (y, m) in months:
+        month_spend = invoice_month_totals.get((y, m), Decimal("0"))
+        month_income = contribution_month_totals.get(m, Decimal("0"))
+        running_balance += month_income - month_spend
+
+        if (y, m) < effective_start_key:
+            continue
+
+        is_elapsed = (y, m) <= current_month_key
+        planned_cost = planned_project_cost_for_month(db, fy, y, m)
+
+        if is_elapsed:
+            elapsed_months += 1
+            visible_elapsed_spend += month_spend
+            forecast_spend = month_spend
+        else:
+            forecast_spend = monthly_forecast_base + planned_cost
+
+        cat_totals = invoice_month_category_totals.get((y, m), {})
+        spend_breakdown = [
+            {
+                "category_name": categories_by_id[cat_id].name if cat_id in categories_by_id else "Uncategorised",
+                "amount": amt,
+            }
+            for cat_id, amt in sorted(cat_totals.items(), key=lambda kv: kv[1], reverse=True)[:3]
+        ]
+        group_totals = contribution_month_group_totals.get(m, {})
+        income_breakdown = [
+            {"group_name": group, "amount": amt}
+            for group, amt in sorted(group_totals.items(), key=lambda kv: kv[1], reverse=True)[:3]
+        ]
+
+        breakdown.append({
+            "year": y,
+            "month": m,
+            "month_label": f"{MONTH_LABELS[m - 1]} {y}",
+            "actual_spend": month_spend,
+            "actual_income": month_income,
+            "forecast_spend": forecast_spend,
+            "planned_project_cost": planned_cost,
+            "is_elapsed": is_elapsed,
+            "net_cashflow": month_income - month_spend,
+            "cumulative_balance": running_balance,
+            "income_breakdown": income_breakdown,
+            "spend_breakdown": spend_breakdown,
+        })
+
+    return {
+        "breakdown": breakdown,
+        "visible_elapsed_spend": visible_elapsed_spend,
+        "elapsed_months": elapsed_months,
+    }
+
+
+def monthly_breakdown_for_fy(db: Session, fy: FinancialYear, today: date | None = None) -> list[dict]:
+    """Standalone per-month chart data for an arbitrary financial year (not
+    necessarily the current one) — powers GET /dashboard/monthly-breakdown,
+    used by the dashboard chart's 'Last year' toggle so it can fetch the
+    previous FY's figures without recomputing the rest of build_summary's
+    payload. See docs/decisions-log.md."""
+    today = today or date.today()
+    invoices = (
+        db.query(Invoice)
+        .filter(
+            Invoice.reviewed.is_(True),
+            Invoice.deleted.is_(False),
+            Invoice.invoice_date >= fy.start_date,
+            Invoice.invoice_date <= fy.end_date,
+        )
+        .all()
+    )
+    contributions = db.query(Contribution).filter(Contribution.financial_year_id == fy.id).all()
+    recent_months = recent_actual_months(today, 3)
+    category_averages = category_monthly_averages(db, recent_months)
+    monthly_forecast_base = sum(category_averages.values(), Decimal("0"))
+    return _build_monthly_breakdown(db, fy, today, invoices, contributions, monthly_forecast_base)["breakdown"]
+
+
 def build_summary(db: Session, today: date | None = None) -> dict:
     """Assemble the full /dashboard/summary payload. Also reused by /dashboard/notifications
     so both endpoints agree on balance_status without recomputing the rules twice."""
     today = today or date.today()
     fy = get_or_create_financial_year(db, today)
-    months = month_sequence(fy)
 
     all_fy_invoices = (
         db.query(Invoice)
@@ -316,55 +458,16 @@ def build_summary(db: Session, today: date | None = None) -> dict:
         else:
             balance_status = "below"
 
-    invoice_month_totals: dict[tuple[int, int], Decimal] = {}
-    for inv in all_fy_invoices:
-        key = (inv.invoice_date.year, inv.invoice_date.month)
-        invoice_month_totals[key] = invoice_month_totals.get(key, Decimal("0")) + inv.amount
-
-    contribution_month_totals: dict[int, Decimal] = {}
-    for c in contributions:
-        contribution_month_totals[c.month] = contribution_month_totals.get(c.month, Decimal("0")) + c.amount
-
     recent_months = recent_actual_months(today, 3)
     category_averages = category_monthly_averages(db, recent_months)
     monthly_forecast_base = sum(category_averages.values(), Decimal("0"))
 
-    current_month_key = (today.year, today.month)
-    # Months before app_start_date (or, if unset, before the FY start — a
-    # no-op) are dropped entirely from the chart rather than shown as empty
-    # rows. See docs/decisions-log.md.
-    effective_start = get_effective_start_date(db, today)
-    effective_start_key = (effective_start.year, effective_start.month)
-
-    breakdown = []
-    elapsed_months = 0
-    visible_elapsed_spend = Decimal("0")
-    for (y, m) in months:
-        if (y, m) < effective_start_key:
-            continue
-
-        is_elapsed = (y, m) <= current_month_key
-        actual_spend = invoice_month_totals.get((y, m), Decimal("0"))
-        actual_income = contribution_month_totals.get(m, Decimal("0"))
-        planned_cost = planned_project_cost_for_month(db, fy, y, m)
-
-        if is_elapsed:
-            elapsed_months += 1
-            visible_elapsed_spend += actual_spend
-            forecast_spend = actual_spend
-        else:
-            forecast_spend = monthly_forecast_base + planned_cost
-
-        breakdown.append({
-            "year": y,
-            "month": m,
-            "month_label": f"{MONTH_LABELS[m - 1]} {y}",
-            "actual_spend": actual_spend,
-            "actual_income": actual_income,
-            "forecast_spend": forecast_spend,
-            "planned_project_cost": planned_cost,
-            "is_elapsed": is_elapsed,
-        })
+    breakdown_result = _build_monthly_breakdown(
+        db, fy, today, all_fy_invoices, contributions, monthly_forecast_base
+    )
+    breakdown = breakdown_result["breakdown"]
+    elapsed_months = breakdown_result["elapsed_months"]
+    visible_elapsed_spend = breakdown_result["visible_elapsed_spend"]
 
     # Matches the visible breakdown above (elapsed months from app_start_date
     # onwards), not the whole financial year, so it reads as "average since

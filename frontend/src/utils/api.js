@@ -147,6 +147,9 @@ export const rulesApi = {
 export const dashboardApi = {
   summary: (token) => request('/dashboard/summary', { token }),
   notifications: (token) => request('/dashboard/notifications', { token }),
+  // Chart-only data for the cash flow chart's This year/Last year toggle —
+  // see routers/dashboard.py and docs/decisions-log.md.
+  monthlyBreakdown: (period, token) => request(`/dashboard/monthly-breakdown?period=${period}`, { token }),
 }
 
 export const notificationsApi = {
