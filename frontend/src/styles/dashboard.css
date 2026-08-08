@@ -151,7 +151,7 @@
   border: 1px solid var(--kt-border);
   border-radius: 12px;
   padding: 16px 24px;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
 }
 
 .kt-panel-title {
@@ -221,6 +221,10 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
+  /* Matches .kt-dashboard-panel's own margin-bottom so the gap before/after
+     a row of panels is identical to the gap between two stacked single
+     panels — see docs/decisions-log.md. */
+  margin-bottom: 20px;
   /* Grid's default `stretch` forces every panel in the row to match the
      tallest one — since a funding-target project card can make Planned
      Projects considerably taller than Upcoming/Recent Activity, each panel

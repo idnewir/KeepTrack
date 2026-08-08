@@ -193,7 +193,11 @@ function ConnectionFields({
   )
 }
 
-function TestConnectionButton({ onTest }) {
+// `fullWidth` renders the button spanning the card footer with the result
+// message stacked below it, per both cards' consistent bottom-of-card
+// placement — the inline variant (used nowhere currently, kept for any
+// future non-card usage) stays a compact row.
+function TestConnectionButton({ onTest, fullWidth }) {
   const [testing, setTesting] = useState(false)
   const [result, setResult] = useState(null)
 
@@ -211,16 +215,32 @@ function TestConnectionButton({ onTest }) {
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-      <button type="button" className="kt-auth-button-secondary" onClick={handleTest} disabled={testing}>
+    <div
+      style={
+        fullWidth
+          ? { display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 10 }
+          : { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }
+      }
+    >
+      <button
+        type="button"
+        className="kt-auth-button-secondary"
+        style={fullWidth ? { width: '100%' } : undefined}
+        onClick={handleTest}
+        disabled={testing}
+      >
         {testing ? 'Testing…' : 'Test connection'}
       </button>
       {result && result.success && (
-        <span className="kt-profile-success">
+        <span className="kt-profile-success" style={fullWidth ? { textAlign: 'center' } : undefined}>
           ✓ Connected{result.file_count !== null && result.file_count !== undefined ? ` — ${result.file_count} file(s) found` : ''}
         </span>
       )}
-      {result && !result.success && <span className="kt-auth-error" style={{ margin: 0 }}>{result.error}</span>}
+      {result && !result.success && (
+        <span className="kt-auth-error" style={{ margin: 0, textAlign: fullWidth ? 'center' : undefined }}>
+          {result.error}
+        </span>
+      )}
     </div>
   )
 }
@@ -269,26 +289,26 @@ function InputFolderSection({ token, config, pollInterval, onSaved }) {
   }
 
   return (
-    <div className="kt-settings-list" style={{ marginBottom: 28 }}>
-      <div className="kt-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div className="kt-settings-row-text">
-            <span className="kt-settings-row-title">Input folder</span>
-            <p className="kt-settings-row-description">Watch for new invoices</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            className={`kt-toggle${enabled ? ' on' : ''}`}
-            onClick={() => setEnabled((v) => !v)}
-          >
-            <span className="kt-toggle-track">
-              <span className="kt-toggle-thumb" />
-            </span>
-          </button>
+    <div className="kt-settings-list kt-folder-card">
+      <div className="kt-settings-row kt-folder-card-header">
+        <div className="kt-settings-row-text">
+          <span className="kt-settings-row-title">Input folder</span>
+          <p className="kt-settings-row-description">Watch for new invoices</p>
         </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          className={`kt-toggle${enabled ? ' on' : ''}`}
+          onClick={() => setEnabled((v) => !v)}
+        >
+          <span className="kt-toggle-track">
+            <span className="kt-toggle-thumb" />
+          </span>
+        </button>
+      </div>
 
+      <div className="kt-settings-row kt-folder-card-body">
         <ConnectionFields
           idPrefix="folder-input"
           type={type}
@@ -325,12 +345,13 @@ function InputFolderSection({ token, config, pollInterval, onSaved }) {
         {error && <div className="kt-auth-error" style={{ marginBottom: 12 }}>{error}</div>}
         {saved && <p className="kt-profile-success" style={{ marginBottom: 12 }}>Input folder settings saved.</p>}
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button type="button" className="kt-auth-button" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-          <TestConnectionButton onTest={() => folderApi.testInput(token)} />
-        </div>
+        <button type="button" className="kt-auth-button" style={{ alignSelf: 'flex-start' }} onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+
+      <div className="kt-settings-row kt-folder-card-footer">
+        <TestConnectionButton fullWidth onTest={() => folderApi.testInput(token)} />
       </div>
     </div>
   )
@@ -380,26 +401,26 @@ function OutputFolderSection({ token, config, behaviour: initialBehaviour, onSav
   }
 
   return (
-    <div className="kt-settings-list" style={{ marginBottom: 28 }}>
-      <div className="kt-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div className="kt-settings-row-text">
-            <span className="kt-settings-row-title">Output folder</span>
-            <p className="kt-settings-row-description">Save signed PDFs to folder</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            className={`kt-toggle${enabled ? ' on' : ''}`}
-            onClick={() => setEnabled((v) => !v)}
-          >
-            <span className="kt-toggle-track">
-              <span className="kt-toggle-thumb" />
-            </span>
-          </button>
+    <div className="kt-settings-list kt-folder-card">
+      <div className="kt-settings-row kt-folder-card-header">
+        <div className="kt-settings-row-text">
+          <span className="kt-settings-row-title">Output folder</span>
+          <p className="kt-settings-row-description">Save signed PDFs to folder</p>
         </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          className={`kt-toggle${enabled ? ' on' : ''}`}
+          onClick={() => setEnabled((v) => !v)}
+        >
+          <span className="kt-toggle-track">
+            <span className="kt-toggle-thumb" />
+          </span>
+        </button>
+      </div>
 
+      <div className="kt-settings-row kt-folder-card-body">
         <ConnectionFields
           idPrefix="folder-output"
           type={type}
@@ -436,12 +457,13 @@ function OutputFolderSection({ token, config, behaviour: initialBehaviour, onSav
         {error && <div className="kt-auth-error" style={{ marginBottom: 12 }}>{error}</div>}
         {saved && <p className="kt-profile-success" style={{ marginBottom: 12 }}>Output folder settings saved.</p>}
 
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button type="button" className="kt-auth-button" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-          <TestConnectionButton onTest={() => folderApi.testOutput(token)} />
-        </div>
+        <button type="button" className="kt-auth-button" style={{ alignSelf: 'flex-start' }} onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+
+      <div className="kt-settings-row kt-folder-card-footer">
+        <TestConnectionButton fullWidth onTest={() => folderApi.testOutput(token)} />
       </div>
     </div>
   )
@@ -543,45 +565,40 @@ function FolderStatusPanel({ status, onViewFullLog }) {
   const { input, output, recent_log: recentLog } = status
 
   return (
-    <div style={{ marginBottom: 12 }}>
-      <h2 className="kt-panel-title">Folder status</h2>
+    <div className="kt-folder-activity-card">
+      <h2 className="kt-panel-title">Folder Activity</h2>
+      <p className="kt-panel-subtitle">Live status of the input and output folder watchers.</p>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
-        <div className="kt-settings-list" style={{ flex: 1, minWidth: 260 }}>
-          <div className="kt-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-            <span className="kt-settings-row-title">Input folder</span>
-            <p className="kt-settings-row-description">
-              {input.enabled ? (input.configured ? 'Enabled and configured' : 'Enabled but not yet configured') : 'Disabled'}
-            </p>
-            <p className="kt-settings-row-description">
-              Last poll: {input.last_poll ? formatDateTime(input.last_poll) : 'Never'}
-            </p>
-            <p className="kt-settings-row-description">
-              Next poll: {input.next_poll ? formatDateTime(input.next_poll) : '—'}
-            </p>
-            <p className="kt-settings-row-description">Files processed today: {input.files_processed_today}</p>
-          </div>
+      <div className="kt-folder-status-grid">
+        <div className="kt-folder-status-stat">
+          <span className="kt-settings-row-title">Input folder</span>
+          <p className="kt-settings-row-description">
+            {input.enabled ? (input.configured ? 'Enabled and configured' : 'Enabled but not yet configured') : 'Disabled'}
+          </p>
+          <p className="kt-settings-row-description">
+            Last poll: {input.last_poll ? formatDateTime(input.last_poll) : 'Never'}
+          </p>
+          <p className="kt-settings-row-description">
+            Next poll: {input.next_poll ? formatDateTime(input.next_poll) : '—'}
+          </p>
+          <p className="kt-settings-row-description">Files processed today: {input.files_processed_today}</p>
         </div>
 
-        <div className="kt-settings-list" style={{ flex: 1, minWidth: 260 }}>
-          <div className="kt-settings-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-            <span className="kt-settings-row-title">Output folder</span>
-            <p className="kt-settings-row-description">
-              {output.enabled ? (output.configured ? 'Enabled and configured' : 'Enabled but not yet configured') : 'Disabled'}
-            </p>
-            <p className="kt-settings-row-description">Files written today: {output.files_written_today}</p>
-          </div>
+        <div className="kt-folder-status-stat">
+          <span className="kt-settings-row-title">Output folder</span>
+          <p className="kt-settings-row-description">
+            {output.enabled ? (output.configured ? 'Enabled and configured' : 'Enabled but not yet configured') : 'Disabled'}
+          </p>
+          <p className="kt-settings-row-description">Files written today: {output.files_written_today}</p>
         </div>
       </div>
 
-      <h3 className="kt-panel-title" style={{ fontSize: 16 }}>
-        Recent activity
-      </h3>
+      <h3 className="kt-folder-activity-subheader">Recent activity</h3>
       {recentLog.length === 0 ? (
         <div className="kt-settings-coming-soon">No activity yet.</div>
       ) : (
         <div style={{ overflowX: 'auto', marginBottom: 12 }}>
-          <table className="kt-users-table">
+          <table className="kt-users-table kt-compact-table">
             <thead>
               <tr>
                 <th>Filename</th>
@@ -592,7 +609,7 @@ function FolderStatusPanel({ status, onViewFullLog }) {
             <tbody>
               {recentLog.slice(0, 10).map((row) => (
                 <tr key={row.id}>
-                  <td>{row.filename}</td>
+                  <td title={row.filename}>{row.filename}</td>
                   <td>
                     <StatusBadge status={row.status} />
                   </td>

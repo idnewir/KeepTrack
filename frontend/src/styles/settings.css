@@ -518,6 +518,91 @@
   min-width: 26px;
 }
 
+/* Folder Integration */
+
+.kt-folder-card {
+  margin-bottom: 24px;
+}
+
+.kt-folder-card-header {
+  align-items: center;
+}
+
+.kt-folder-card-body,
+.kt-folder-card-footer {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.kt-folder-activity-card {
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.kt-folder-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+
+.kt-folder-status-stat {
+  border: 1px solid var(--kt-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--kt-background);
+}
+
+.kt-folder-status-stat .kt-settings-row-title {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.kt-folder-status-stat .kt-settings-row-description {
+  margin: 2px 0;
+  max-width: none;
+}
+
+.kt-folder-activity-subheader {
+  margin: 0 0 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--kt-border);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.kt-compact-table th,
+.kt-compact-table td {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+/* A long watched-folder filename shouldn't push the Status/Time columns
+   off-screen on a narrow viewport — truncate it with an ellipsis instead
+   (the full name is still available via the row's title attribute and
+   the full log). See docs/decisions-log.md. */
+.kt-compact-table td:first-child {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .kt-compact-table td:first-child {
+    max-width: 130px;
+  }
+}
+
+@media (max-width: 720px) {
+  .kt-folder-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Feature Modules */
 
 .kt-module-status {

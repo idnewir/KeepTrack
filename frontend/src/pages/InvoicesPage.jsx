@@ -235,15 +235,23 @@ export default function InvoicesPage() {
       ) : invoices.length === 0 ? (
         <div className="kt-categories-empty">No {expensesLower} match these filters.</div>
       ) : (
-        <table className="kt-invoices-table">
+        <table className="kt-invoices-table kt-invoices-list-table">
+          <colgroup>
+            <col className="kt-invoices-col-date" />
+            <col className="kt-invoices-col-supplier" />
+            <col className="kt-invoices-col-amount" />
+            <col className="kt-invoices-col-category" />
+            <col className="kt-invoices-col-signed" />
+            <col className="kt-invoices-col-status" />
+          </colgroup>
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Supplier</th>
-              <th>Amount</th>
-              <th>Category</th>
-              <th>Status</th>
-              <th>Signed</th>
+              <th className="kt-invoices-col-date">Date</th>
+              <th className="kt-invoices-col-supplier">Supplier</th>
+              <th className="kt-invoices-col-amount">Amount</th>
+              <th className="kt-invoices-col-category">Category</th>
+              <th className="kt-invoices-col-signed">Signed</th>
+              <th className="kt-invoices-col-status">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -255,8 +263,8 @@ export default function InvoicesPage() {
                   className="kt-invoice-row"
                   onClick={() => navigate(`/invoices/${invoice.id}`)}
                 >
-                  <td>{invoice.invoice_date}</td>
-                  <td>
+                  <td className="kt-invoices-col-date">{invoice.invoice_date}</td>
+                  <td className="kt-invoices-col-supplier">
                     {invoice.supplier || <em>Unknown supplier</em>}
                     {invoice.is_historical && (
                       <span className="kt-status-badge kt-status-historical" title="Imported as historical data — skipped review and signing">
@@ -264,8 +272,8 @@ export default function InvoicesPage() {
                       </span>
                     )}
                   </td>
-                  <td>{formatAmount(invoice.amount)}</td>
-                  <td>
+                  <td className="kt-invoices-col-amount">{formatAmount(invoice.amount)}</td>
+                  <td className="kt-invoices-col-category">
                     {category ? (
                       <span className="kt-invoice-category">
                         <span
@@ -279,17 +287,7 @@ export default function InvoicesPage() {
                       <em>Uncategorised</em>
                     )}
                   </td>
-                  <td>
-                    {invoice.reviewed ? (
-                      <span className="kt-status-badge kt-status-reviewed">Reviewed</span>
-                    ) : (
-                      <span className="kt-status-badge kt-status-unreviewed">Unreviewed</span>
-                    )}
-                    {invoice.duplicate_flag && (
-                      <span className="kt-status-badge kt-status-duplicate">Possible duplicate</span>
-                    )}
-                  </td>
-                  <td>
+                  <td className="kt-invoices-col-signed">
                     {invoice.is_historical ? (
                       <em>N/A</em>
                     ) : invoice.signed ? (
@@ -298,6 +296,16 @@ export default function InvoicesPage() {
                       invoice.reviewed && (
                         <span className="kt-status-badge kt-status-unsigned">Unsigned</span>
                       )
+                    )}
+                  </td>
+                  <td className="kt-invoices-col-status">
+                    {invoice.reviewed ? (
+                      <span className="kt-status-badge kt-status-reviewed">Reviewed</span>
+                    ) : (
+                      <span className="kt-status-badge kt-status-unreviewed">Unreviewed</span>
+                    )}
+                    {invoice.duplicate_flag && (
+                      <span className="kt-status-badge kt-status-duplicate">Possible duplicate</span>
                     )}
                   </td>
                 </tr>

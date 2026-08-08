@@ -52,7 +52,6 @@ Features that have been designed and committed to for V1, but are not yet built.
 
 Small improvements that make V1 feel complete and considered, but do not block launch. These can be picked up opportunistically or batched together once the bugs and features above are done.
 
-- **Branding:** tighten spacing between the logo icon and the wordmark.
 - **Branding:** consider making "Keep Track" look more like one word visually.
 - **Dark mode:** report PDFs do not respect dark mode — PDFs are always light, which is the correct behaviour, but worth noting explicitly so it isn't mistaken for a bug later.
 - **Settings → AI & Extraction:** rename or expand the page to make extraction settings clearer (related to the Section 1 bug — this is the longer-term polish once that gap is addressed).
@@ -61,8 +60,6 @@ Small improvements that make V1 feel complete and considered, but do not block l
 - **Error log:** review whether the "clear all" UX could be improved further.
 - **Callout tooltips:** hovering over notifications/errors should give an explanation.
 - **Report footer:** confirm the instance name appears correctly on all pages.
-- **Dashboard:** review all panel sizes and spacing for consistency.
-- **Invoice table:** review column widths and spacing.
 - **Welcome page:** review copy for personal finance vs. organisational tone.
 - **Help guides:** review all content for accuracy after recent changes.
 - **Audit log:** confirm all actions are being captured correctly.

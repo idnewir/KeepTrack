@@ -60,18 +60,81 @@
   overflow: hidden;
 }
 
+/* Fixed column widths (below) only apply to the main invoice list — this
+   class is reused by several other, differently-shaped tables (see
+   docs/decisions-log.md) which must keep the browser's normal auto layout. */
+.kt-invoices-list-table {
+  table-layout: fixed;
+}
+
 .kt-invoices-table th,
 .kt-invoices-table td {
   text-align: left;
   padding: 12px 16px;
   border-bottom: 1px solid var(--kt-border);
   font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kt-invoices-table th {
   font-weight: 600;
   color: var(--kt-text-secondary);
   background: var(--kt-background);
+}
+
+/* Column widths — supplier is the only flexible one (no width set), so
+   table-layout: fixed gives it whatever space the fixed-width columns
+   don't need. See docs/decisions-log.md. */
+.kt-invoices-col-date {
+  width: 130px;
+  white-space: nowrap;
+}
+
+.kt-invoices-col-amount {
+  width: 110px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.kt-invoices-col-category {
+  width: 170px;
+}
+
+.kt-invoices-col-signed {
+  width: 110px;
+}
+
+.kt-invoices-col-status {
+  width: 210px;
+}
+
+@media (max-width: 720px) {
+  .kt-invoices-col-signed,
+  .kt-invoices-col-status {
+    display: none;
+  }
+
+  /* Smaller fixed columns + tighter cell padding leave the flexible
+     supplier column enough room to stay readable on a phone-width
+     screen — see docs/decisions-log.md. */
+  .kt-invoices-list-table th,
+  .kt-invoices-list-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+
+  .kt-invoices-col-date {
+    width: 104px;
+  }
+
+  .kt-invoices-col-amount {
+    width: 84px;
+  }
+
+  .kt-invoices-col-category {
+    width: 92px;
+  }
 }
 
 .kt-invoice-row {
