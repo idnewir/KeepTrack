@@ -94,6 +94,25 @@ Each panel shows a friendly message instead of an empty box when there's
 nothing to show yet — this is normal on a fresh install and fills in as you
 use the app.
 
+## Budget Summary panel
+
+If your Administrator has switched on the
+[Budget Planning](budget-planning.md) module, and you're **not** in
+Personal Finance mode (see below), an extra **Budget Planning** panel
+appears just below the target reserve gauge:
+
+- A large traffic-light **overall status** — On Track, Warning, or Over
+  Budget, based on how your budgeted categories are doing overall.
+- A progress bar of **total budgeted vs. total spent** so far this
+  financial year.
+- Up to **three categories** that are over budget or in warning, so you
+  can see at a glance what needs attention without leaving the dashboard.
+- A **View full budget** link through to the full Budget Planning page.
+
+This panel only appears once the module is enabled — see
+[Budget Planning](budget-planning.md) for the full walkthrough of setting
+up budgets and reading the traffic-light indicators.
+
 ## Personal Finance mode
 
 If your Administrator has switched on the [Debt Tracking](debt-tracking.md)
@@ -110,8 +129,11 @@ on, and switches back the moment it's turned off. In this mode:
   in amber, and a link through to the full Debts page.
 - A **Payments due this month** panel lists what's due and when, in order
   of due date, with anything overdue shown in red.
-- A **Savings goals** panel appears too, currently a placeholder until the
-  separate Budget Planning module is built.
+- A **Savings goals** panel appears too. If [Budget Planning](budget-planning.md)
+  is also enabled, this shows your real active savings goals — name,
+  progress bar, and an on-track indicator — with a **View all goals** link
+  through to the Savings Goals tab. If Budget Planning isn't enabled yet,
+  this panel just points you at Settings → General → Feature Modules.
 
 ### The collapsible financial chart
 
@@ -123,7 +145,9 @@ detail, clicking a series to drill in) works exactly the same once
 expanded.
 
 See the [Debt Tracking](debt-tracking.md) guide for the full picture,
-including the payoff calculator and milestone notifications.
+including the payoff calculator and milestone notifications, and the
+[Budget Planning](budget-planning.md) guide for setting up the savings
+goals shown here.
 
 ## On mobile
 

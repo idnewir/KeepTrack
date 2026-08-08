@@ -303,7 +303,10 @@ def _build_report_system_prompt(site_name: str, terminology: dict[str, str], res
         "alongside your text), and do not invent any numbers not present in the data "
         f"given to you. If any {term_projects.lower()} in the data is significantly over "
         "or under its estimated cost, call it out by name — this is one of the most "
-        "useful things trustees or stakeholders can learn from this report.\n\n"
+        "useful things trustees or stakeholders can learn from this report. Likewise, if "
+        "budget vs. actual data is present and any category is over budget or close to "
+        "it, name that category and the variance — this is just as significant as a "
+        f"{term_projects.lower()} running over estimate.\n\n"
         "Respond with ONLY a single JSON object — no markdown code fences, no "
         "commentary before or after it — matching exactly this shape:\n"
         '{"executive_summary": "2-3 paragraphs as one string, paragraphs separated by '
@@ -388,6 +391,24 @@ def _build_report_context(report_data: dict, site_name: str, terminology: dict[s
                 f"- {p['name']}: estimated {_format_currency(p['estimated_cost'])}, "
                 f"actual {_format_currency(p['actual_cost'])}{variance_note}, expected {p['expected_month_label']}"
             )
+
+    budget_vs_actual = report_data.get("budget_vs_actual")
+    if budget_vs_actual:
+        lines.append("")
+        lines.append(f"Budget vs. actual ({budget_vs_actual['financial_year_label']} annual budgets):")
+        for row in budget_vs_actual["rows"]:
+            status_label = {"under_budget": "on track", "warning": "warning", "over_budget": "over budget"}[row["status"]]
+            lines.append(
+                f"- {row['category_name']}: budget {_format_currency(row['annual_budget'])}, "
+                f"actual {_format_currency(row['actual_spend'])} "
+                f"({row['percent_used']:.0f}% used, {status_label})"
+            )
+        totals = budget_vs_actual["totals"]
+        lines.append(
+            f"- Total: budget {_format_currency(totals['total_budget'])}, "
+            f"actual {_format_currency(totals['total_actual'])}, "
+            f"variance {_format_currency(totals['total_variance'])}"
+        )
 
     funding = report_data.get("funding_position")
     if funding:

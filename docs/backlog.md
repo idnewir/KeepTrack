@@ -1,6 +1,6 @@
 # Project Backlog
 
-**Last updated:** 2026-08-07
+**Last updated:** 2026-08-08
 
 This is the single source of truth for what needs to be done on Keep Track, from this point forward. It replaces ad hoc notes and scattered TODOs — when new work is identified, it should be added here rather than tracked elsewhere.
 
@@ -33,15 +33,6 @@ Things that are broken or incomplete in features that have already been built. T
 ## Section 2 — V1 Features
 
 Features that have been designed and committed to for V1, but are not yet built. Unlike Section 1, these aren't broken — they simply don't exist yet. All of these are required before Keep Track goes to production.
-
-- **Budget Planning module** (toggleable, default OFF):
-  - Monthly budget envelopes per category.
-  - Income allocation across categories.
-  - Terminology configurable within module settings.
-  - Setup prompt on enable.
-  - Dashboard integration.
-  - Distinct from Projects — budgeting, not saving.
-  - User guide.
 
 - **Production Packaging** (last task before deployment):
   - Multi-stage Docker builds (frontend compiled, not served via the Vite dev server).
@@ -96,7 +87,7 @@ Longer-term ideas for future versions of Keep Track. These are explicitly out of
 - **Notification centre:** email notifications for critical alerts.
 - **Full text search:** extend to contributions and reconciliation notes.
 - **Debt tracking enhancements to V2** (avalanche/snowball strategies, debt-to-income ratio, net worth over time chart) — point-in-time net worth (funds on hand minus total debt) is already a dashboard metric once Debt Tracking is enabled; a historical chart of it over time is not yet built.
-- **Budget Planning enhancements:** budget vs. actual comparison charts, spending trends, category budget rollover.
+- **Budget Planning enhancements:** full envelope budgeting with income allocation, copy budget from last month, per-category rollover configuration, a heatmap grid view, spending trend charts (on the Budget Planning page itself, distinct from the reports PDF table already built), and mobile optimisation for the Budget Planning page.
 - **Savings goals linked to projects:** when a project is funded, mark the savings goal as complete.
 - **Import enhancements:** support for bank statement CSV formats (Barclays, HSBC, Monzo, etc).
 - **API:** a public REST API for third-party integrations.

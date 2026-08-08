@@ -11,6 +11,7 @@ from config import settings as app_config
 from database import SessionLocal
 from routers.ai_settings import router as ai_settings_router
 from routers.auth import router as auth_router
+from routers.budgets import router as budgets_router
 from routers.categories import router as categories_router
 from routers.contributions import router as contributions_router
 from routers.dashboard import router as dashboard_router
@@ -27,11 +28,12 @@ from routers.profile import router as profile_router
 from routers.projects import router as projects_router
 from routers.reconciliation import router as reconciliation_router
 from routers.reports import router as reports_router
+from routers.savings_goals import router as savings_goals_router
 from routers.search import router as search_router
 from routers.settings import router as settings_router
 from routers.storage import router as storage_router
 from routers.system import router as system_router
-from services import backup_service, debt_notification_service, error_service, folder_watcher_service, maintenance_service, profile_service, storage_service
+from services import backup_service, budget_notification_service, debt_notification_service, error_service, folder_watcher_service, maintenance_service, profile_service, storage_service
 from services.auth_service import ensure_superadmin
 from version import APP_VERSION
 
@@ -141,6 +143,7 @@ async def limit_request_body_size(request: Request, call_next):
 
 app.include_router(ai_settings_router)
 app.include_router(auth_router)
+app.include_router(budgets_router)
 app.include_router(categories_router)
 app.include_router(contributions_router)
 app.include_router(dashboard_router)
@@ -157,6 +160,7 @@ app.include_router(profile_router)
 app.include_router(projects_router)
 app.include_router(reconciliation_router)
 app.include_router(reports_router)
+app.include_router(savings_goals_router)
 app.include_router(search_router)
 app.include_router(settings_router)
 app.include_router(storage_router)
@@ -242,6 +246,13 @@ def on_startup():
     # background job in this app. See services/debt_notification_service.py.
     debt_notification_service.check_promo_expiries()
     debt_notification_service.start_scheduler()
+
+    # Budget Planning threshold check: runs once now, then a background
+    # thread fires it again every 24 hours — independent of the
+    # budget_planning feature module's enabled state, same as every other
+    # background job in this app. See services/budget_notification_service.py.
+    budget_notification_service.check_budget_thresholds()
+    budget_notification_service.start_scheduler()
 
 
 @app.get("/health")

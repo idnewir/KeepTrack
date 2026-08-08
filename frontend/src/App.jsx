@@ -8,6 +8,7 @@ import {
   RequireGuest,
   RequireSetupNeeded,
 } from './components/RouteGuards.jsx'
+import BudgetPage from './pages/BudgetPage.jsx'
 import CategoriesPage from './pages/CategoriesPage.jsx'
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
 import ContributionsPage from './pages/ContributionsPage.jsx'
@@ -92,6 +93,7 @@ export default function App() {
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/:id" element={<ProjectDetailPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/budget" element={<BudgetPage />} />
             <Route path="/debts" element={<DebtsPage />} />
             <Route path="/debts/:id" element={<DebtDetailPage />} />
             <Route path="/search" element={<SearchResultsPage />} />

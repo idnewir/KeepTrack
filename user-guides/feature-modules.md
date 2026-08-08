@@ -20,7 +20,7 @@ Think of it like hiding a room in a building rather than knocking it down. Every
 | **Full Text Search** | Yes | No | The search bar in the header, and searching across invoices, projects, and contributions. |
 | **Folder Integration** | No | Yes | Automatically picking up new invoices from a shared network folder, and automatically saving signed PDFs back out to one. |
 | **Debt Tracking** | No | Yes | Tracking loans, credit cards, mortgages, and other debts, with payment logging and a payoff calculator. You can give this module your own name when you turn it on. Turning it on also switches the Dashboard to Personal Finance mode and adds a **Debts** link to the sidebar. See the dedicated [Debt Tracking](debt-tracking.md) guide. |
-| **Budget Planning** | No | Yes | Setting a monthly budget and splitting your income across categories. You can give this module your own name when you turn it on. |
+| **Budget Planning** | No | Yes | Setting an annual budget per category, tracking actual spend against it month by month, and saving toward specific goals. You can give this module your own name when you turn it on. Adds a **Budget Planning** link to the sidebar, a dashboard panel (or real savings goals data in Personal Finance mode), and an extra option on the Reports page. See the dedicated [Budget Planning](budget-planning.md) guide. |
 
 The first six are switched on for everyone by default, since they cover the core day-to-day workflow. The last three start switched off — turn them on if and when you actually need them.
 

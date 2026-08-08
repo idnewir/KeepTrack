@@ -220,7 +220,7 @@ Enabling or disabling a module only changes **UI visibility and API access** —
 | **Full Text Search** | On | No | The header search bar and the search results page. |
 | **Folder Integration** | Off | Yes | Auto-import from a watched input folder and auto-export of signed PDFs to an output folder. |
 | **Debt Tracking** | Off | Yes | Tracking loans, credit cards, mortgages, and other debts (module name is renameable at setup). See [Debt Tracking](#12-debt-tracking), below. |
-| **Budget Planning** | Off | Yes | Setting monthly budgets and allocating income across categories (module name is renameable at setup). |
+| **Budget Planning** | Off | Yes | Annual budgets per category with monthly overrides, budget vs. actual tracking, and savings goals (module name is renameable at setup). See [Budget Planning](#13-budget-planning), below. |
 
 ### Enabling and disabling
 
@@ -327,3 +327,50 @@ Debt Tracking has its own terminology settings (Settings → Appearance → Debt
 ### A daily background check
 
 Independent of the module's enabled state (per the [Feature Modules](#9-feature-modules) rule that background logic always keeps running), a daily check notifies every Admin about any promotional-rate debt whose rate is expiring within 30 days, once per debt per day.
+
+---
+
+## 13. Budget Planning
+
+A [feature module](#9-feature-modules), off by default. It complements invoice management — comparing what was planned against what was actually spent — rather than replacing it with a full income-allocation budgeting system. See [decisions-log.md](decisions-log.md) for why V1's scope stops there. Full walkthrough in [user-guides/budget-planning.md](../user-guides/budget-planning.md).
+
+### Category budgets
+
+- One budget per **category per financial year**: an **annual amount**, plus optional **monthly overrides** for specific months (e.g. a higher figure for Electricity in December/January for heating) — any month without an override falls back to the annual amount divided by 12.
+- Every figure Keep Track reports against a budget — the resolved per-month amount, actual confirmed spend, variance, year-to-date totals, percentage used, and status — is **computed live** from the stored `annual_amount`/`monthly_amounts` and confirmed invoices, never stored itself, so it can never drift from the underlying invoice data (the same "compute, don't cache" approach as Planned Projects' actual-vs-estimated tracking).
+- "Year to date" sums only the financial year's calendar months that have started on or before today — matching the dashboard's own definition of "elapsed" months, so a Budget Planning percentage never disagrees with the rest of the app about what "so far this year" means.
+- **Traffic light status**, per category and per month: **On Track** (under 80% of the relevant budget used), **Warning** (80% or more), **Over Budget** (100% or more).
+- Only an **Admin** can set, edit, or remove a budget; any logged-in user can view the overview.
+
+### The Budget Planning page (`/budget`)
+
+- **Budgets tab** — a financial year selector, a **Table view** (a clean row per category with a thin progress bar underneath) or **Card view** (larger gauge-style cards, more visual) toggle — Keep Track suggests Card view by default once Debt Tracking (personal finance) is enabled, Table view otherwise, and remembers the choice per browser. Clicking any category opens its **monthly detail**: budget, actual, variance, and status for every month of the financial year, in FY order, with an **Edit budget** and **Remove budget** action for Admins. An **Unbudgeted categories** section lists any category with actual spend but no budget yet, with a one-click **Set budget** shortcut.
+- **Savings Goals tab** — see below.
+
+### Savings goals
+
+- A savings goal has a **name**, optional **description**, **target amount**, **target date**, and an optional **link to a budget category** — the link is purely informational in V1 (it doesn't move spend or affect either figure's totals); see [decisions-log.md](decisions-log.md) for why the two aren't merged.
+- Computed live for every goal: **percent complete**, **months remaining**, the **monthly amount needed** to hit the target on time, and an **on track** indicator based on whether the amount saved so far keeps pace with a straight line from the goal's creation date to its target date.
+- **Contributions** are logged as a simple amount + optional notes, increasing the goal's current amount immediately. A contribution that reaches or passes the target amount **automatically marks the goal complete** and fires a notification.
+- A goal can also be marked complete early, or cancelled (a soft delete — its contribution history is kept, it just stops appearing in the active list) by an Admin.
+- Completed goals move into a collapsed **Completed savings goals** section, shown with a completion date.
+- Any Standard or Admin user can create, edit, and contribute to a goal; only an Admin can cancel one.
+
+### Dashboard integration
+
+- **Organisational mode** (Debt Tracking disabled): a **Budget Planning** panel appears below the target reserve gauge — an overall traffic-light status, a progress bar of total budgeted vs. total spent, up to three categories that are over budget or in warning, and a link through to the full page.
+- **Personal Finance mode** (Debt Tracking enabled): the dashboard's Savings Goals panel — previously a placeholder pointing at Settings — now shows real active goals with their progress and on-track indicators, and a link through to the Savings Goals tab.
+- Either panel only appears once the module is enabled.
+
+### Reports integration
+
+- The report generation form gains an **"Include budget vs actual comparison"** checkbox once the module is enabled — ticked by default if any budget exists for the current financial year.
+- Turning it on adds a **Budget vs. actual** section to the PDF: each budgeted category's annual budget, actual spend within the report's own date range, variance, percent used, and a colour-coded status, with a totals row. If an AI summary is also included, it calls out any category significantly over or close to its budget by name, the same way it already does for planned projects running over estimate.
+
+### Notifications
+
+- A daily background check (independent of the module's enabled state, per the [Feature Modules](#9-feature-modules) rule) compares each budgeted category's *current month's* actual spend against its budget, and notifies every Admin once per category per month per threshold: at **80% used** (warning) and again at **100% used** (over budget) — each threshold fires at most once per category per month, tracked in a dedicated table so a repeated check never re-notifies the same crossing.
+
+### Terminology
+
+Budget Planning has its own terminology settings (Settings → Appearance → Budget Planning terminology) — Module name, Budget label, and Savings Goal label — distinct from the app's five global `term_*` labels, following the same pattern as Debt Tracking's own terminology. See [decisions-log.md](decisions-log.md).

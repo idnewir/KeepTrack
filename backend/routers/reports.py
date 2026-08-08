@@ -160,6 +160,7 @@ def generate_report(
         category_ids=payload.category_ids,
         years_included=payload.years_included,
         report_type=payload.report_type,
+        include_budget=payload.include_budget,
     )
 
     site_name = get_site_name(db)
@@ -206,6 +207,7 @@ def generate_report(
             "years_included": payload.years_included,
             "report_type": payload.report_type,
             "include_ai_summary": payload.include_ai_summary,
+            "include_budget": payload.include_budget,
         },
     )
     db.add(report)

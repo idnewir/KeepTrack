@@ -16,7 +16,7 @@ This is where you turn whole feature areas of Keep Track on or off — Reconcili
 
 - Each module shows its **name**, a one-line **description**, an **Active**/**Inactive** status, and a toggle switch.
 - **Standard and Read Only users** see the same list, with a note to contact an Administrator — the toggle is greyed out and can't be clicked.
-- **To turn a module on:** click its toggle. It switches on immediately, with a confirmation message. If the module needs a little extra setup (AI Extraction, Folder Integration, Debt Tracking, or Budget Planning), a short prompt appears straight after — you can act on it right away or click **Skip for now** and come back to it later.
+- **To turn a module on:** click its toggle. It switches on immediately, with a confirmation message. If the module needs a little extra setup (AI Extraction, Folder Integration, Debt Tracking, or Budget Planning — see below), a short prompt appears straight after — you can act on it right away or click **Skip for now** and come back to it later.
 - **To turn a module off:** click its toggle, then confirm. Keep Track is explicit that this only hides the module from navigation — nothing is deleted, and turning it back on brings everything back exactly as it was, instantly.
 - Changes reach every other open tab or session within about 30 seconds; the person making the change sees it immediately.
 
@@ -236,6 +236,24 @@ guide for everything else the module does.
 > setting to turn on, it happens as soon as the module is enabled. See
 > [Debt Tracking](debt-tracking.md#how-the-personal-finance-dashboard-works)
 > for what changes.
+
+### Budget Planning terminology
+
+Only shown when the [Budget Planning](feature-modules.md) module is
+switched on.
+
+To get there: **Settings → Appearance → Budget Planning terminology**.
+
+- **Module name label** — default *Budget Planning*. Try *Envelopes*.
+- **Budget label** — default *Budget*. Try *Allowance* or *Envelope*.
+- **Savings goal label** — default *Savings Goal*. Try *Sinking Fund*.
+
+Just like Debt Tracking terminology above, these labels update throughout
+the app automatically once saved — the sidebar link, tab names, and
+buttons on the Budget Planning page all pick up the new wording
+immediately, no page refresh needed. See the
+[Budget Planning](budget-planning.md) guide for everything else the
+module does.
 
 ### Target Reserve
 

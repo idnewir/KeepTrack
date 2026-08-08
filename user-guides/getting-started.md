@@ -32,7 +32,7 @@ If an account already exists, click **Register** on the login screen, fill in yo
 
 Once logged in, you'll see:
 
-- A **sidebar** on the left (or a menu button on mobile) with links to: Dashboard, Invoices, Contributions, Reconciliation, Projects, Reports, and Settings. If your Administrator has switched on the optional [Debt Tracking](debt-tracking.md) module, a **Debts** link also appears, between Reports and Settings.
+- A **sidebar** on the left (or a menu button on mobile) with links to: Dashboard, Invoices, Contributions, Reconciliation, Projects, Reports, and Settings. If your Administrator has switched on the optional [Budget Planning](budget-planning.md) and/or [Debt Tracking](debt-tracking.md) modules, **Budget Planning** and/or **Debts** links also appear, between Reports and Settings.
 - A **header** at the top showing the Keep Track logo and name.
 - The **main area** in the middle, which shows whichever page you've selected.
 
@@ -62,9 +62,19 @@ doing so also switches the Dashboard to a Personal Finance view showing
 your net worth and debt at a glance. See the [Debt Tracking](debt-tracking.md)
 guide for the full walkthrough.
 
+## 7a. Optional: budgets and savings goals
+
+Also off by default, the **Budget Planning** module lets you set an annual
+budget per category, see actual spend tracked against it with clear
+traffic-light warnings, and set savings goals with progress tracking. An
+Administrator turns it on the same way, from **Settings → General →
+Feature Modules**. See the [Budget Planning](budget-planning.md) guide for
+the full walkthrough.
+
 ## 8. Where to go next
 
 - To upload your first invoice, see [Uploading Invoices](uploading-invoices.md).
 - To understand the dashboard, see [Dashboard Guide](dashboard-guide.md).
 - To record money coming in, see [Managing Contributions](managing-contributions.md).
 - To track your own debts, see [Debt Tracking](debt-tracking.md).
+- To set budgets and savings goals, see [Budget Planning](budget-planning.md).

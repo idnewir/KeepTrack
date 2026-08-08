@@ -14,7 +14,7 @@ from models.monthly_reconciliation import MonthlyReconciliation
 from models.planned_project import PlannedProject
 from models.schemas import DashboardNotification, DashboardSummary
 from models.user import User
-from services import date_service, debt_service, financial_year_service as fy_service, modules_service, notification_service
+from services import budget_service, date_service, debt_service, financial_year_service as fy_service, modules_service, notification_service
 from services.settings_service import get_terminology, is_signing_enabled
 from utils.deps import get_current_user
 
@@ -70,6 +70,8 @@ def get_summary(
     # cost on every dashboard load. See docs/decisions-log.md.
     if modules_service.is_enabled(db, "debt_tracking"):
         summary.update(debt_service.build_dashboard_fields(db, date.today()))
+    if modules_service.is_enabled(db, "budget_planning"):
+        summary.update(budget_service.build_dashboard_fields(db, date.today()))
     return summary
 
 

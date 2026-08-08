@@ -316,6 +316,26 @@ export const debtsApi = {
   updateTerminology: (payload, token) => request('/debts/terminology', { method: 'PUT', body: payload, token }),
 }
 
+export const budgetsApi = {
+  list: (financialYearId, token) =>
+    request(`/budgets${financialYearId ? `?financial_year_id=${financialYearId}` : ''}`, { token }),
+  summary: (financialYearId, token) =>
+    request(`/budgets/summary${financialYearId ? `?financial_year_id=${financialYearId}` : ''}`, { token }),
+  upsert: (payload, token) => request('/budgets', { method: 'POST', body: payload, token }),
+  remove: (id, token) => request(`/budgets/${id}`, { method: 'DELETE', token }),
+  getTerminology: (token) => request('/budgets/terminology', { token }),
+  updateTerminology: (payload, token) => request('/budgets/terminology', { method: 'PUT', body: payload, token }),
+}
+
+export const savingsGoalsApi = {
+  list: (token) => request('/savings-goals', { token }),
+  create: (payload, token) => request('/savings-goals', { method: 'POST', body: payload, token }),
+  update: (id, payload, token) => request(`/savings-goals/${id}`, { method: 'PUT', body: payload, token }),
+  contribute: (id, payload, token) =>
+    request(`/savings-goals/${id}/contribute`, { method: 'POST', body: payload, token }),
+  cancel: (id, token) => request(`/savings-goals/${id}`, { method: 'DELETE', token }),
+}
+
 export const reconciliationApi = {
   list: (filters = {}, token) => {
     const params = new URLSearchParams()

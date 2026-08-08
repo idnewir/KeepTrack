@@ -17,6 +17,7 @@ Click **Reports** in the sidebar. You'll see two sections: **Generate new report
 - **Years to include** — how many financial years of annual totals to show in the "Annual totals by category" chart (1–5, default 3). This is separate from your From/To dates — it controls how far back the year-on-year comparison looks, regardless of how short or long your chosen date range is.
 - **Categories** — tick which categories to include, or use **Select all / Deselect all**. Leaving everything ticked includes every category (and any uncategorised spend); narrowing it down focuses the report on just the categories you've chosen.
 - **Include AI-written summary and key insights** — on by default. Turn it off if you just want the figures, tables, and charts without the written narrative.
+- **Include budget vs actual comparison** — only shown if the [Budget Planning](budget-planning.md) module is enabled. Ticked by default if any budgets exist for the current financial year, unticked otherwise. Adds a budget vs actual section to the PDF showing how spending compared to planned budgets — see below.
 
 ## Step 3: Generate
 
@@ -35,6 +36,7 @@ Once it's done:
 - An annual totals chart, broken down by category.
 - A monthly average cost chart per category.
 - For forecast/combined reports: an actual-vs-forecast chart and a forecast breakdown table.
+- A **budget vs actual** section, if you ticked that box: each budgeted category's annual budget, actual spend in the report's date range, variance, percent used, and a colour-coded status (green on track, amber warning, red over budget), with a totals row. The AI summary (if included) will call out any category significantly over or under budget by name.
 - A funding position table, if contribution data exists for the period.
 - A blank notes section at the end, ready for you to add handwritten or typed comments before sharing.
 

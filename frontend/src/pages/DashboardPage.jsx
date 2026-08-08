@@ -5,6 +5,7 @@ import HelpIconLink from '../components/HelpIconLink.jsx'
 import { useAuth } from '../hooks/AuthContext.jsx'
 import { useTerminology } from '../context/TerminologyContext.jsx'
 import { useDebtTerminology } from '../context/DebtTerminologyContext.jsx'
+import { useBudgetTerminology } from '../context/BudgetTerminologyContext.jsx'
 import { useModules } from '../context/ModulesContext.jsx'
 import { dashboardApi, notificationsApi } from '../utils/api.js'
 import { formatCurrency, formatDate, projectUrgency, singularize } from '../utils/format.js'
@@ -58,6 +59,7 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const terminology = useTerminology()
   const debtTerminology = useDebtTerminology()
+  const budgetTerminology = useBudgetTerminology()
   const { isEnabled } = useModules()
   const expensesLower = terminology.term_expenses.toLowerCase()
   const projectsLower = terminology.term_projects.toLowerCase()
@@ -66,6 +68,7 @@ export default function DashboardPage() {
   // net worth/debt figures only exist to show once debts are being tracked
   // at all. See docs/decisions-log.md.
   const personalFinanceMode = isEnabled('debt_tracking')
+  const budgetPlanningEnabled = isEnabled('budget_planning')
 
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -303,7 +306,11 @@ export default function DashboardPage() {
         <div className="kt-panels-row">
           <DebtSummaryPanel items={summary.debts_summary} debtTerminology={debtTerminology} navigate={navigate} />
           <MonthlyPaymentsDuePanel items={summary.debts_summary} debtTerminology={debtTerminology} />
-          <SavingsGoalsPanel />
+          <SavingsGoalsPanel
+            enabled={budgetPlanningEnabled}
+            items={summary.savings_goals}
+            budgetTerminology={budgetTerminology}
+          />
         </div>
       )}
 
@@ -359,6 +366,10 @@ export default function DashboardPage() {
               : `Based on ${summary.reserve_months} month${summary.reserve_months === 1 ? '' : 's'} of average expenses`}
           </p>
         </div>
+      )}
+
+      {!personalFinanceMode && budgetPlanningEnabled && summary.budget_summary && (
+        <BudgetSummaryPanel summary={summary.budget_summary} budgetTerminology={budgetTerminology} />
       )}
 
       <div className="kt-panels-row">
@@ -444,18 +455,95 @@ function MonthlyPaymentsDuePanel({ items, debtTerminology }) {
   )
 }
 
-// Budget Planning (the module savings goals would come from) has no built
-// feature behind it yet regardless of its toggle state — see docs/backlog.md
-// — so this placeholder always points there rather than branching on
-// isEnabled('budget_planning'), which would just show an equally-empty
-// "set up" message with nothing to set up.
-function SavingsGoalsPanel() {
+function SavingsGoalsPanel({ enabled, items, budgetTerminology }) {
+  const termGoal = budgetTerminology.budget_term_savings_goal
   return (
     <div className="kt-dashboard-panel kt-panel-card">
-      <h2 className="kt-panel-title">Savings goals</h2>
-      <PanelEmptyState>
-        Budget Planning not yet enabled. Enable it in Settings → General → Feature Modules.
-      </PanelEmptyState>
+      <h2 className="kt-panel-title">{termGoal}s</h2>
+      {enabled && <p className="kt-panel-subtitle"><Link to="/budget?tab=savings-goals">View all {termGoal.toLowerCase()}s</Link></p>}
+      {!enabled ? (
+        <PanelEmptyState>
+          {budgetTerminology.budget_term_module} not yet enabled. Enable it in Settings → General → Feature Modules.
+        </PanelEmptyState>
+      ) : items.length === 0 ? (
+        <PanelEmptyState>No active {termGoal.toLowerCase()}s yet.</PanelEmptyState>
+      ) : (
+        <ul className="kt-panel-list">
+          {items.map((item) => {
+            const percent = Math.min(100, Math.max(0, Number(item.percent_complete)))
+            return (
+              <li key={item.id} className="kt-panel-list-row kt-panel-list-row-column">
+                <div className="kt-panel-list-row-top">
+                  <span className="kt-panel-list-main">
+                    <span>
+                      <strong>{item.name}</strong>
+                      <span className="kt-panel-list-sub">
+                        {formatCurrency(item.current_amount)} of {formatCurrency(item.target_amount)} ·{' '}
+                        <span className={`kt-savings-goal-track-indicator kt-savings-goal-track-${item.on_track ? 'on' : 'off'}`}>
+                          {item.on_track ? '✓ On track' : '⚠ Behind target'}
+                        </span>
+                      </span>
+                    </span>
+                  </span>
+                  <span className="kt-panel-list-amount">{percent.toFixed(0)}%</span>
+                </div>
+                <div className="kt-savings-goal-progress-track kt-panel-list-progress">
+                  <div className="kt-savings-goal-progress-fill" style={{ width: `${percent}%` }} />
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function BudgetSummaryPanel({ summary, budgetTerminology }) {
+  const termModule = budgetTerminology.budget_term_module
+  const statusLabel = { on_track: 'On Track', warning: 'Warning', over_budget: 'Over Budget' }[summary.overall_status]
+  const statusLevel = { on_track: 'above', warning: 'near', over_budget: 'below' }[summary.overall_status]
+  const percent =
+    summary.total_budgeted_ytd > 0
+      ? Math.min(100, Math.max(0, (Number(summary.total_actual_ytd) / Number(summary.total_budgeted_ytd)) * 100))
+      : 0
+  const flagged = [
+    ...summary.categories_over_budget.map((c) => ({ ...c, level: 'bad' })),
+    ...summary.categories_warning.map((c) => ({ ...c, level: 'amber' })),
+  ].slice(0, 3)
+
+  return (
+    <div className="kt-dashboard-panel">
+      <div className="kt-debt-detail-summary-header">
+        <h2 className="kt-panel-title" style={{ margin: 0 }}>{termModule}</h2>
+        <span className={`kt-metric-status kt-status-${statusLevel}`}>{statusLabel}</span>
+      </div>
+      <div className="kt-reserve-gauge">
+        <div className="kt-reserve-track">
+          <div className={`kt-reserve-fill kt-status-${statusLevel}`} style={{ width: `${percent}%` }} />
+        </div>
+        <span className="kt-reserve-label">
+          Spent {formatCurrency(summary.total_actual_ytd)} / Budgeted {formatCurrency(summary.total_budgeted_ytd)}
+        </span>
+      </div>
+      {flagged.length > 0 && (
+        <ul className="kt-panel-list" style={{ marginTop: 12 }}>
+          {flagged.map((c) => (
+            <li key={c.category_id} className="kt-panel-list-row">
+              <span className="kt-panel-list-main">
+                <span className="kt-category-swatch" style={{ background: c.category_colour }} aria-hidden="true" />
+                <strong>{c.category_name}</strong>
+              </span>
+              <span className={`kt-budget-status-badge kt-budget-status-badge-${c.level}`}>
+                {Number(c.percent_used).toFixed(0)}%
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="kt-panel-subtitle" style={{ marginTop: 8 }}>
+        <Link to="/budget">View full {termModule.toLowerCase()}</Link>
+      </p>
     </div>
   )
 }

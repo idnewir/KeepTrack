@@ -19,12 +19,13 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from models.budget import CategoryBudget
 from models.category import Category
 from models.contribution import Contribution
 from models.financial_year import FinancialYear
 from models.invoice import Invoice
 from models.planned_project import PlannedProject
-from services import project_service
+from services import budget_service, project_service
 from services.financial_year_service import (
     MONTH_LABELS,
     MONTH_LABELS_FULL,
@@ -286,6 +287,70 @@ def _forecast(db: Session, categories: list[Category], category_ids: list[int], 
     return {"months": month_rows, "by_category": by_category}
 
 
+def _budget_vs_actual(db: Session, categories: list[Category], invoices: list[Invoice], date_from: date) -> dict | None:
+    """Budget vs. actual for the report's own scope: each category's *annual*
+    budget (for the financial year containing the start of the range)
+    against actual spend *within the report's date range* — deliberately not
+    scaled to a "year to date" figure, since a report's range is an
+    arbitrary user choice, not necessarily "so far this year". None if the
+    range falls outside any financial year, or no category in scope has a
+    budget set for it. See docs/decisions-log.md."""
+    fy = (
+        db.query(FinancialYear)
+        .filter(FinancialYear.start_date <= date_from, FinancialYear.end_date >= date_from)
+        .first()
+    )
+    if fy is None:
+        return None
+
+    budgets = db.query(CategoryBudget).filter(CategoryBudget.financial_year_id == fy.id).all()
+    budget_by_category = {b.category_id: b for b in budgets}
+    if not budget_by_category:
+        return None
+
+    actual_totals: dict[int | None, Decimal] = {}
+    for inv in invoices:
+        actual_totals[inv.category_id] = actual_totals.get(inv.category_id, Decimal("0")) + inv.amount
+
+    rows = []
+    total_budget = Decimal("0")
+    total_actual = Decimal("0")
+    for cat in categories:
+        budget = budget_by_category.get(cat.id)
+        if budget is None:
+            continue
+        actual = actual_totals.get(cat.id, Decimal("0"))
+        annual = budget.annual_amount
+        percent_used = (actual / annual * 100) if annual else Decimal("0")
+        total_budget += annual
+        total_actual += actual
+        rows.append({
+            "category_id": cat.id,
+            "category_name": cat.name,
+            "category_colour": cat.colour,
+            "annual_budget": annual,
+            "actual_spend": actual,
+            "variance": annual - actual,
+            "percent_used": percent_used,
+            "status": budget_service.budget_status(percent_used),
+        })
+
+    if not rows:
+        return None
+
+    overall_percent = (total_actual / total_budget * 100) if total_budget else Decimal("0")
+    return {
+        "financial_year_label": fy.label,
+        "rows": rows,
+        "totals": {
+            "total_budget": total_budget,
+            "total_actual": total_actual,
+            "total_variance": total_budget - total_actual,
+            "overall_status": budget_service.budget_status(overall_percent),
+        },
+    }
+
+
 def _funding_position(
     db: Session, date_from: date, invoices: list[Invoice], contributions: list[tuple[Contribution, date]]
 ) -> dict | None:
@@ -319,6 +384,7 @@ def build_report_data(
     category_ids: list[int],
     years_included: int,
     report_type: str,
+    include_budget: bool = False,
     today: date | None = None,
 ) -> dict:
     today = today or date.today()
@@ -352,6 +418,7 @@ def build_report_data(
         forecast = _forecast(db, categories, category_ids, date_to, today)
 
     funding_position = _funding_position(db, date_from, invoices, contributions)
+    budget_vs_actual = _budget_vs_actual(db, categories, invoices, date_from) if include_budget else None
 
     # Enriches the same in-range project set used for the AI context's
     # "planned projects due" list (below) with actual-vs-estimated figures,
@@ -401,4 +468,5 @@ def build_report_data(
             "total_variance": total_estimated - total_actual,
         },
         "funding_position": funding_position,
+        "budget_vs_actual": budget_vs_actual,
     }

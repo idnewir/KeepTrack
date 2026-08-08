@@ -1,0 +1,408 @@
+/* Budget Planning module — /budget page (Budgets tab + Savings Goals tab),
+   dashboard integration, and the Add/Edit budget form. Reuses this app's
+   existing design tokens (theme.css) and shared component classes
+   (kt-metric-card, kt-panel-list, kt-modal, kt-field, kt-debt-progress-*)
+   rather than introducing new ones where an existing class already fits —
+   same convention as debts.css. */
+
+.kt-budget-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--kt-border);
+  margin-bottom: 20px;
+}
+
+.kt-budget-tab {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--kt-text-secondary);
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.kt-budget-tab.active {
+  color: var(--kt-primary);
+  border-bottom-color: var(--kt-primary);
+}
+
+.kt-budget-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.kt-budget-fy-select {
+  min-width: 220px;
+}
+
+.kt-budget-fy-select select {
+  font-family: inherit;
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  background: var(--kt-surface);
+  color: var(--kt-text);
+  width: 100%;
+}
+
+.kt-budget-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.kt-budget-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--kt-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.kt-budget-view-toggle button {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border: none;
+  background: var(--kt-surface);
+  color: var(--kt-text-secondary);
+  cursor: pointer;
+}
+
+.kt-budget-view-toggle button.active {
+  background: var(--kt-primary);
+  color: #fff;
+}
+
+/* Status badge — shared by table rows, cards, and the monthly detail modal.
+   under_budget/warning/over_budget map to the same good/amber/bad palette
+   as kt-debt-progress-*. */
+
+.kt-budget-status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.kt-budget-status-badge-good {
+  background: rgba(var(--kt-accent-rgb), 0.14);
+  color: var(--kt-accent);
+}
+
+.kt-budget-status-badge-amber {
+  background: rgba(var(--kt-amber-rgb), 0.18);
+  color: var(--kt-amber-strong);
+}
+
+.kt-budget-status-badge-bad {
+  background: var(--kt-danger-bg);
+  color: var(--kt-danger);
+}
+
+.kt-budget-percent-good { color: var(--kt-accent); }
+.kt-budget-percent-amber { color: var(--kt-amber-strong); }
+.kt-budget-percent-bad { color: var(--kt-danger); }
+
+/* Table/grid view */
+
+.kt-budget-table {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 24px;
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--kt-surface);
+}
+
+.kt-budget-table-header,
+.kt-budget-row-cells {
+  display: grid;
+  grid-template-columns: 2.2fr 1.1fr 1.1fr 1.1fr 1fr 1.2fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+.kt-budget-table-header {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--kt-text-secondary);
+  background: var(--kt-background);
+  border-bottom: 1px solid var(--kt-border);
+}
+
+.kt-budget-row {
+  border-bottom: 1px solid var(--kt-border);
+  cursor: pointer;
+}
+
+.kt-budget-row:last-child {
+  border-bottom: none;
+}
+
+.kt-budget-row:hover {
+  background: rgba(var(--kt-primary-rgb), 0.04);
+}
+
+.kt-budget-row-category {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.kt-budget-row-cells .kt-align-right {
+  text-align: right;
+}
+
+.kt-budget-row-progress {
+  padding: 0 16px 12px;
+}
+
+.kt-budget-row-progress .kt-debt-progress-track {
+  height: 5px;
+}
+
+/* Card view */
+
+.kt-budget-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kt-budget-card {
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+}
+
+.kt-budget-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.kt-budget-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.kt-budget-card-amounts {
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.kt-budget-card-amounts strong {
+  font-size: 22px;
+  display: block;
+}
+
+.kt-budget-card-gauge-track {
+  height: 14px;
+  border-radius: 999px;
+  background: var(--kt-border);
+  overflow: hidden;
+}
+
+.kt-budget-card-gauge-track .kt-debt-progress-fill {
+  height: 100%;
+}
+
+.kt-budget-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+}
+
+/* Unbudgeted categories */
+
+.kt-budget-unbudgeted-list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kt-budget-unbudgeted-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px dashed var(--kt-border);
+  border-radius: 10px;
+  background: var(--kt-background);
+}
+
+/* Monthly detail modal */
+
+.kt-budget-month-modal {
+  max-width: 640px;
+}
+
+.kt-budget-month-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.kt-budget-month-table th,
+.kt-budget-month-table td {
+  padding: 8px 10px;
+  text-align: right;
+  border-bottom: 1px solid var(--kt-border);
+}
+
+.kt-budget-month-table th:first-child,
+.kt-budget-month-table td:first-child {
+  text-align: left;
+}
+
+.kt-budget-month-override-input {
+  width: 90px;
+}
+
+/* Savings goals */
+
+.kt-savings-goal-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.kt-savings-goal-card {
+  background: var(--kt-surface);
+  border: 1px solid var(--kt-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.kt-savings-goal-name {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.kt-savings-goal-description {
+  color: var(--kt-text-secondary);
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.kt-savings-goal-amounts {
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.kt-savings-goal-amounts strong {
+  font-size: 20px;
+}
+
+.kt-savings-goal-progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--kt-border);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.kt-savings-goal-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--kt-primary);
+  transition: width 0.3s ease;
+}
+
+.kt-savings-goal-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--kt-text-secondary);
+  margin-bottom: 12px;
+}
+
+.kt-savings-goal-track-indicator {
+  font-weight: 600;
+}
+
+.kt-savings-goal-track-on {
+  color: var(--kt-accent);
+}
+
+.kt-savings-goal-track-off {
+  color: var(--kt-amber-strong);
+}
+
+.kt-savings-goal-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.kt-savings-goal-completed-section {
+  margin-top: 8px;
+}
+
+.kt-savings-goal-completed-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--kt-text-secondary);
+  padding: 8px 0;
+}
+
+.kt-savings-goal-card-completed {
+  background: rgba(var(--kt-accent-rgb), 0.06);
+  border-color: rgba(var(--kt-accent-rgb), 0.3);
+}
+
+.kt-savings-goal-completed-tick {
+  color: var(--kt-accent);
+}
+
+@media (max-width: 780px) {
+  .kt-budget-table-header,
+  .kt-budget-row-cells {
+    grid-template-columns: 1.6fr 1fr 1fr;
+  }
+
+  .kt-budget-table-header span:nth-child(4),
+  .kt-budget-table-header span:nth-child(5),
+  .kt-budget-row-cells > :nth-child(4),
+  .kt-budget-row-cells > :nth-child(5) {
+    display: none;
+  }
+}

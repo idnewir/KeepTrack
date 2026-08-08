@@ -29,6 +29,7 @@ GUIDES = [
     {"key": "feature-modules", "title": "Feature Modules", "filename": "feature-modules.md"},
     {"key": "folder-integration", "title": "Folder Integration", "filename": "folder-integration.md"},
     {"key": "debt-tracking", "title": "Debt Tracking", "filename": "debt-tracking.md"},
+    {"key": "budget-planning", "title": "Budget Planning", "filename": "budget-planning.md"},
 ]
 GUIDES_BY_KEY = {g["key"]: g for g in GUIDES}
 

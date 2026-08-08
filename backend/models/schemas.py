@@ -382,6 +382,36 @@ class DashboardDebtSummaryItem(BaseModel):
     promotional_end_date: date | None = None
 
 
+class DashboardBudgetCategoryStatus(BaseModel):
+    category_id: int
+    category_name: str
+    category_colour: str
+    ytd_budget: Decimal
+    ytd_actual: Decimal
+    percent_used: Decimal
+
+
+class DashboardBudgetSummary(BaseModel):
+    total_budgeted_ytd: Decimal
+    total_actual_ytd: Decimal
+    total_variance_ytd: Decimal
+    categories_over_budget: list[DashboardBudgetCategoryStatus]
+    categories_warning: list[DashboardBudgetCategoryStatus]
+    overall_status: str  # "on_track" | "warning" | "over_budget"
+
+
+class DashboardSavingsGoal(BaseModel):
+    id: int
+    name: str
+    target_amount: Decimal
+    target_date: date
+    current_amount: Decimal
+    percent_complete: Decimal
+    months_remaining: int
+    monthly_needed: Decimal
+    on_track: bool
+
+
 class DashboardSummary(BaseModel):
     financial_year: DashboardFinancialYear
     total_invoices_confirmed: int
@@ -410,6 +440,13 @@ class DashboardSummary(BaseModel):
     highest_interest_debt: DashboardHighestInterestDebt | None = None
     net_worth: Decimal | None = None
     debts_summary: list[DashboardDebtSummaryItem] = Field(default_factory=list)
+
+    # Present only when the budget_planning module is enabled
+    # (routers/dashboard.py) — same "always on the schema, module state
+    # decides whether it's populated" approach as the debt fields above.
+    # See docs/decisions-log.md.
+    budget_summary: DashboardBudgetSummary | None = None
+    savings_goals: list[DashboardSavingsGoal] = Field(default_factory=list)
 
 
 class DashboardNotification(BaseModel):
@@ -628,6 +665,10 @@ class ReportGenerateRequest(BaseModel):
     years_included: int = Field(default=3, ge=1, le=5)
     report_type: str = Field(default="historical", description=f"One of: {', '.join(REPORT_TYPES)}")
     include_ai_summary: bool = True
+    # Only has an effect when the budget_planning module is enabled — a
+    # report built while it's disabled silently ignores this rather than
+    # erroring, same as every other module-gated field in this app.
+    include_budget: bool = False
 
 
 class SystemResetRequest(BaseModel):
@@ -1241,3 +1282,142 @@ class DebtTerminologyUpdate(BaseModel):
     debt_term_module: str | None = Field(default=None, min_length=1, max_length=100)
     debt_term_debt: str | None = Field(default=None, min_length=1, max_length=100)
     debt_term_payment: str | None = Field(default=None, min_length=1, max_length=100)
+
+
+# ---------------------------------------------------------------------------
+# Budget Planning (backend/routers/budgets.py, backend/routers/savings_goals.py)
+# ---------------------------------------------------------------------------
+
+class CategoryBudgetOut(BaseModel):
+    id: int
+    category_id: int
+    category_name: str
+    category_colour: str
+    financial_year_id: int
+    annual_amount: Decimal
+    # Raw per-month overrides as stored ({"12": 600, ...}) — present so the
+    # Admin edit panel can pre-fill only the months actually overridden,
+    # distinct from monthly_budget below (every month, override or fallback).
+    monthly_amounts: dict[str, Decimal] | None = None
+
+    # Computed live by services/budget_service.py from confirmed invoices —
+    # never stored, so these can never drift from the underlying invoice
+    # data. Keyed "1".."12" (calendar month number as a string, since JSON
+    # object keys are always strings).
+    monthly_budget: dict[str, Decimal]
+    actual_spend_by_month: dict[str, Decimal]
+    variance_by_month: dict[str, Decimal]
+    ytd_budget: Decimal
+    ytd_actual: Decimal
+    ytd_variance: Decimal
+    status: str  # "under_budget" | "warning" | "over_budget"
+    percent_used: Decimal
+
+    created_by: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class UnbudgetedCategoryOut(BaseModel):
+    category_id: int
+    category_name: str
+    category_colour: str
+    actual_spend_ytd: Decimal
+
+
+class BudgetsListOut(BaseModel):
+    financial_year_id: int
+    financial_year_label: str
+    budgets: list[CategoryBudgetOut]
+    unbudgeted_categories: list[UnbudgetedCategoryOut]
+
+
+class CategoryBudgetCreate(BaseModel):
+    category_id: int
+    financial_year_id: int | None = None
+    annual_amount: Decimal = Field(gt=0)
+    monthly_amounts: dict[str, Decimal] | None = None
+
+
+class BudgetSummaryCategoryOut(BaseModel):
+    category_id: int
+    category_name: str
+    category_colour: str
+    ytd_budget: Decimal
+    ytd_actual: Decimal
+    percent_used: Decimal
+
+
+class BudgetSummaryOut(BaseModel):
+    financial_year_id: int
+    total_budgeted_ytd: Decimal
+    total_actual_ytd: Decimal
+    total_variance_ytd: Decimal
+    categories_over_budget: list[BudgetSummaryCategoryOut]
+    categories_warning: list[BudgetSummaryCategoryOut]
+    overall_status: str  # "on_track" | "warning" | "over_budget"
+
+
+class BudgetTerminologyOut(BaseModel):
+    budget_term_module: str
+    budget_term_budget: str
+    budget_term_savings_goal: str
+
+
+class BudgetTerminologyUpdate(BaseModel):
+    budget_term_module: str | None = Field(default=None, min_length=1, max_length=100)
+    budget_term_budget: str | None = Field(default=None, min_length=1, max_length=100)
+    budget_term_savings_goal: str | None = Field(default=None, min_length=1, max_length=100)
+
+
+class SavingsGoalOut(BaseModel):
+    id: int
+    name: str
+    description: str | None
+    target_amount: Decimal
+    target_date: date
+    current_amount: Decimal
+    category_id: int | None
+    category_name: str | None = None
+    financial_year_id: int | None
+    status: str
+    created_by: int
+    created_at: datetime
+    updated_at: datetime
+
+    # Computed live by services/budget_service.py — never stored, so these
+    # can never drift from current_amount/target_amount/target_date.
+    percent_complete: Decimal
+    months_remaining: int
+    monthly_needed: Decimal
+    on_track: bool
+
+    model_config = {"from_attributes": True}
+
+
+class SavingsGoalCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=2000)
+    target_amount: Decimal = Field(gt=0)
+    target_date: date
+    category_id: int | None = None
+    financial_year_id: int | None = None
+
+
+class SavingsGoalUpdate(BaseModel):
+    # None means "leave unchanged" on every field here — same convention as
+    # DebtUpdate/ProjectUpdate.
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+    target_amount: Decimal | None = Field(default=None, gt=0)
+    target_date: date | None = None
+    category_id: int | None = None
+    financial_year_id: int | None = None
+    status: str | None = None
+
+
+class SavingsGoalContribute(BaseModel):
+    amount: Decimal = Field(gt=0)
+    notes: str | None = Field(default=None, max_length=500)

@@ -1,4 +1,5 @@
 from models.audit_log import AuditLog, AuditLogArchive
+from models.budget import BudgetNotificationSent, CategoryBudget, SavingsGoal
 from models.category import Category
 from models.contribution import Contribution
 from models.debt import Debt, DebtMilestone, DebtPayment
@@ -21,6 +22,9 @@ from models.user import User
 __all__ = [
     "AuditLog",
     "AuditLogArchive",
+    "BudgetNotificationSent",
+    "CategoryBudget",
+    "SavingsGoal",
     "Category",
     "Contribution",
     "Debt",

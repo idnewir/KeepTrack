@@ -1,9 +1,11 @@
 """PDF report generation via ReportLab.
 
 Builds the full multi-section PDF a generated report becomes: a cover page,
-an AI-written summary, overview metrics, annual/category/forecast charts, a
-funding position table, and a blank context-notes section left for manual
-annotation afterwards. Styled with Keep Track's brand colours.
+an AI-written summary, overview metrics, annual/category/forecast charts, an
+optional budget vs. actual table (when include_budget was requested and the
+budget_planning module has data for it), a funding position table, and a
+blank context-notes section left for manual annotation afterwards. Styled
+with Keep Track's brand colours.
 
 No build_khoc_report.py exists anywhere in this repo to copy structure or
 chart styling from (checked both the repo root and the whole tree) — the
@@ -397,6 +399,61 @@ def _project_summary_table(styles, data: dict) -> Table | None:
     return table
 
 
+def _budget_table(styles, data: dict) -> Table | None:
+    budget_vs_actual = data.get("budget_vs_actual")
+    if not budget_vs_actual:
+        return None
+
+    header = ["Category", "Annual budget", "Actual", "Variance", "% used", "Status"]
+    rows = [[Paragraph(h, styles["table_header"]) for h in header]]
+    status_labels = {"under_budget": "On track", "warning": "Warning", "over_budget": "Over budget"}
+    status_tints = {
+        "under_budget": colors.HexColor("#E1F0E9"),
+        "warning": colors.HexColor("#FBF0DD"),
+        "over_budget": colors.HexColor("#F7E2E2"),
+    }
+    tinted_row_indexes = []
+    for i, row in enumerate(budget_vs_actual["rows"], start=1):
+        tinted_row_indexes.append((i, status_tints[row["status"]]))
+        rows.append([
+            Paragraph(pdf_text(row["category_name"]), styles["table_cell"]),
+            Paragraph(_money(row["annual_budget"]), styles["table_cell"]),
+            Paragraph(_money(row["actual_spend"]), styles["table_cell"]),
+            Paragraph(_money(row["variance"]), styles["table_cell"]),
+            Paragraph(f"{row['percent_used']:.0f}%", styles["table_cell"]),
+            Paragraph(status_labels[row["status"]], styles["table_cell"]),
+        ])
+
+    totals = budget_vs_actual["totals"]
+    rows.append([
+        Paragraph("Total", styles["table_cell"]),
+        Paragraph(_money(totals["total_budget"]), styles["table_cell"]),
+        Paragraph(_money(totals["total_actual"]), styles["table_cell"]),
+        Paragraph(_money(totals["total_variance"]), styles["table_cell"]),
+        Paragraph("", styles["table_cell"]),
+        Paragraph(status_labels[totals["overall_status"]], styles["table_cell"]),
+    ])
+
+    table = Table(rows, colWidths=[4.5 * cm, 2.7 * cm, 2.7 * cm, 2.7 * cm, 1.8 * cm, 2.6 * cm], repeatRows=1)
+    style = [
+        ("BACKGROUND", (0, 0), (-1, 0), PRIMARY),
+        ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#F0F0EC")),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+    ]
+    # Colour-coded per the task brief — green under budget, amber warning,
+    # red over budget, on the whole data row.
+    for row_index, tint in tinted_row_indexes:
+        style.append(("BACKGROUND", (0, row_index), (-1, row_index), tint))
+    table.setStyle(TableStyle(style))
+    return table
+
+
 def _funding_table(styles, data: dict) -> Table | None:
     funding = data.get("funding_position")
     if not funding:
@@ -502,6 +559,17 @@ def generate_report_pdf(
         ))
         story.append(Spacer(1, 0.3 * cm))
         story.append(project_summary_table)
+
+    budget_table = _budget_table(styles, data)
+    if budget_table:
+        story.append(PageBreak())
+        story.append(Paragraph("Budget vs. actual", styles["h1"]))
+        story.append(Paragraph(
+            "Each category's annual budget against actual spend in this report's period.",
+            styles["muted"],
+        ))
+        story.append(Spacer(1, 0.3 * cm))
+        story.append(budget_table)
 
     funding_table = _funding_table(styles, data)
     if funding_table:

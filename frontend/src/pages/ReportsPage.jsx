@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/AuthContext.jsx'
+import { useModules } from '../context/ModulesContext.jsx'
 import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js'
-import { categoriesApi, reportsApi, triggerBlobDownload } from '../utils/api.js'
+import { budgetsApi, categoriesApi, reportsApi, triggerBlobDownload } from '../utils/api.js'
 import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
 
@@ -38,12 +39,15 @@ const emptyForm = {
   dateTo: '',
   yearsIncluded: 3,
   includeAiSummary: true,
+  includeBudget: false,
 }
 
 export default function ReportsPage() {
   const { user } = useAuth()
   const token = user?.token
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin'
+  const { isEnabled } = useModules()
+  const budgetPlanningEnabled = isEnabled('budget_planning')
 
   const [categories, setCategories] = useState([])
   const [reports, setReports] = useState([])
@@ -55,6 +59,7 @@ export default function ReportsPage() {
   const { page, perPage, setPage, setPerPage } = usePaginationState('reports')
 
   const [form, setForm] = useState(emptyForm)
+  const [budgetDefaultSeeded, setBudgetDefaultSeeded] = useState(false)
   const [selectedCategoryIds, setSelectedCategoryIds] = useState(() => new Set())
   const [generating, setGenerating] = useState(false)
 
@@ -85,6 +90,20 @@ export default function ReportsPage() {
     loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, perPage, token])
+
+  // Default the "Include budget vs. actual comparison" checkbox to checked
+  // only if budgets actually exist for the current financial year — seeded
+  // once so it doesn't keep overriding a user's own toggle on every refetch.
+  useEffect(() => {
+    if (!token || !budgetPlanningEnabled || budgetDefaultSeeded) return
+    budgetsApi
+      .list(undefined, token)
+      .then((data) => {
+        setForm((f) => ({ ...f, includeBudget: (data.budgets || []).length > 0 }))
+      })
+      .catch(() => {})
+      .finally(() => setBudgetDefaultSeeded(true))
+  }, [token, budgetPlanningEnabled, budgetDefaultSeeded])
 
   const handleExportCsv = async () => {
     const blob = await reportsApi.exportCsv(token)
@@ -123,6 +142,7 @@ export default function ReportsPage() {
         years_included: Number(form.yearsIncluded),
         report_type: form.reportType,
         include_ai_summary: form.includeAiSummary,
+        include_budget: budgetPlanningEnabled && form.includeBudget,
       }
       const report = await reportsApi.generate(payload, token)
       const blob = await reportsApi.downloadPdf(report.id, token)
@@ -288,6 +308,22 @@ export default function ReportsPage() {
               Include AI-written summary and key insights
             </label>
           </div>
+
+          {budgetPlanningEnabled && (
+            <div className="kt-field kt-field-wide">
+              <label className="kt-reports-ai-toggle">
+                <input
+                  type="checkbox"
+                  checked={form.includeBudget}
+                  onChange={(e) => setForm((f) => ({ ...f, includeBudget: e.target.checked }))}
+                />
+                Include budget vs actual comparison
+              </label>
+              <span className="kt-field-note">
+                Adds a budget vs actual section showing how spending compared to planned budgets
+              </span>
+            </div>
+          )}
 
           <button className="kt-auth-button kt-reports-generate-button" type="submit" disabled={generating}>
             {generating ? 'Generating…' : 'Generate report'}

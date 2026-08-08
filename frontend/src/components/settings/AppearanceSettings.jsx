@@ -1,5 +1,6 @@
 import TerminologySettings from './TerminologySettings.jsx'
 import DebtTerminologySettings from './DebtTerminologySettings.jsx'
+import BudgetTerminologySettings from './BudgetTerminologySettings.jsx'
 import { useModules } from '../../context/ModulesContext.jsx'
 
 export default function AppearanceSettings({ token }) {
@@ -17,6 +18,7 @@ export default function AppearanceSettings({ token }) {
       <TerminologySettings token={token} />
 
       {isEnabled('debt_tracking') && <DebtTerminologySettings token={token} />}
+      {isEnabled('budget_planning') && <BudgetTerminologySettings token={token} />}
     </div>
   )
 }

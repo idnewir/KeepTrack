@@ -5,6 +5,7 @@ import App from './App.jsx'
 import { AuthProvider } from './hooks/AuthContext.jsx'
 import { TerminologyProvider } from './context/TerminologyContext.jsx'
 import { DebtTerminologyProvider } from './context/DebtTerminologyContext.jsx'
+import { BudgetTerminologyProvider } from './context/BudgetTerminologyContext.jsx'
 import { SiteNameProvider } from './context/SiteNameContext.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { ModulesProvider } from './context/ModulesContext.jsx'
@@ -27,6 +28,7 @@ import './styles/help.css'
 import './styles/search.css'
 import './styles/notifications.css'
 import './styles/debts.css'
+import './styles/budget.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -36,9 +38,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <ModulesProvider>
             <TerminologyProvider>
               <DebtTerminologyProvider>
-                <SiteNameProvider>
-                  <App />
-                </SiteNameProvider>
+                <BudgetTerminologyProvider>
+                  <SiteNameProvider>
+                    <App />
+                  </SiteNameProvider>
+                </BudgetTerminologyProvider>
               </DebtTerminologyProvider>
             </TerminologyProvider>
           </ModulesProvider>
