@@ -37,7 +37,10 @@ class CategoryBudget(Base):
     # Optional per-month overrides as {"1": 300, "12": 600} — a month with no
     # entry here falls back to annual_amount / 12. See services/budget_service.py.
     monthly_amounts = Column(JSON, nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's budgets can be anonymised
+    # rather than deleted — see routers/auth.py's DELETE /auth/users/{id}
+    # and docs/decisions-log.md.
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
@@ -57,7 +60,10 @@ class SavingsGoal(Base):
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     financial_year_id = Column(Integer, ForeignKey("financial_years.id"), nullable=True)
     status = Column(String(20), nullable=False, default="active", server_default="active")
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's savings goals can be
+    # anonymised rather than deleted — see routers/auth.py's
+    # DELETE /auth/users/{id} and docs/decisions-log.md.
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 

@@ -26,7 +26,10 @@ class PlannedProject(Base):
     estimated_cost = Column(Numeric(12, 2), nullable=False)
     expected_month = Column(Date, nullable=False)
     financial_year_id = Column(Integer, ForeignKey("financial_years.id"), nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's projects can be anonymised
+    # rather than deleted — see routers/auth.py's DELETE /auth/users/{id}
+    # and docs/decisions-log.md.
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     active = Column(Boolean, nullable=False, default=True, server_default="true")
     completed = Column(Boolean, nullable=False, default=False, server_default="false")

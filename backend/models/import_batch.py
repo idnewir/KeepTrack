@@ -26,6 +26,9 @@ class ImportBatch(Base):
     imported_records = Column(Integer, nullable=False, default=0, server_default="0")
     failed_records = Column(Integer, nullable=False, default=0, server_default="0")
     status = Column(String(20), nullable=False)
-    imported_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's import batches can be
+    # anonymised rather than deleted — see routers/auth.py's
+    # DELETE /auth/users/{id} and docs/decisions-log.md.
+    imported_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     imported_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     notes = Column(Text, nullable=True)

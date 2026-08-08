@@ -85,6 +85,8 @@ export const authApi = {
   reactivateUser: (id, token) => request(`/auth/users/${id}/reactivate`, { method: 'PUT', token }),
   resetUserPassword: (id, token) =>
     request(`/auth/users/${id}/reset-password`, { method: 'POST', token }),
+  deleteUser: (id, confirmationPhrase, token) =>
+    request(`/auth/users/${id}`, { method: 'DELETE', body: { confirmation_phrase: confirmationPhrase }, token }),
   forcePasswordChange: (payload, token) =>
     request('/auth/me/force-password-change', { method: 'PUT', body: payload, token }),
   setupAppStartDate: (appStartDate, financialYearStartMonth) =>

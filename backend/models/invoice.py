@@ -33,7 +33,10 @@ class Invoice(Base):
     financial_year_id = Column(Integer, ForeignKey("financial_years.id"), nullable=True)
     reviewed = Column(Boolean, nullable=False, default=False, server_default="false")
     duplicate_flag = Column(Boolean, nullable=False, default=False, server_default="false")
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's invoices can be anonymised
+    # (created_by set to null) rather than deleted — see
+    # routers/auth.py's DELETE /auth/users/{id} and docs/decisions-log.md.
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     # Not in the documented schema — added to support soft delete on
     # DELETE /invoices/{id}. See docs/decisions-log.md.

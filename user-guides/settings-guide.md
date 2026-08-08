@@ -88,8 +88,24 @@ A table of every approved account, showing their name/username, email, role, whe
 - **Reset a password** — click **Reset password**, confirm, and Keep Track generates a random 8-character temporary password on the spot. Copy it and share it with the user yourself (by whatever secure means you'd normally use) — Keep Track doesn't email it. The user must set their own new password the next time they log in before they can do anything else.
 - **Deactivate an account** — click **Deactivate** and confirm. A deactivated user can no longer log in ("Your account has been deactivated. Please contact an Administrator.") but their history (invoices, contributions, etc.) is untouched.
 - **Reactivate an account** — click **Reactivate** on an inactive user to restore their access.
+- **Permanently delete an account** — click **Delete** and confirm to erase a former user's personal data for good, per GDPR's "right to erasure". See below.
 
-You can't change the role of, reset the password of, or deactivate **your own account** or the **Superadmin account** — those actions are hidden for those rows. The Superadmin account can never be deactivated, since it's the recovery login for when every Admin account is locked out or forgotten.
+You can't change the role of, reset the password of, deactivate, or delete **your own account** or the **Superadmin account** — those actions are hidden for those rows. The Superadmin account can never be deactivated or deleted, since it's the recovery login for when every Admin account is locked out or forgotten.
+
+##### Permanently deleting a user
+
+Deactivating an account (above) is the normal way to remove someone's access — it's instant and fully reversible, and every record they ever created keeps showing their real name. **Permanent deletion is different: it's a one-way action for someone who has genuinely left and asked for their personal data to be erased**, and it can't be undone.
+
+An account must already be **Inactive** before it can be deleted — the **Delete** button stays greyed out (with a "Deactivate user before deleting" tooltip) until you've deactivated them first. This two-step requirement exists so permanent deletion can never happen by accident: deactivating is the easy, everyday action; deleting is a deliberate second step you take only once you're sure.
+
+Clicking **Delete** opens a confirmation window that explains exactly what will happen, and won't let you proceed until you type **DELETE USER** exactly (case sensitive) into the confirmation box. Once you confirm:
+
+- Their profile picture and signature are deleted from storage.
+- Their login credentials, MFA setup, and any notifications are permanently removed — they can never log in again, even if you had their password.
+- Every invoice, contribution, reconciliation, project, report, budget, savings goal, and debt record they ever created **stays exactly as it was** — nothing about the financial history changes — but the "created by" / "recorded by" attribution on those records is cleared, so they no longer show the deleted person's name.
+- Their entries in the audit log are kept (not deleted) but anonymised in the same way, with **[Deleted User]** added to the description so the trail of what happened is still readable without naming them.
+
+In short: **the person is erased, the financial record isn't.** This keeps Keep Track's accounts and audit trail intact for accounting/compliance purposes while still honouring a genuine erasure request. See [decisions-log.md](../docs/decisions-log.md) for the reasoning behind this split.
 
 #### Pending approval
 

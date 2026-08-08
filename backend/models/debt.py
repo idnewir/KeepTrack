@@ -52,7 +52,10 @@ class Debt(Base):
     notes = Column(Text, nullable=True)
     is_paid_off = Column(Boolean, nullable=False, default=False, server_default="false")
     paid_off_date = Column(Date, nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's debts can be anonymised
+    # rather than deleted — see routers/auth.py's DELETE /auth/users/{id}
+    # and docs/decisions-log.md.
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
     active = Column(Boolean, nullable=False, default=True, server_default="true")
@@ -66,7 +69,10 @@ class DebtPayment(Base):
     amount = Column(Numeric(12, 2), nullable=False)
     payment_date = Column(Date, nullable=False)
     notes = Column(String(500), nullable=True)
-    recorded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's payments can be anonymised
+    # rather than deleted — see routers/auth.py's DELETE /auth/users/{id}
+    # and docs/decisions-log.md.
+    recorded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 

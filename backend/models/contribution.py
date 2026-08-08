@@ -15,7 +15,10 @@ class Contribution(Base):
     month = Column(SmallInteger, nullable=False)
     group_name = Column(String(100), nullable=False)
     amount = Column(Numeric(12, 2), nullable=False)
-    recorded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's contributions can be
+    # anonymised rather than deleted — see routers/auth.py's
+    # DELETE /auth/users/{id} and docs/decisions-log.md.
+    recorded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     recorded_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     # Not in the documented schema — added to support soft delete on
     # DELETE /contributions/{id}, matching the invoices.deleted precedent.

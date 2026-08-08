@@ -137,6 +137,14 @@ class PasswordResetOut(BaseModel):
     must_change_password: bool = True
 
 
+class UserDeleteRequest(BaseModel):
+    confirmation_phrase: str
+
+
+class UserDeleteResult(BaseModel):
+    message: str
+
+
 class ForcePasswordChangeRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=255)
 

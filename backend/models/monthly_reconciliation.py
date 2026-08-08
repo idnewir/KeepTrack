@@ -25,7 +25,10 @@ class MonthlyReconciliation(Base):
     discrepancy = Column(Numeric(12, 2), nullable=False)
     discrepancy_notes = Column(Text, nullable=True)
     suggested_reason = Column(Text, nullable=True)
-    reconciled_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's reconciliations can be
+    # anonymised rather than deleted — see routers/auth.py's
+    # DELETE /auth/users/{id} and docs/decisions-log.md.
+    reconciled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     reconciled_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     # Set only when an Admin corrects an already-reconciled month — see
     # docs/decisions-log.md. Null for every reconciliation that hasn't been

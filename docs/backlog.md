@@ -56,7 +56,6 @@ Small improvements that make V1 feel complete and considered, but do not block l
 - **Dark mode:** report PDFs do not respect dark mode — PDFs are always light, which is the correct behaviour, but worth noting explicitly so it isn't mistaken for a bug later.
 - **Settings → AI & Extraction:** rename or expand the page to make extraction settings clearer (related to the Section 1 bug — this is the longer-term polish once that gap is addressed).
 - **MFA issuer:** consider adding the Keep Track logo to the QR code once the app is publicly accessible (currently works best self-hosted, where a logo adds less value).
-- **User management:** add permanent delete with GDPR anonymisation.
 - **Error log:** review whether the "clear all" UX could be improved further.
 - **Callout tooltips:** hovering over notifications/errors should give an explanation.
 - **Help guides:** review all content for accuracy after recent changes.

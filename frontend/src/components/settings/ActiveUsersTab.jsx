@@ -20,6 +20,8 @@ const ROLE_LABELS = {
   readonly: 'Read only',
 }
 
+const DELETE_USER_PHRASE = 'DELETE USER'
+
 export default function ActiveUsersTab({ token }) {
   const { user: me } = useAuth()
 
@@ -29,6 +31,7 @@ export default function ActiveUsersTab({ token }) {
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
   const [confirmingDeactivateId, setConfirmingDeactivateId] = useState(null)
+  const [successMessage, setSuccessMessage] = useState('')
 
   const { page, perPage, setPage, setPerPage } = usePaginationState('active-users')
 
@@ -36,6 +39,9 @@ export default function ActiveUsersTab({ token }) {
   const [resetModal, setResetModal] = useState(null)
   const [resetError, setResetError] = useState('')
   const [copied, setCopied] = useState(false)
+
+  // The user currently targeted by the permanent-delete confirmation modal, or null.
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const loadUsers = () => {
     setLoading(true)
@@ -124,6 +130,19 @@ export default function ActiveUsersTab({ token }) {
     }
   }
 
+  const openDeleteModal = (u) => {
+    setError('')
+    setDeleteTarget(u)
+  }
+
+  const closeDeleteModal = () => setDeleteTarget(null)
+
+  const handleDeleted = async (message) => {
+    setDeleteTarget(null)
+    await loadUsers()
+    setSuccessMessage(message)
+  }
+
   const copyTempPassword = async () => {
     if (!resetModal?.tempPassword) return
     try {
@@ -145,6 +164,12 @@ export default function ActiveUsersTab({ token }) {
         <div className="kt-auth-error" style={{ marginBottom: 20 }}>
           {error}
         </div>
+      )}
+
+      {successMessage && (
+        <p className="kt-profile-success" style={{ marginBottom: 20 }}>
+          {successMessage}
+        </p>
       )}
 
       {users.length === 0 ? (
@@ -256,6 +281,26 @@ export default function ActiveUsersTab({ token }) {
                                 {busyId === u.id ? 'Reactivating…' : 'Reactivate'}
                               </button>
                             )}
+                            {u.is_active ? (
+                              <span title="Deactivate user before deleting">
+                                <button
+                                  type="button"
+                                  className="kt-category-link-button kt-category-danger"
+                                  disabled
+                                >
+                                  Delete
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="kt-category-link-button kt-category-danger"
+                                onClick={() => openDeleteModal(u)}
+                                disabled={busyId === u.id}
+                              >
+                                Delete
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -327,6 +372,85 @@ export default function ActiveUsersTab({ token }) {
           )}
         </Modal>
       )}
+
+      {deleteTarget && (
+        <DeleteUserModal user={deleteTarget} token={token} onClose={closeDeleteModal} onDeleted={handleDeleted} />
+      )}
     </div>
+  )
+}
+
+function DeleteUserModal({ user, token, onClose, onDeleted }) {
+  const name = user.display_name || user.username
+  const [phrase, setPhrase] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const matches = phrase === DELETE_USER_PHRASE
+
+  const handleConfirm = async () => {
+    if (!matches) return
+    setBusy(true)
+    setError('')
+    try {
+      const result = await authApi.deleteUser(user.id, phrase, token)
+      onDeleted(result.message)
+    } catch (err) {
+      setError(err.message || 'Failed to delete user')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal title={`Permanently delete ${name}?`} onClose={busy ? undefined : onClose}>
+      <div className="kt-danger-warning">
+        <strong>
+          This action is permanent and cannot be undone. {name}&rsquo;s personal data will be permanently
+          deleted. Their financial records and audit history will be anonymised and preserved.
+        </strong>
+        <p>What will happen:</p>
+        <ul>
+          <li>Profile picture and signature deleted</li>
+          <li>Login credentials permanently removed</li>
+          <li>Audit log entries attributed to [Deleted User]</li>
+          <li>Financial records preserved but anonymised</li>
+        </ul>
+      </div>
+
+      {error && (
+        <div className="kt-auth-error" style={{ marginTop: 16 }}>
+          {error}
+        </div>
+      )}
+
+      <div className="kt-field kt-danger-step">
+        <label htmlFor="delete-user-phrase">Type {DELETE_USER_PHRASE} to confirm</label>
+        <div className="kt-confirm-phrase-box">{DELETE_USER_PHRASE}</div>
+        <input
+          id="delete-user-phrase"
+          type="text"
+          className="kt-confirm-phrase-input"
+          value={phrase}
+          onChange={(e) => setPhrase(e.target.value)}
+          disabled={busy}
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </div>
+
+      <div className="kt-modal-actions">
+        <button type="button" className="kt-category-link-button" onClick={onClose} disabled={busy}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="kt-auth-button kt-danger-reset-button"
+          style={{ width: 'auto', marginTop: 0, padding: '9px 18px' }}
+          onClick={handleConfirm}
+          disabled={!matches || busy}
+        >
+          {busy ? 'Deleting…' : 'Delete permanently'}
+        </button>
+      </div>
+    </Modal>
   )
 }

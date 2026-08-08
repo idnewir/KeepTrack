@@ -29,6 +29,8 @@ from models.schemas import (
     SetupResponse,
     SetupStatusResponse,
     TokenResponse,
+    UserDeleteRequest,
+    UserDeleteResult,
     UserOut,
     UserRoleUpdate,
     ASSIGNABLE_ROLES,
@@ -42,6 +44,7 @@ from services import (
     mfa_remember_service,
     profile_service,
     rate_limit_service,
+    user_deletion_service,
 )
 from services.ai_provider_service import DEFAULT_MODEL_FOR_PROVIDER, SUPPORTED_PROVIDERS
 from services.auth_service import (
@@ -677,6 +680,48 @@ def reset_user_password(
     )
 
     return PasswordResetOut(temporary_password=temporary_password, must_change_password=True)
+
+
+@router.delete("/users/{user_id}", response_model=UserDeleteResult)
+def delete_user(
+    user_id: int,
+    payload: UserDeleteRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Permanently deletes a user, per GDPR right to erasure — unlike
+    deactivation (reversible, keeps every record's real attribution), this
+    cannot be undone. The user's financial records (invoices, contributions,
+    reconciliations, projects, reports, debts, budgets, ...) and audit log
+    history are kept but anonymised (their users.id foreign key set to
+    null, audit_log/audit_log_archive descriptions prefixed '[Deleted
+    User]') rather than deleted, preserving financial record integrity. See
+    services/user_deletion_service.py and docs/decisions-log.md."""
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
+    _reject_action_on_self_or_superadmin(user, admin, "delete")
+
+    if user.is_active:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "User must be deactivated before deletion. Deactivate the user first, then delete.",
+        )
+
+    if payload.confirmation_phrase != user_deletion_service.DELETE_USER_CONFIRMATION_PHRASE:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            f"Confirmation phrase does not match. Type "
+            f"'{user_deletion_service.DELETE_USER_CONFIRMATION_PHRASE}' exactly.",
+        )
+
+    username = user.username
+    user_deletion_service.permanently_delete_user(db, user, admin)
+
+    return UserDeleteResult(
+        message=f"'{username}' has been permanently deleted. Their financial records have been anonymised.",
+    )
 
 
 @router.delete("/reject-user/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

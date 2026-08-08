@@ -25,7 +25,10 @@ class Report(Base):
 
     id = Column(Integer, primary_key=True)
     title = Column(String(255), nullable=False)
-    generated_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable so a permanently-deleted user's reports can be anonymised
+    # rather than deleted — see routers/auth.py's DELETE /auth/users/{id}
+    # and docs/decisions-log.md.
+    generated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     generated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     date_from = Column(Date, nullable=False)
     date_to = Column(Date, nullable=False)
