@@ -31,6 +31,7 @@ import './styles/debts.css'
 import './styles/budget.css'
 import './styles/tooltip.css'
 import './styles/rules.css'
+import './styles/datepicker.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

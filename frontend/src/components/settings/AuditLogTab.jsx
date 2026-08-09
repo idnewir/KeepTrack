@@ -3,6 +3,7 @@ import { usePaginationState, perPageParam } from '../../hooks/usePaginationState
 import { authApi, logsApi, triggerBlobDownload } from '../../utils/api.js'
 import { auditActionColor, formatDateTime } from '../../utils/format.js'
 import PaginationBar from '../PaginationBar.jsx'
+import DatePicker from '../DatePicker.jsx'
 
 const ACTION_TYPES = [
   'user.login', 'user.login_failed', 'user.login_mfa_remembered', 'user.logout',
@@ -192,12 +193,12 @@ export default function AuditLogTab({ token }) {
 
         <div className="kt-field">
           <label htmlFor="logs-filter-from">From</label>
-          <input id="logs-filter-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <DatePicker id="logs-filter-from" value={dateFrom} onChange={setDateFrom} />
         </div>
 
         <div className="kt-field">
           <label htmlFor="logs-filter-to">To</label>
-          <input id="logs-filter-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <DatePicker id="logs-filter-to" value={dateTo} onChange={setDateTo} />
         </div>
 
         <label className="kt-logs-archive-toggle">

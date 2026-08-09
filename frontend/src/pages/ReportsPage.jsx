@@ -5,6 +5,7 @@ import { usePaginationState, perPageParam } from '../hooks/usePaginationState.js
 import { budgetsApi, categoriesApi, reportsApi, triggerBlobDownload } from '../utils/api.js'
 import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
+import DatePicker from '../components/DatePicker.jsx'
 
 const REPORT_TYPES = [
   { value: 'historical', label: 'Historical' },
@@ -241,22 +242,20 @@ export default function ReportsPage() {
 
           <div className="kt-field">
             <label htmlFor="report-from">From</label>
-            <input
+            <DatePicker
               id="report-from"
-              type="date"
               value={form.dateFrom}
-              onChange={(e) => setForm((f) => ({ ...f, dateFrom: e.target.value }))}
+              onChange={(iso) => setForm((f) => ({ ...f, dateFrom: iso }))}
               required
             />
           </div>
 
           <div className="kt-field">
             <label htmlFor="report-to">To</label>
-            <input
+            <DatePicker
               id="report-to"
-              type="date"
               value={form.dateTo}
-              onChange={(e) => setForm((f) => ({ ...f, dateTo: e.target.value }))}
+              onChange={(iso) => setForm((f) => ({ ...f, dateTo: iso }))}
               required
             />
           </div>

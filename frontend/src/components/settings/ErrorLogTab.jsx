@@ -3,6 +3,7 @@ import { usePaginationState, perPageParam } from '../../hooks/usePaginationState
 import { logsApi, triggerBlobDownload } from '../../utils/api.js'
 import { formatDateTime } from '../../utils/format.js'
 import PaginationBar from '../PaginationBar.jsx'
+import DatePicker from '../DatePicker.jsx'
 
 const SEVERITIES = ['info', 'warning', 'error', 'critical']
 
@@ -274,12 +275,12 @@ export default function ErrorLogTab({ token }) {
 
         <div className="kt-field">
           <label htmlFor="err-filter-from">From</label>
-          <input id="err-filter-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <DatePicker id="err-filter-from" value={dateFrom} onChange={setDateFrom} />
         </div>
 
         <div className="kt-field">
           <label htmlFor="err-filter-to">To</label>
-          <input id="err-filter-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <DatePicker id="err-filter-to" value={dateTo} onChange={setDateTo} />
         </div>
       </div>
 

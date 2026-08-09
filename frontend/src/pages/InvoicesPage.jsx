@@ -9,6 +9,7 @@ import { INVOICE_BADGE_TOOLTIPS } from '../utils/badgeTooltips.js'
 import HelpIconLink from '../components/HelpIconLink.jsx'
 import PaginationBar from '../components/PaginationBar.jsx'
 import Tooltip from '../components/Tooltip.jsx'
+import DatePicker from '../components/DatePicker.jsx'
 
 const REVIEWED_OPTIONS = [
   { value: '', label: 'All' },
@@ -171,12 +172,12 @@ export default function InvoicesPage() {
 
         <div className="kt-field">
           <label htmlFor="filter-from">From</label>
-          <input id="filter-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <DatePicker id="filter-from" value={dateFrom} onChange={setDateFrom} />
         </div>
 
         <div className="kt-field">
           <label htmlFor="filter-to">To</label>
-          <input id="filter-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <DatePicker id="filter-to" value={dateTo} onChange={setDateTo} />
         </div>
 
         <div className="kt-field">
