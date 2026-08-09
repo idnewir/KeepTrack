@@ -184,7 +184,7 @@ def generate_report(
         ai_summary=ai_summary,
         title=title,
         site_name=site_name,
-        generated_by_username=user.username,
+        generated_by_username=user.display_name or user.username,
         generated_at=generated_at,
     )
     file_path = save_report_pdf(db, pdf_bytes, title, generated_at.date())

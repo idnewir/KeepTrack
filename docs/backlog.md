@@ -1,6 +1,6 @@
 # Project Backlog
 
-**Last updated:** 2026-08-08
+**Last updated:** 2026-08-09
 
 This is the single source of truth for what needs to be done on Keep Track, from this point forward. It replaces ad hoc notes and scattered TODOs — when new work is identified, it should be added here rather than tracked elsewhere.
 
@@ -25,8 +25,6 @@ Items move between sections as priorities shift and work progresses:
 ## Section 1 — V1 Bugs
 
 Things that are broken or incomplete in features that have already been built. These represent real defects or gaps in existing functionality — not new work — and should be fixed before Keep Track goes to production.
-
-- **Report PDF styling** needs review and improvement — charts and layout should match the quality of the manually built KHOC report template.
 
 ---
 

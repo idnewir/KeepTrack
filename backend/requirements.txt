@@ -29,6 +29,10 @@ pymupdf==1.24.10
 anthropic>=0.40.0
 watchdog==4.0.2
 reportlab==4.2.5
+# Renders report charts (services/pdf_report_service.py) so their fonts can
+# be pinned to match the ReportLab body text exactly — ReportLab's own
+# native chart graphics can't have their font set precisely enough for that.
+matplotlib==3.11.1
 
 # AI provider abstraction (services/ai_provider_service.py) — one SDK per
 # supported cloud provider. xAI Grok, Ollama, and Custom endpoints reuse the
