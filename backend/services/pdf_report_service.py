@@ -16,6 +16,8 @@ chart styling from (checked both the repo root and the whole tree) — the
 layout below was built directly from docs/features.md#6 and this task's own
 brief instead. See docs/decisions-log.md.
 """
+import math
+import re
 from datetime import datetime
 from decimal import Decimal
 from io import BytesIO
@@ -555,8 +557,23 @@ def _forecast_table(styles, data: dict) -> Table | None:
 
 
 # ---------------------------------------------------------------------------
-# Year on year slope chart (Part 5)
+# Year on year small multiples (Part 5)
 # ---------------------------------------------------------------------------
+def _abbreviate_fy_label(label: str) -> str:
+    """"FY2025/26 (Apr–Mar)" -> "FY25/26"; "FY2025 (Jan–Dec)" -> "FY25"."""
+    match = re.match(r"FY(\d{4})(?:/(\d{2,4}))?", label)
+    if not match:
+        return label
+    short = f"FY{match.group(1)[-2:]}"
+    if match.group(2):
+        short += f"/{match.group(2)[-2:]}"
+    return short
+
+
+def _money_compact(v: float) -> str:
+    return f"£{v:,.0f}"
+
+
 def _year_on_year_chart(data: dict):
     # Sliding window: whichever 3 FY windows are most recent within this
     # report's own annual_totals — not necessarily "today"'s FY, since this
@@ -567,32 +584,73 @@ def _year_on_year_chart(data: dict):
     if not recent or not categories:
         return None
 
-    labels = [w["label"] for w in recent]
+    labels = [_abbreviate_fy_label(w["label"]) for w in recent]
     n_years = len(recent)
     x = list(range(n_years))
 
-    width_in = CONTENT_WIDTH / 72.0
-    fig, ax = plt.subplots(figsize=(width_in, 4.4))
-
+    # Biggest categories first, so the reading order still roughly matches
+    # the current-year bar charts even though each category now gets its
+    # own mini chart rather than fighting for space on a shared axis.
+    plotted = []
     for i, cat in enumerate(categories):
         values = [float(w["by_category"].get(cat["id"], Decimal("0"))) for w in recent]
-        colour = _hex_for(cat["colour"], i)
-        ax.plot(x, values, marker="o", color=colour, linewidth=2, markersize=5, zorder=3)
-        for xi, v in zip(x, values):
-            ax.annotate(_money(v), (xi, v), textcoords="offset points", xytext=(0, 7),
-                        ha="center", fontsize=6.5, color=TEXT_DARK_HEX)
-        ax.annotate(cat["name"], (x[-1], values[-1]), textcoords="offset points", xytext=(8, 0),
-                    ha="left", va="center", fontsize=8, fontweight="bold", color=colour)
+        plotted.append((cat, _hex_for(cat["colour"], i), values))
+    plotted.sort(key=lambda p: sum(p[2]), reverse=True)
 
-    ax.set_xlim(-0.3, n_years - 1 + 1.6)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=8.5, color=TEXT_DARK_HEX)
-    ax.set_title("Year on year spend by category", fontsize=9.5, fontweight="bold", color=TEXT_DARK_HEX, loc="left", pad=12)
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"£{v:,.0f}"))
-    ax.tick_params(axis="y", labelsize=7.5, colors=MUTED_HEX)
-    ax.grid(axis="y", color="#E4E4E0", linewidth=0.6, zorder=0)
-    _strip_spines(ax, keep=("bottom",))
-    fig.tight_layout(pad=0.8)
+    n = len(plotted)
+    ncols = 2
+    nrows = math.ceil(n / ncols)
+
+    # ~70mm x 50mm per mini chart (spec) — the figure is built at that
+    # physical size and _fig_to_image then scales the whole grid down to
+    # CONTENT_WIDTH, preserving this aspect ratio.
+    width_in = (ncols * 70) / 25.4
+    height_in = (nrows * 50) / 25.4
+    # constrained_layout (rather than tight_layout) because it reserves
+    # space for the suptitle automatically and copes with the spanning
+    # subplot used for an odd category out — tight_layout does neither and
+    # was overlapping the suptitle onto the chart title on a single row.
+    fig = plt.figure(figsize=(width_in, height_in), constrained_layout=True)
+    fig.set_constrained_layout_pads(w_pad=0.12, h_pad=0.18, hspace=0.08, wspace=0.06)
+    gs = fig.add_gridspec(nrows, ncols)
+
+    last_is_odd_out = n % 2 == 1
+
+    for idx, (cat, colour, values) in enumerate(plotted):
+        row, col = divmod(idx, ncols)
+        if last_is_odd_out and idx == n - 1:
+            ax = fig.add_subplot(gs[row, :])
+        else:
+            ax = fig.add_subplot(gs[row, col])
+
+        ax.plot(x, values, marker="o", color=colour, linewidth=1.8, markersize=4.5, zorder=3)
+        ax.fill_between(x, values, 0, color=colour, alpha=0.13, zorder=1)
+
+        max_val = max(values) if values else 0
+        headroom = max_val * 0.35 if max_val else 1
+        ax.set_ylim(0, max_val + headroom if max_val else 2)
+        ax.set_xlim(-0.4, n_years - 1 + 0.4)
+
+        for xi, v in zip(x, values):
+            ax.annotate(_money_compact(v), (xi, v), textcoords="offset points", xytext=(0, 6),
+                        ha="center", fontsize=7, color=TEXT_DARK_HEX, zorder=4)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, fontsize=7, color=MUTED_HEX)
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: _money_compact(v)))
+        ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=3))
+        ax.tick_params(axis="both", labelsize=7, colors=MUTED_HEX, length=0)
+        ax.grid(axis="y", color="#E4E4E0", linewidth=0.5, zorder=0)
+
+        ax.set_title(cat["name"], fontsize=9, fontweight="bold", color=colour, loc="left", pad=6)
+
+        for spine in ax.spines.values():
+            spine.set_visible(True)
+            spine.set_color(RULE_GREY_HEX)
+            spine.set_linewidth(0.7)
+
+    fig.suptitle("Year on year spend by category", fontsize=9.5, fontweight="bold",
+                 color=TEXT_DARK_HEX, x=0.0, ha="left")
     return _fig_to_image(fig)
 
 
