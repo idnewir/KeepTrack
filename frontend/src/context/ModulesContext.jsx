@@ -17,6 +17,29 @@ export function ModulesProvider({ children }) {
   // rather than through this context.
   const [modules, setModules] = useState({})
   const [isLoading, setIsLoading] = useState(true)
+  // Tracks which token `modules`/`isLoading` currently reflect. Deliberately
+  // state, not a ref: this drives a render-phase adjustment (below), and
+  // React only guarantees that pattern is pure/idempotent — safe under
+  // Strict Mode's double-invoked renders — when built from state setters.
+  // A ref mutated in the render body persists across that double-invoke and
+  // desyncs the two calls, which is exactly the bug this replaced: it let
+  // DebtTerminologyContext observe a stale isLoading:false for one commit
+  // and fire GET /debts/terminology before the module list had loaded.
+  const [loadedToken, setLoadedToken] = useState(undefined)
+
+  // Flips isLoading back to true synchronously, within the render that
+  // first sees a new token, rather than waiting for an effect. Consumers
+  // like DebtTerminologyContext read isLoading from their *own* effect,
+  // and child effects fire before this provider's effect in the same
+  // commit — so if isLoading only flipped true inside our effect below, a
+  // freshly-appeared token would leave those consumers reading yesterday's
+  // (stale) isLoading:false/modules:{} for one commit, wrongly treating an
+  // unloaded module as enabled and firing the API call regardless. See
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes.
+  if (loadedToken !== token) {
+    setLoadedToken(token)
+    setIsLoading(true)
+  }
 
   const refresh = useCallback(() => {
     if (!token) {
@@ -38,7 +61,6 @@ export function ModulesProvider({ children }) {
   }, [token])
 
   useEffect(() => {
-    setIsLoading(true)
     refresh()
   }, [refresh])
 

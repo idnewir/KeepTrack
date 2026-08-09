@@ -15,7 +15,7 @@ const BudgetTerminologyContext = createContext(null)
 export function BudgetTerminologyProvider({ children }) {
   const { user } = useAuth()
   const token = user?.token
-  const { isEnabled } = useModules()
+  const { isEnabled, isLoading: modulesLoading } = useModules()
   const budgetPlanningEnabled = isEnabled('budget_planning')
 
   const [terminology, setTerminology] = useState(BUDGET_TERMINOLOGY_DEFAULTS)
@@ -24,9 +24,20 @@ export function BudgetTerminologyProvider({ children }) {
   // GET /budgets/terminology is gated behind the budget_planning module
   // (like every other /budgets endpoint) — skipped entirely while the
   // module is off so disabled deployments never see a 403 in the console,
-  // same reasoning as DebtTerminologyContext.
+  // same reasoning as DebtTerminologyContext. Also waits for ModulesContext
+  // to finish its own load: isEnabled() defaults an unknown module to
+  // `true`, so firing before modules have loaded could hit the API while
+  // the module is actually disabled, producing the same 403.
   const refresh = useCallback(() => {
-    if (!token || !budgetPlanningEnabled) {
+    if (!token) {
+      setTerminology(BUDGET_TERMINOLOGY_DEFAULTS)
+      setLoading(false)
+      return Promise.resolve()
+    }
+    if (modulesLoading) {
+      return Promise.resolve()
+    }
+    if (!budgetPlanningEnabled) {
       setTerminology(BUDGET_TERMINOLOGY_DEFAULTS)
       setLoading(false)
       return Promise.resolve()
@@ -36,7 +47,7 @@ export function BudgetTerminologyProvider({ children }) {
       .then(setTerminology)
       .catch(() => setTerminology(BUDGET_TERMINOLOGY_DEFAULTS))
       .finally(() => setLoading(false))
-  }, [token, budgetPlanningEnabled])
+  }, [token, budgetPlanningEnabled, modulesLoading])
 
   useEffect(() => {
     refresh()

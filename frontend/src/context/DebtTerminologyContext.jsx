@@ -15,7 +15,7 @@ const DebtTerminologyContext = createContext(null)
 export function DebtTerminologyProvider({ children }) {
   const { user } = useAuth()
   const token = user?.token
-  const { isEnabled } = useModules()
+  const { isEnabled, isLoading: modulesLoading } = useModules()
   const debtTrackingEnabled = isEnabled('debt_tracking')
 
   const [terminology, setTerminology] = useState(DEBT_TERMINOLOGY_DEFAULTS)
@@ -24,9 +24,20 @@ export function DebtTerminologyProvider({ children }) {
   // GET /debts/terminology is gated behind the debt_tracking module (like
   // every other /debts endpoint) — skipped entirely while the module is off
   // so disabled deployments never see a 403 in the console, same reasoning
-  // as ModulesContext's own token guard.
+  // as ModulesContext's own token guard. Also waits for ModulesContext to
+  // finish its own load: isEnabled() defaults an unknown module to `true`,
+  // so firing before modules have loaded could hit the API while the module
+  // is actually disabled, producing the same 403.
   const refresh = useCallback(() => {
-    if (!token || !debtTrackingEnabled) {
+    if (!token) {
+      setTerminology(DEBT_TERMINOLOGY_DEFAULTS)
+      setLoading(false)
+      return Promise.resolve()
+    }
+    if (modulesLoading) {
+      return Promise.resolve()
+    }
+    if (!debtTrackingEnabled) {
       setTerminology(DEBT_TERMINOLOGY_DEFAULTS)
       setLoading(false)
       return Promise.resolve()
@@ -36,7 +47,7 @@ export function DebtTerminologyProvider({ children }) {
       .then(setTerminology)
       .catch(() => setTerminology(DEBT_TERMINOLOGY_DEFAULTS))
       .finally(() => setLoading(false))
-  }, [token, debtTrackingEnabled])
+  }, [token, debtTrackingEnabled, modulesLoading])
 
   useEffect(() => {
     refresh()
