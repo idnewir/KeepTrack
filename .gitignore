@@ -8,3 +8,4 @@ frontend/dist/
 .claude/
 backend/.cache/
 backend/storage/
+.claude/settings.local.json
