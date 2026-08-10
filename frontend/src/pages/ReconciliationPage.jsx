@@ -37,6 +37,7 @@ export default function ReconciliationPage() {
 
   const [adminEdit, setAdminEdit] = useState(null) // { actualBalance, notes, reason, step: 'form' | 'confirm' }
   const [editSubmitting, setEditSubmitting] = useState(false)
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
 
   // "Reconciliation history" is a separate paginated table below the
   // existing month-tile picker (which only ever shows the current
@@ -242,6 +243,23 @@ export default function ReconciliationPage() {
     submitAdminEdit()
   }
 
+  const handleMarkReviewed = async () => {
+    if (!selected?.reconciliation) return
+    setError('')
+    setReviewSubmitting(true)
+    try {
+      await reconciliationApi.review(selected.reconciliation.id, token)
+      const results = await loadMonths(fy)
+      const updated = results.find((m) => m.year === selected.year && m.month === selected.month)
+      setSelected(updated || null)
+      await loadHistory()
+    } catch (err) {
+      setError(err.message || 'Failed to mark this reconciliation as reviewed')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
+
   if (loading) {
     return <p className="kt-page-subtitle">Loading {termReconciliation.toLowerCase()}…</p>
   }
@@ -423,17 +441,30 @@ export default function ReconciliationPage() {
               )}
 
               {isAdmin && !adminEdit && (
-                <button
-                  type="button"
-                  className={
-                    selected.reconciliation.is_stale
-                      ? 'kt-auth-button kt-stale-edit-button'
-                      : 'kt-category-link-button'
-                  }
-                  onClick={openAdminEdit}
-                >
-                  {selected.reconciliation.is_stale ? 'Edit now — bring up to date' : 'Edit (Admin)'}
-                </button>
+                <div className="kt-stale-actions">
+                  <button
+                    type="button"
+                    className={
+                      selected.reconciliation.is_stale
+                        ? 'kt-auth-button kt-stale-edit-button'
+                        : 'kt-category-link-button'
+                    }
+                    onClick={openAdminEdit}
+                  >
+                    {selected.reconciliation.is_stale ? 'Edit now — bring up to date' : 'Edit (Admin)'}
+                  </button>
+                  {selected.reconciliation.is_stale && (
+                    <button
+                      type="button"
+                      className="kt-category-link-button"
+                      onClick={handleMarkReviewed}
+                      disabled={reviewSubmitting}
+                      title="Clear this staleness flag without changing the actual balance — for when you've checked the figures and they're still correct."
+                    >
+                      {reviewSubmitting ? 'Marking as reviewed…' : 'Mark as reviewed'}
+                    </button>
+                  )}
+                </div>
               )}
 
               {adminEdit ? (

@@ -33,7 +33,6 @@ from services import audit_service, import_service, rules_service
 from services.ai_provider_service import extract_invoice_data
 from services.ai_service import check_duplicate
 from services.financial_year_service import get_or_create_financial_year
-from services.reconciliation_service import mark_reconciliation_stale
 from services.storage_service import save_invoice_pdf
 from utils.deps import get_current_user, require_admin, require_module, require_standard
 from utils.file_validation import MAX_INVOICE_PDF_BYTES, looks_like_pdf, sanitise_filename
@@ -185,7 +184,6 @@ def import_csv(
     created: list[Invoice] = []
     skipped: list[dict] = []
     duplicates: list[dict] = []
-    touched_months: set[tuple[int, int, int]] = set()
 
     for row_number, row in enumerate(data_rows, start=2):  # row 1 is the header
         parsed = import_service.parse_row(row, effective_map, categories)
@@ -227,8 +225,7 @@ def import_csv(
                 "reason": f"{parsed['supplier']} — £{parsed['amount']:.2f} on {invoice_date.isoformat()}",
             })
 
-        fy = get_or_create_financial_year(db, invoice_date)
-        touched_months.add((invoice_date.year, invoice_date.month, fy.id))
+        get_or_create_financial_year(db, invoice_date)
 
     batch_status = "complete" if not skipped else ("partial" if created else "failed")
     batch = ImportBatch(
@@ -247,10 +244,12 @@ def import_csv(
     db.refresh(batch)
 
     # Historical invoices are reviewed=True from creation (they skip the
-    # review stage entirely), so — like POST /invoices/{id}/confirm — any
-    # month a reconciliation already exists for is now stale.
-    for year, month, fy_id in touched_months:
-        mark_reconciliation_stale(db, date(year, month, 1), fy_id, "Historical invoices imported after reconciliation")
+    # review stage entirely), but — unlike POST /invoices/{id}/confirm — they
+    # deliberately do NOT mark a month's reconciliation stale: they're
+    # historical data being backfilled, which the Admin who reconciled that
+    # month from bank records was never expecting to see, so flagging it as
+    # "changed since reconciliation" would be a false positive. See
+    # docs/decisions-log.md.
 
     audit_service.log_action(
         db, "import.csv",

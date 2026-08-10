@@ -76,11 +76,23 @@ def calendar_month_date(fy: FinancialYear, month_number: int) -> date:
     raise ValueError(f"Month {month_number} is not part of financial year {fy.id}")
 
 
-def mark_reconciliation_stale(db: Session, month: date, financial_year_id: int, reason: str) -> None:
+def mark_reconciliation_stale(
+    db: Session, month: date, financial_year_id: int, reason: str, *, is_historical: bool = False
+) -> None:
     """Flags the reconciliation for this month (if one exists and isn't
     already stale) as out of date, because a contribution or invoice that
     feeds its calculated balance changed after it was submitted. No-ops if
-    nothing has been reconciled for that month yet — there's nothing to flag."""
+    nothing has been reconciled for that month yet — there's nothing to flag.
+
+    Also no-ops for historical data (`is_historical=True`, e.g. a CSV or
+    watched-folder invoice import, or an edit/deletion of one) — those
+    entries predate the club's use of this app for real-time tracking, so an
+    Admin reconciling a month was already working from bank records that
+    never included them. Surfacing them as "the figures changed" would be a
+    false positive. See docs/decisions-log.md."""
+    if is_historical:
+        return
+
     month_start = date(month.year, month.month, 1)
     reconciliation = (
         db.query(MonthlyReconciliation)

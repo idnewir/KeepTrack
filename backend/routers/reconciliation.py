@@ -22,7 +22,7 @@ from services.export_pdf_service import generate_table_export_pdf
 from services.reconciliation_service import calculated_balance_for_month, suggest_reason
 from services.settings_service import get_site_name
 from utils.csv_export import csv_response
-from utils.deps import get_current_user, require_module, require_standard
+from utils.deps import get_current_user, require_admin, require_module, require_standard
 from utils.pagination import paginate
 
 router = APIRouter(
@@ -294,5 +294,36 @@ def update_reconciliation(
     audit_service.log_action(
         db, "reconciliation.edited", f"Edited reconciliation for {reconciliation.month.strftime('%B %Y')}",
         user_id=user.id, affected_table="monthly_reconciliations", affected_record_id=reconciliation.id,
+    )
+    return _to_out(db, reconciliation)
+
+
+@router.post("/{reconciliation_id}/review", response_model=ReconciliationOut)
+def review_reconciliation(
+    reconciliation_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Clears a stale flag an Admin has checked and is satisfied is a false
+    positive — without re-entering the actual balance, unlike PUT
+    /{id} with actual_balance set. For cases where the underlying figures
+    genuinely haven't changed (or the change doesn't matter), so there's
+    nothing to correct."""
+    reconciliation = db.get(MonthlyReconciliation, reconciliation_id)
+    if reconciliation is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Reconciliation not found")
+    if not reconciliation.is_stale:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This reconciliation is not marked as stale")
+
+    reconciliation.is_stale = False
+    reconciliation.stale_reason = None
+    reconciliation.stale_since = None
+    db.commit()
+    db.refresh(reconciliation)
+
+    audit_service.log_action(
+        db, "reconciliation.reviewed",
+        f"Marked stale reconciliation for {reconciliation.month.strftime('%B %Y')} as reviewed",
+        user_id=admin.id, affected_table="monthly_reconciliations", affected_record_id=reconciliation.id,
     )
     return _to_out(db, reconciliation)

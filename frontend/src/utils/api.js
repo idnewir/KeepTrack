@@ -374,6 +374,7 @@ export const reconciliationApi = {
   getMonth: (year, month, token) => request(`/reconciliation/${year}/${month}`, { token }),
   create: (payload, token) => request('/reconciliation', { method: 'POST', body: payload, token }),
   update: (id, payload, token) => request(`/reconciliation/${id}`, { method: 'PUT', body: payload, token }),
+  review: (id, token) => request(`/reconciliation/${id}/review`, { method: 'POST', token }),
   exportCsv: (financialYearId, token) => {
     const qs = financialYearId ? `?financial_year_id=${financialYearId}` : ''
     return requestBlob(`/reconciliation/export/csv${qs}`, { token })

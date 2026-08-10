@@ -298,6 +298,13 @@
   margin: 0;
 }
 
+.kt-stale-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .kt-stale-banner-figures {
   display: flex;
   flex-direction: column;

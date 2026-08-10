@@ -45,7 +45,6 @@ from services.ai_provider_service import extract_invoice_data
 from services.ai_service import check_duplicate
 from services.date_service import get_app_start_date
 from services.financial_year_service import MONTH_LABELS_FULL, fy_bounds_for, get_or_create_financial_year
-from services.reconciliation_service import mark_reconciliation_stale
 
 logger = logging.getLogger("keep_track.folder_watcher")
 
@@ -223,8 +222,13 @@ def _process_new_file(
         db.refresh(invoice)
 
         if is_historical:
-            fy = get_or_create_financial_year(db, invoice_date)
-            mark_reconciliation_stale(db, invoice_date, fy.id, "Historical invoice auto-imported from watched folder")
+            # Ensures the FinancialYear row exists for this invoice's date, but
+            # deliberately does NOT mark_reconciliation_stale: this is
+            # historical data being backfilled, which an Admin reconciling
+            # that month from bank records was never expecting to see, so
+            # flagging it as "changed since reconciliation" would be a false
+            # positive. See docs/decisions-log.md.
+            get_or_create_financial_year(db, invoice_date)
 
         service.move_file(filename)
 

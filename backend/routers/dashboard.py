@@ -280,13 +280,23 @@ def get_notifications(
             severity="warning",
         )
 
+    # Scoped to the current financial year — a reconciliation left stale in a
+    # prior FY (e.g. a since-closed-out year nobody is actively working in)
+    # shouldn't keep surfacing on every dashboard load. See docs/decisions-log.md.
+    current_fy = fy_service.get_or_create_financial_year(db, today)
     stale_reconciliation_count = (
-        db.query(MonthlyReconciliation).filter(MonthlyReconciliation.is_stale.is_(True)).count()
+        db.query(MonthlyReconciliation)
+        .filter(
+            MonthlyReconciliation.is_stale.is_(True),
+            MonthlyReconciliation.financial_year_id == current_fy.id,
+        )
+        .count()
     )
     if stale_reconciliation_count and prefs["notif_stale_reconciliation"]:
         noun = "month" if stale_reconciliation_count == 1 else "months"
+        verb = "needs" if stale_reconciliation_count == 1 else "need"
         message = (
-            f"{stale_reconciliation_count} reconciled {noun} need review after later changes "
+            f"{stale_reconciliation_count} reconciled {noun} {verb} review after later changes "
             "to their figures."
         )
         notifications.append({
