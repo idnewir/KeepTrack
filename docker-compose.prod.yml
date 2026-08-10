@@ -37,7 +37,7 @@ services:
   # 5. docker compose -f docker-compose.prod.yml up -d
   # ═══════════════════════════════════════════════════════════
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.3
     restart: unless-stopped
     command:
       - '--api.insecure=false'
