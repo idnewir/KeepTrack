@@ -1,0 +1,21 @@
+# Keep Track — local test override for docker-compose.prod.yml.
+#
+# Remaps Traefik's published ports away from 80/443 so the production stack
+# can run alongside anything else already using those ports on a dev
+# machine (e.g. macOS, where 80/443 often need root or are already taken).
+# Not meant for actual production use — on a real server, KEEPTRACK_HTTP_PORT
+# / KEEPTRACK_HTTPS_PORT in .env are the supported way to change ports.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.prod-test.yml up -d
+# Then visit http://localhost:8080
+
+services:
+  traefik:
+    # `!override` replaces the base file's ports list entirely rather than
+    # merging with it — Compose concatenates list-type keys like `ports` by
+    # default, which would otherwise leave 80/443 published *alongside*
+    # 8080/8443 and defeat the point of this override.
+    ports: !override
+      - '8080:80'
+      - '8443:443'

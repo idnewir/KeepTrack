@@ -32,8 +32,10 @@ Things that are broken or incomplete in features that have already been built. T
 
 Features that have been designed and committed to for V1, but are not yet built. Unlike Section 1, these aren't broken — they simply don't exist yet. All of these are required before Keep Track goes to production.
 
-The V1 backlog is now complete — Production Packaging (below) was the last outstanding item. See
-[decisions-log.md](decisions-log.md) for the production packaging decisions and
+The V1 backlog is now complete — Production Packaging (below) was the last outstanding item,
+including a bundled Traefik reverse proxy so the production stack is self-contained out of the box
+and SSL-ready (uncomment a few lines once a domain is pointed at the server — no app changes
+needed). See [decisions-log.md](decisions-log.md) for the production packaging decisions and
 [deployment.md](deployment.md) for the deployment guide.
 
 ---
@@ -57,7 +59,7 @@ Longer-term ideas for future versions of Keep Track. These are explicitly out of
 - **Folder Integration housekeeping** — automated cleanup/archiving of the watched input folder's `processed/` subfolder (currently a manual task — see [user-guides/folder-integration.md](../user-guides/folder-integration.md)).
 - **Folder Integration output workflows** — beyond a raw filesystem/SMB write: email, Google Drive, SharePoint, or a webhook as additional (or alternative) output destinations for signed PDFs.
 - **Multi-account support** — track multiple bank accounts separately (current, savings, ISA, etc).
-- **SSL configuration in app** — Let's Encrypt auto-renewal and manual certificate upload via Settings.
+- **SSL configuration in app** — an in-app Settings UI for certificate management (auto-renewal status, manual certificate upload). Distinct from the infrastructure-level HTTPS already available via the bundled Traefik reverse proxy (uncomment a few lines in `docker-compose.prod.yml` — see [deployment.md](deployment.md#enabling-https)); this item is about surfacing/managing that in the app itself.
 - **Secrets management** — move from `.env` to Docker secrets or k3s secrets.
 - **MFA QR code logo** — embed the Keep Track logo once the app is publicly accessible.
 - **Profile picture:** improve Gravatar integration.

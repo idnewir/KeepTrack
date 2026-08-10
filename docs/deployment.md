@@ -3,9 +3,10 @@
 How to deploy Keep Track to production — on Proxmox with Docker Compose, or on a k3s Kubernetes
 cluster. If you're developing locally, use `docker-compose.yml` instead (`docker compose up`) —
 this document is about `docker-compose.prod.yml` and `k8s/`, the production-hardened setup: a
-compiled frontend served by Nginx, the backend served by Gunicorn, no source code bind-mounted
-into the containers, and automatic database migrations on startup. See
-[decisions-log.md](decisions-log.md) for why each of those choices was made.
+compiled frontend served by Nginx, the backend served by Gunicorn, a bundled Traefik reverse proxy
+in front of both, no source code bind-mounted into the containers, and automatic database
+migrations on startup. See [decisions-log.md](decisions-log.md) for why each of those choices was
+made.
 
 ## Quick start (Proxmox / Docker)
 
@@ -23,12 +24,16 @@ into the containers, and automatic database migrations on startup. See
    ```
    docker compose -f docker-compose.prod.yml up -d
    ```
-   The backend applies any pending database migrations itself on startup — there's no separate
-   migration step for a fresh install.
+   This includes Traefik as the reverse proxy — no separate install needed, it works out of the
+   box on ports 80/443. The backend applies any pending database migrations itself on startup —
+   there's no separate migration step for a fresh install.
 4. Visit `http://your-server-ip` — the setup wizard appears (this is the first-run flow, not
    related to the Superadmin recovery account from step 2).
 5. Create your admin account and configure Keep Track (categories, financial year, contribution
    groups, target reserve — see [features.md](features.md)).
+
+For a real domain and HTTPS, see [Enabling HTTPS](#enabling-https) below — the stack works over
+plain HTTP first so you can confirm everything's running before adding a certificate.
 
 ## Updating
 
@@ -67,26 +72,73 @@ see [upgrade-notes.md](upgrade-notes.md#3-back-up-before-upgrading).
   (see `docker-compose.prod.yml`) at that mount, e.g. via a bind-mount volume definition instead of
   the default named volume.
 
-## Reverse proxy (optional but recommended)
+## Reverse proxy (Traefik, included)
 
-`docker-compose.prod.yml` publishes no ports by default — the frontend container is meant to sit
-behind a reverse proxy, terminating TLS and giving Keep Track a real domain name. Three options,
-covered in [config/](../config/):
+`docker-compose.prod.yml` includes Traefik as a bundled `traefik` service — Keep Track is fully
+self-contained out of the box, with no external reverse proxy to install or configure. Traefik is
+the only service in the stack that publishes ports (80/443 by default); `frontend` and `backend`
+publish nothing and are reached only over the internal `keeptrack` Docker network. Traefik
+auto-discovers the `frontend` container via Docker labels already present on that service in
+`docker-compose.prod.yml` — see `config/traefik-labels.yml` for how the labels work.
 
-- **Traefik** (recommended if you're already running containers elsewhere on the host, and the
-  only option covered here for k3s): add the labels in `config/traefik-labels.yml` to the
-  `frontend` service and run both compose files together. Automatic Let's Encrypt certificates via
-  Traefik's own certificate resolver — no separate certbot setup.
-- **Host-level Nginx:** use `config/nginx-proxy.conf` as a template. Requires uncommenting the
-  loopback port mapping under `frontend` in `docker-compose.prod.yml` first (the template's
-  comments explain why) since a proxy running outside Docker can't reach an unpublished container
-  port.
-- **Cloudflare:** works as a reverse proxy in front of either of the above (or directly in front of
-  a published frontend port) — configure a Cloudflare Tunnel or origin rule pointing at the host,
-  and set `CORS_ORIGINS` in `.env` to your Cloudflare-fronted domain.
-
-Either way, once real users load the app from a domain, update `CORS_ORIGINS` in `.env` (or
+Once real users load the app from a domain, update `CORS_ORIGINS` in `.env` (or
 `k8s/configmap.yaml`) to that domain and restart the backend.
+
+If you'd rather use a host-level Nginx or Cloudflare Tunnel instead of the bundled Traefik, see
+`config/nginx-proxy.conf`'s header comment — this requires removing/disabling the `traefik`
+service and publishing a port on `frontend` directly.
+
+### Enabling HTTPS
+
+Traefik ships SSL-ready but with HTTPS disabled by default, so a fresh install works immediately
+without a domain or certificate. To enable HTTPS via Let's Encrypt:
+
+1. Point your domain's DNS `A` record at this server.
+2. Open `docker-compose.prod.yml` and set a real email address on the `acme.email` line under the
+   `traefik` service's `command:` (used only for Let's Encrypt expiry notices).
+3. Uncomment every line marked `# SSL via Let's Encrypt` under the `traefik` service's `command:`.
+4. Uncomment every line marked `# SSL router` under the `frontend` service's `labels:`.
+5. Restart the stack:
+   ```
+   docker compose -f docker-compose.prod.yml up -d
+   ```
+   Traefik requests a certificate automatically via the HTTP-01 challenge on first request and
+   renews it before expiry, storing it in the `traefik_data` volume — no certbot, no manual
+   renewal step. HTTP traffic on port 80 is redirected to HTTPS once this is enabled.
+
+### Changing the default ports
+
+If 80 and/or 443 are already in use on the host, set `KEEPTRACK_HTTP_PORT` and/or
+`KEEPTRACK_HTTPS_PORT` in `.env` to free ports instead, then restart:
+```
+docker compose -f docker-compose.prod.yml up -d
+```
+For local testing on a machine where you don't want to touch `.env` at all (e.g. a Mac where 80
+is often already taken), use the bundled override instead:
+```
+docker compose -f docker-compose.prod.yml -f docker-compose.prod-test.yml up -d
+```
+which remaps Traefik to `8080`/`8443` — visit `http://localhost:8080`.
+
+### Accessing the Traefik dashboard
+
+The dashboard is **disabled by default** (`--api.dashboard=false`, `--api.insecure=false`) —
+running it exposes your routing configuration, and the insecure API is an unauthenticated control
+surface, neither of which should be reachable on a production host. To enable it temporarily for
+debugging:
+
+1. In `docker-compose.prod.yml`, under the `traefik` service's `command:`, change
+   `--api.insecure=false` to `--api.insecure=true` and `--api.dashboard=false` to
+   `--api.dashboard=true`.
+2. Add a port mapping for the dashboard (Traefik's internal API/dashboard listens on 8080):
+   ```
+   ports:
+     - '127.0.0.1:8081:8080'
+   ```
+   Bind it to `127.0.0.1` only — use an SSH tunnel to reach it remotely rather than exposing it
+   further.
+3. `docker compose -f docker-compose.prod.yml up -d`, then visit `http://localhost:8081/dashboard/`.
+4. **Revert both changes** once done debugging and restart again.
 
 ## K3s deployment
 

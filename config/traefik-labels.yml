@@ -1,53 +1,49 @@
-# Traefik labels for Keep Track — a docker-compose override adding the
-# labels Traefik needs to auto-discover the `frontend` service and terminate
-# TLS via Let's Encrypt. Assumes a Traefik instance already running as a
-# container attached to the same "keeptrack" Docker network (or a network
-# Traefik itself is also attached to) — Traefik routes to containers by
-# talking to the Docker socket, not by hitting a published host port, so
-# `docker-compose.prod.yml`'s frontend service does NOT need its commented-out
-# host port mapping uncommented when using this file.
+# Traefik reference for Keep Track.
 #
-# Usage:
-#   1. Edit the placeholders below: `keeptrack.yourdomain.com` and the
-#      Let's Encrypt email in your Traefik static config.
-#   2. Run both files together:
-#        docker compose -f docker-compose.prod.yml -f config/traefik-labels.yml up -d
-#   3. Traefik needs its own setup (not covered here) — typically a
-#      `traefik.yml` static config with a `websecure` (443) entrypoint and a
-#      `letsencrypt` certificate resolver, and Traefik itself attached to the
-#      `keeptrack` network so it can reach these containers. See
-#      https://doc.traefik.io/traefik/providers/docker/ for the full guide.
+# As of the Traefik reverse-proxy integration, Traefik is bundled directly in
+# docker-compose.prod.yml as the `traefik` service — there is nothing to
+# install separately and this file is no longer a docker-compose override to
+# run alongside the stack. `docker compose -f docker-compose.prod.yml up -d`
+# starts Traefik along with everything else, and it routes to the `frontend`
+# container automatically via the Docker labels already present on that
+# service in docker-compose.prod.yml (reproduced below for reference).
 #
-# Only the frontend needs labels — it's the single entry point (its
-# nginx.conf already proxies /api/* to the backend container-to-container,
-# so Traefik never needs to route to `backend` directly).
-
-services:
-  frontend:
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=keeptrack"
-
-      # HTTP -> HTTPS redirect
-      - "traefik.http.routers.keeptrack-http.rule=Host(`keeptrack.yourdomain.com`)"
-      - "traefik.http.routers.keeptrack-http.entrypoints=web"
-      - "traefik.http.routers.keeptrack-http.middlewares=keeptrack-https-redirect"
-      - "traefik.http.middlewares.keeptrack-https-redirect.redirectscheme.scheme=https"
-
-      # HTTPS, with automatic Let's Encrypt via Traefik's certificate resolver
-      # (named "letsencrypt" here — must match whatever you named it in
-      # Traefik's own static configuration)
-      - "traefik.http.routers.keeptrack.rule=Host(`keeptrack.yourdomain.com`)"
-      - "traefik.http.routers.keeptrack.entrypoints=websecure"
-      - "traefik.http.routers.keeptrack.tls=true"
-      - "traefik.http.routers.keeptrack.tls.certresolver=letsencrypt"
-
-      # Tell Traefik which container port to forward to — the frontend's
-      # nginx listens on 80 (see frontend/Dockerfile).
-      - "traefik.http.services.keeptrack.loadbalancer.server.port=80"
-
-      # 50MB request bodies (invoice PDF / backup zip uploads) — Traefik's
-      # own default has no body-size cap, but if you add one, raise it to
-      # match frontend/nginx.conf's client_max_body_size.
-    networks:
-      - keeptrack
+# How it works:
+#   - Traefik watches the Docker socket (read-only) for containers on the
+#     "keeptrack" network that carry `traefik.enable=true`.
+#   - `--providers.docker.exposedbydefault=false` means only labelled
+#     services are ever routed to — the backend and postgres containers have
+#     no Traefik labels and are simply invisible to it.
+#   - Only the frontend needs labels — its own nginx.conf already proxies
+#     /api/* to the backend container-to-container, so Traefik never needs
+#     to route to `backend` directly.
+#
+#   labels:
+#     - "traefik.enable=true"
+#     - "traefik.http.routers.keeptrack.rule=PathPrefix(`/`)"
+#     - "traefik.http.routers.keeptrack.entrypoints=web"
+#     - "traefik.http.services.keeptrack.loadbalancer.server.port=80"
+#
+# Changing ports (if 80/443 are already in use on the host):
+#   Set KEEPTRACK_HTTP_PORT / KEEPTRACK_HTTPS_PORT in .env, then restart:
+#     docker compose -f docker-compose.prod.yml up -d
+#   For local testing without touching .env, use the override in
+#   docker-compose.prod-test.yml instead (see its own header comment).
+#
+# Enabling HTTPS (Let's Encrypt):
+#   1. Point your domain's DNS at this server.
+#   2. In docker-compose.prod.yml, set the `acme.email` line under the
+#      `traefik` service's command to a real email address.
+#   3. Uncomment the lines marked '# SSL via Let's Encrypt' under `traefik`,
+#      and the lines marked '# SSL router' under `frontend`'s labels.
+#   4. docker compose -f docker-compose.prod.yml up -d
+#   Certificates are requested and renewed automatically via the HTTP-01
+#   challenge, and persisted in the `traefik_data` volume — no certbot, no
+#   manual renewal. See docs/deployment.md's "Enabling HTTPS" section.
+#
+# Traefik dashboard:
+#   Disabled by default (`--api.dashboard=false`, `--api.insecure=false`) —
+#   an exposed dashboard is an unauthenticated view of your routing config
+#   and, with the insecure API, a control surface. See docs/deployment.md's
+#   "Accessing the Traefik dashboard" section for how to enable it
+#   temporarily for debugging.

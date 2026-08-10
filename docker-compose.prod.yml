@@ -6,9 +6,12 @@
 #     dev target (Vite dev server, `uvicorn` with no process manager).
 #   - No source code bind mounts — everything is baked into the image, so a
 #     new deploy means rebuilding the image, not just restarting.
-#   - No ports published to the host by default — this stack is meant to sit
-#     behind a reverse proxy (Traefik, host-level Nginx, Cloudflare Tunnel,
-#     etc). See docs/deployment.md and config/ for reverse proxy options.
+#   - Traefik is bundled as a reverse proxy service, so the stack is fully
+#     self-contained out of the box — no separate proxy install needed.
+#     Only Traefik publishes ports (80/443, configurable via
+#     KEEPTRACK_HTTP_PORT/KEEPTRACK_HTTPS_PORT in .env); frontend and backend
+#     publish nothing and are reached only via the "keeptrack" Docker
+#     network. See docs/deployment.md.
 #   - Health checks and `depends_on: condition: service_healthy` everywhere,
 #     so `docker compose up -d` doesn't race backend-before-postgres or
 #     frontend-before-backend.
@@ -20,6 +23,58 @@
 # See docs/deployment.md for the full deployment guide.
 
 services:
+  # Reverse proxy — the stack's only container with published ports. Routes
+  # everything to the frontend via Docker labels (see the frontend service
+  # below); the frontend's own nginx already proxies /api/* to the backend,
+  # so Traefik never needs to know about `backend` directly.
+  #
+  # ═══════════════════════════════════════════════════════════
+  # TO ENABLE HTTPS WITH LET'S ENCRYPT:
+  # 1. Ensure your domain points to this server
+  # 2. Set your email in the acme.email line below
+  # 3. Uncomment all lines marked '# SSL via Let's Encrypt'
+  # 4. Uncomment all lines marked '# SSL router' (on the frontend service)
+  # 5. docker compose -f docker-compose.prod.yml up -d
+  # ═══════════════════════════════════════════════════════════
+  traefik:
+    image: traefik:v3.0
+    restart: unless-stopped
+    command:
+      - '--api.insecure=false'
+      - '--api.dashboard=false'
+      - '--providers.docker=true'
+      - '--providers.docker.exposedbydefault=false'
+      - '--providers.docker.network=keeptrack'
+      - '--entrypoints.web.address=:80'
+      - '--entrypoints.websecure.address=:443'
+      - '--ping=true'
+      - '--log.level=INFO'
+      - '--accesslog=true'
+      # SSL via Let's Encrypt — uncomment to enable HTTPS
+      # - '--certificatesresolvers.letsencrypt.acme.httpchallenge=true'
+      # - '--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web'
+      # - '--certificatesresolvers.letsencrypt.acme.email=your@email.com'
+      # - '--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json'
+      # - '--entrypoints.web.http.redirections.entrypoint.to=websecure'
+      # - '--entrypoints.web.http.redirections.entrypoint.scheme=https'
+    ports:
+      - '${KEEPTRACK_HTTP_PORT:-80}:80'
+      - '${KEEPTRACK_HTTPS_PORT:-443}:443'
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      - 'traefik_data:/data'
+    networks:
+      - keeptrack
+    healthcheck:
+      # `--ping` is required here even though the container's own command
+      # already has `--ping=true` — this is a separate, one-off invocation
+      # of the traefik binary that doesn't inherit the running process's
+      # flags, so it needs to be told explicitly to check the ping endpoint.
+      test: ['CMD', 'traefik', 'healthcheck', '--ping']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   frontend:
     image: keeptrack-frontend:latest
     build:
@@ -36,13 +91,27 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    # No ports published — reached via a reverse proxy on the "keeptrack"
-    # network (e.g. Traefik with the labels in config/traefik-labels.yml).
-    # If you're fronting this with a *host-level* Nginx instead (not a
-    # container on this network — see config/nginx-proxy.conf), uncomment a
-    # loopback-only port mapping so that proxy can reach it:
-    # ports:
-    #   - "127.0.0.1:8080:80"
+    # No ports published — only Traefik is reachable from outside Docker.
+    # Traefik routes to this container via the labels below, over the
+    # "keeptrack" network.
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.keeptrack.rule=PathPrefix(`/`)'
+      - 'traefik.http.routers.keeptrack.entrypoints=web'
+      - 'traefik.http.services.keeptrack.loadbalancer.server.port=80'
+      # ═══════════════════════════════════════════════════════════
+      # TO ENABLE HTTPS WITH LET'S ENCRYPT:
+      # 1. Ensure your domain points to this server
+      # 2. Set your email in the acme.email line on the traefik service
+      # 3. Uncomment all lines marked '# SSL via Let's Encrypt' (traefik service)
+      # 4. Uncomment all lines marked '# SSL router' below
+      # 5. docker compose -f docker-compose.prod.yml up -d
+      # ═══════════════════════════════════════════════════════════
+      # SSL router — uncomment to enable HTTPS
+      # - 'traefik.http.routers.keeptrack-secure.rule=PathPrefix(`/`)'
+      # - 'traefik.http.routers.keeptrack-secure.entrypoints=websecure'
+      # - 'traefik.http.routers.keeptrack-secure.tls=true'
+      # - 'traefik.http.routers.keeptrack-secure.tls.certresolver=letsencrypt'
     networks:
       - keeptrack
 
@@ -98,6 +167,9 @@ volumes:
   # inspection convenience.
   keeptrack_storage:
   keeptrack_db:
+  # Traefik's ACME state (certificates/account key from Let's Encrypt once
+  # HTTPS is enabled) — persisted so certs survive container recreation.
+  traefik_data:
 
 networks:
   keeptrack:
