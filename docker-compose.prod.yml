@@ -39,6 +39,10 @@ services:
   traefik:
     image: traefik:v3.3
     restart: unless-stopped
+    # Required for Docker Engine compatibility
+    # Adjust version if needed (1.41 works with Docker Engine 20.10+)
+    environment:
+      - DOCKER_API_VERSION=1.41
     command:
       - '--api.insecure=false'
       - '--api.dashboard=false'
