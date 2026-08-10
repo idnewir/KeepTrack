@@ -48,3 +48,4 @@ cohere==5.11.1
 # the low-level `smbprotocol` package and the high-level `smbclient`
 # (os/shutil-shaped) API this app actually calls.
 smbprotocol>=1.12.0
+matplotlib>=3.7.0
