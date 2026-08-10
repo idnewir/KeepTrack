@@ -1,11 +1,14 @@
 """Keep Track backend entrypoint."""
 import logging
+import subprocess
 import traceback
+from pathlib import Path
 
 from cryptography.fernet import Fernet
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import create_engine, text
 
 from config import settings as app_config
 from database import SessionLocal
@@ -91,6 +94,55 @@ def _validate_security_config() -> None:
 
 def _parse_cors_origins(raw: str) -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
+# Arbitrary fixed key for a Postgres advisory lock (see _run_migrations
+# below) — any bigint works, it just needs to be the same constant every
+# time so concurrent callers contend on the same lock.
+_MIGRATION_LOCK_ID = 727271
+
+
+def _run_migrations() -> None:
+    """Applies any pending Alembic migrations before the app starts serving
+    requests, so `docker compose up` alone brings a fresh or upgraded
+    deployment's schema in sync with the code — no separate manual
+    `alembic upgrade head` step. Fails fast (process exit) rather than
+    serving traffic against a stale schema. See docs/decisions-log.md.
+
+    Runs `alembic` as a subprocess rather than calling it in-process: Alembic's
+    env.py calls `logging.config.fileConfig()` on import, which by default
+    disables every logger already created in this process (including this
+    module's) — fine in a short-lived CLI invocation, not fine inside the
+    long-running app process. A subprocess keeps that isolated.
+
+    Wrapped in a Postgres advisory lock because gunicorn's production CMD
+    runs several worker processes, each importing this module and firing its
+    own startup event — without the lock, multiple workers would run
+    `alembic upgrade head` concurrently against the same database.
+    """
+    backend_dir = Path(__file__).resolve().parent
+    engine = create_engine(app_config.database_url)
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT pg_advisory_lock(:id)"), {"id": _MIGRATION_LOCK_ID})
+            try:
+                result = subprocess.run(
+                    ["alembic", "upgrade", "head"],
+                    cwd=str(backend_dir),
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode != 0:
+                    logger.error(
+                        "Database migration failed, refusing to start:\nstdout:\n%s\nstderr:\n%s",
+                        result.stdout, result.stderr,
+                    )
+                    raise SystemExit(1)
+                logger.info("Database migrations applied:\n%s", result.stdout)
+            finally:
+                conn.execute(text("SELECT pg_advisory_unlock(:id)"), {"id": _MIGRATION_LOCK_ID})
+    finally:
+        engine.dispose()
 
 
 app = FastAPI(title="Keep Track API", version=APP_VERSION)
@@ -216,6 +268,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 def on_startup():
     _validate_security_config()
+    _run_migrations()
 
     db = SessionLocal()
     try:

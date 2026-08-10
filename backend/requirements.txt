@@ -1,5 +1,9 @@
 fastapi==0.141.1
 uvicorn[standard]==0.30.6
+# Production WSGI process manager — runs multiple uvicorn.workers.UvicornWorker
+# processes behind one bind address (see backend/Dockerfile's CMD). The dev
+# compose file still runs uvicorn directly for hot-reload-free simplicity.
+gunicorn==23.0.0
 sqlalchemy==2.0.35
 psycopg2-binary==2.9.9
 alembic==1.13.2

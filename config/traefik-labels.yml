@@ -1,0 +1,53 @@
+# Traefik labels for Keep Track — a docker-compose override adding the
+# labels Traefik needs to auto-discover the `frontend` service and terminate
+# TLS via Let's Encrypt. Assumes a Traefik instance already running as a
+# container attached to the same "keeptrack" Docker network (or a network
+# Traefik itself is also attached to) — Traefik routes to containers by
+# talking to the Docker socket, not by hitting a published host port, so
+# `docker-compose.prod.yml`'s frontend service does NOT need its commented-out
+# host port mapping uncommented when using this file.
+#
+# Usage:
+#   1. Edit the placeholders below: `keeptrack.yourdomain.com` and the
+#      Let's Encrypt email in your Traefik static config.
+#   2. Run both files together:
+#        docker compose -f docker-compose.prod.yml -f config/traefik-labels.yml up -d
+#   3. Traefik needs its own setup (not covered here) — typically a
+#      `traefik.yml` static config with a `websecure` (443) entrypoint and a
+#      `letsencrypt` certificate resolver, and Traefik itself attached to the
+#      `keeptrack` network so it can reach these containers. See
+#      https://doc.traefik.io/traefik/providers/docker/ for the full guide.
+#
+# Only the frontend needs labels — it's the single entry point (its
+# nginx.conf already proxies /api/* to the backend container-to-container,
+# so Traefik never needs to route to `backend` directly).
+
+services:
+  frontend:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=keeptrack"
+
+      # HTTP -> HTTPS redirect
+      - "traefik.http.routers.keeptrack-http.rule=Host(`keeptrack.yourdomain.com`)"
+      - "traefik.http.routers.keeptrack-http.entrypoints=web"
+      - "traefik.http.routers.keeptrack-http.middlewares=keeptrack-https-redirect"
+      - "traefik.http.middlewares.keeptrack-https-redirect.redirectscheme.scheme=https"
+
+      # HTTPS, with automatic Let's Encrypt via Traefik's certificate resolver
+      # (named "letsencrypt" here — must match whatever you named it in
+      # Traefik's own static configuration)
+      - "traefik.http.routers.keeptrack.rule=Host(`keeptrack.yourdomain.com`)"
+      - "traefik.http.routers.keeptrack.entrypoints=websecure"
+      - "traefik.http.routers.keeptrack.tls=true"
+      - "traefik.http.routers.keeptrack.tls.certresolver=letsencrypt"
+
+      # Tell Traefik which container port to forward to — the frontend's
+      # nginx listens on 80 (see frontend/Dockerfile).
+      - "traefik.http.services.keeptrack.loadbalancer.server.port=80"
+
+      # 50MB request bodies (invoice PDF / backup zip uploads) — Traefik's
+      # own default has no body-size cap, but if you add one, raise it to
+      # match frontend/nginx.conf's client_max_body_size.
+    networks:
+      - keeptrack

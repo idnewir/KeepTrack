@@ -1,0 +1,28 @@
+# Non-secret configuration — mirrors .env.example's non-sensitive variables.
+# Secrets (passwords, keys, tokens) live in secret.yaml instead.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keeptrack-config
+  namespace: keeptrack
+data:
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "keep_track"
+  POSTGRES_USER: "keep_track"
+  BACKEND_PORT: "8000"
+  # Same-origin in this deployment (frontend's nginx.conf proxies /api/* to
+  # the backend Service), so this is mostly academic — still set to your
+  # real ingress host for defence in depth.
+  CORS_ORIGINS: "https://keeptrack.yourdomain.com"
+  WATCHED_FOLDER_PATH: "/data/watched"
+  DEFAULT_FINANCIAL_YEAR_START_MONTH: "9"
+  UNCONFIRMED_INVOICE_ALERT_DAYS: "5"
+  AI_TEST_RATE_LIMIT: "60"
+  TOTP_ISSUER: "KeepTrack"
+  JWT_ALGORITHM: "HS256"
+  JWT_EXPIRY_MINUTES: "480"
+  ANTHROPIC_MODEL: "claude-sonnet-4-6"
+  # Not secret by itself (unlike SUPERADMIN_EMAIL/SUPERADMIN_PASSWORD, which
+  # are in secret.yaml) — a username alone bootstraps nothing.
+  SUPERADMIN_USERNAME: "superadmin"

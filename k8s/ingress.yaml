@@ -1,0 +1,34 @@
+# Traefik is k3s's built-in default ingress controller, so a standard
+# networking.k8s.io/v1 Ingress with ingressClassName: traefik is all that's
+# needed — no separate Traefik install or CRDs required on a stock k3s
+# cluster. Everything (including /api/*) routes to the frontend Service;
+# frontend/nginx.conf handles proxying /api/* to the backend Service
+# internally, the same way it does in docker-compose.prod.yml.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keeptrack
+  namespace: keeptrack
+  annotations:
+    # Matches frontend/nginx.conf's own client_max_body_size (invoice PDF /
+    # backup zip uploads).
+    traefik.ingress.kubernetes.io/router.middlewares: ""
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"  # no-op unless you swap to the ingress-nginx controller instead
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: keeptrack.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+  # TLS via cert-manager (install separately) once you have a ClusterIssuer:
+  # tls:
+  #   - hosts:
+  #       - keeptrack.yourdomain.com
+  #     secretName: keeptrack-tls

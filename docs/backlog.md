@@ -32,17 +32,9 @@ Things that are broken or incomplete in features that have already been built. T
 
 Features that have been designed and committed to for V1, but are not yet built. Unlike Section 1, these aren't broken — they simply don't exist yet. All of these are required before Keep Track goes to production.
 
-- **Production Packaging** (last task before deployment):
-  - Multi-stage Docker builds (frontend compiled, not served via the Vite dev server).
-  - Nginx serving the frontend in production.
-  - Gunicorn running FastAPI in production.
-  - Reverse proxy ready (X-Forwarded headers, configurable CORS).
-  - Configurable external port in docker-compose.
-  - Works behind Traefik, Nginx, Caddy, or a load balancer.
-  - Kubernetes manifests for k3s deployment.
-  - Container vulnerability scanning (slim/alpine base images, OS updates during build, Trivy integration).
-  - A single `docker-compose up -d` starts everything.
-  - `docs/deployment.md` — full deployment guide.
+The V1 backlog is now complete — Production Packaging (below) was the last outstanding item. See
+[decisions-log.md](decisions-log.md) for the production packaging decisions and
+[deployment.md](deployment.md) for the deployment guide.
 
 ---
 

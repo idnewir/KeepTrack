@@ -1,0 +1,76 @@
+# Nginx frontend serving the compiled React build (see frontend/Dockerfile).
+# Stateless — safe to run multiple replicas behind the Service/Ingress.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: keeptrack
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: keeptrack-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          securityContext:
+            # nginx's master process normally starts as root to bind port 80
+            # (a privileged port) before its worker processes — which handle
+            # every request — drop to the low-privilege "nginx" user (see
+            # frontend/Dockerfile). Kubernetes can enforce full non-root
+            # end-to-end instead, without special-casing the master process,
+            # by running as nginx's uid directly (101 in nginx:alpine) and
+            # explicitly granting just the one capability needed to bind a
+            # privileged port.
+            runAsNonRoot: true
+            runAsUser: 101
+            runAsGroup: 101
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              add: ["NET_BIND_SERVICE"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # nginx needs to write its cache, pidfile, and temp files somewhere —
+        # these back the paths above so readOnlyRootFilesystem can stay true.
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

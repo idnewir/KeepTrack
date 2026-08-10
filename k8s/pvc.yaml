@@ -1,0 +1,31 @@
+# PersistentVolumeClaims for storage and the database. Uses k3s's built-in
+# "local-path" StorageClass (default in k3s) — ReadWriteOnce, single-node.
+# That's fine for a single-node k3s deployment (the common Proxmox case);
+# if you're running a multi-node cluster and want to scale backend/postgres
+# across nodes, swap storageClassName for a ReadWriteMany-capable class
+# (e.g. NFS) instead.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keeptrack-storage-pvc
+  namespace: keeptrack
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keeptrack-db-pvc
+  namespace: keeptrack
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi

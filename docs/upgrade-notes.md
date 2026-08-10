@@ -16,19 +16,17 @@ document isn't for you — there's nothing to migrate yet.
    ```
    docker compose build
    ```
-3. **Run database migrations.** Always do this *before* restarting with the new code — see
-   [Database migrations](#4-database-migrations) below for why.
-   ```
-   docker compose exec backend alembic upgrade head
-   ```
-   If the `backend` container isn't currently running (e.g. it's already been stopped as part of
-   the upgrade), use `docker compose run --rm backend alembic upgrade head` instead — `run` starts
-   a fresh one-off container attached to the same volumes/network rather than requiring an
-   already-running one.
-4. **Restart the containers** with the newly built images.
+3. **Restart the containers** with the newly built images.
    ```
    docker compose up -d
    ```
+   As of the production packaging pass, the backend's startup event runs `alembic upgrade head`
+   itself (guarded by a Postgres advisory lock so it's safe under gunicorn's multiple worker
+   processes — see `backend/main.py::_run_migrations` and
+   [decisions-log.md](decisions-log.md)) before it starts accepting requests, and exits rather than
+   serving traffic if a migration fails — so this step now migrates the database automatically, no
+   separate manual command needed. You can still run one by hand if you want to migrate ahead of a
+   restart (see [Database migrations](#4-database-migrations) below), but it's no longer required.
 5. **Verify the app is running correctly.**
    - `docker compose ps` — `postgres`, `backend`, and `frontend` should all show `Up` (the
      `watched-folder-watcher` container is expected to be restarting — see
@@ -112,19 +110,23 @@ Superadmin only).
 ## 4. Database migrations
 
 Keep Track uses [Alembic](https://alembic.sqlalchemy.org/) for schema migrations
-(`backend/alembic/`). Migrations are **never run automatically** — not on container startup, and
-not in development either. The backend starts up against whatever schema is currently in the
-database; if that schema is older than the code expects, you'll get real errors (missing
-columns/tables) rather than a silent auto-fix.
+(`backend/alembic/`). The backend's startup event runs `alembic upgrade head` itself before it
+starts accepting requests (`backend/main.py::_run_migrations`), so a normal `docker compose up -d`
+after pulling new code and rebuilding is enough — there's no separate manual migration step in
+either the dev or production compose file. If a migration fails, the backend logs the error and
+exits rather than serving traffic against a schema the code doesn't expect. See
+[decisions-log.md](decisions-log.md) for why this changed from the previous manual-only process.
 
-Always run migrations manually, in this order relative to the rest of the upgrade:
+You can still run one by hand at any time (e.g. to migrate ahead of restarting, or to inspect what
+would happen):
 
-1. Deploy the new code / build the new image.
-2. Run migrations **before** restarting the backend with it:
-   ```
-   docker compose exec backend alembic upgrade head
-   ```
-3. Then restart (`docker compose up -d`).
+```
+docker compose exec backend alembic upgrade head
+```
+
+If the `backend` container isn't currently running, use
+`docker compose run --rm backend alembic upgrade head` instead — `run` starts a fresh one-off
+container attached to the same volumes/network rather than requiring an already-running one.
 
 Check what's currently applied at any time with:
 

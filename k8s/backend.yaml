@@ -1,0 +1,103 @@
+# FastAPI backend, served by gunicorn (see backend/Dockerfile).
+#
+# replicas is 1 by default: keeptrack-storage-pvc (pvc.yaml) uses the k3s
+# default "local-path" StorageClass, which is ReadWriteOnce — bound to a
+# single node — so a second replica scheduled elsewhere couldn't mount it.
+# Startup migrations are already safe under concurrency (backend/main.py's
+# _run_migrations takes a Postgres advisory lock — needed anyway since
+# gunicorn itself runs 4 worker processes per pod), so if you switch
+# keeptrack-storage-pvc to a ReadWriteMany StorageClass (e.g. NFS), raising
+# replicas here is safe too.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: keeptrack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: backend
+          # Built from backend/Dockerfile's `production` target. For a
+          # single-node k3s host built locally (no registry), import it into
+          # containerd and keep imagePullPolicy: IfNotPresent — see
+          # docs/deployment.md's K3s deployment section.
+          image: keeptrack-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: keeptrack-config
+            - secretRef:
+                name: keeptrack-secrets
+          volumeMounts:
+            - name: storage
+              mountPath: /data
+            - name: user-guides
+              mountPath: /app/user-guides
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Startup migrations (alembic upgrade head) plus this app's own
+          # background threads (retention, backup scheduler, folder watcher,
+          # notification checks — see backend/main.py::on_startup) can take
+          # longer than a plain readiness probe's failureThreshold allows on
+          # first boot, so give it its own generous grace period.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: keeptrack-storage-pvc
+        - name: user-guides
+          # Populate with:
+          #   kubectl create configmap keeptrack-user-guides \
+          #     --from-file=user-guides/ -n keeptrack
+          # (mirrors docker-compose.prod.yml's read-only bind mount of the
+          # repo's user-guides/ — see docs/deployment.md)
+          configMap:
+            name: keeptrack-user-guides
