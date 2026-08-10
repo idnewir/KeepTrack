@@ -277,7 +277,7 @@ class InvoiceOut(BaseModel):
     financial_year_id: int | None
     reviewed: bool
     duplicate_flag: bool
-    created_by: int
+    created_by: int | None = None
     created_at: datetime
     project_id: int | None = None
     project_name: str | None = None
@@ -566,7 +566,7 @@ class ContributionOut(BaseModel):
     month: int
     group_name: str
     amount: Decimal
-    recorded_by: int
+    recorded_by: int | None = None
     recorded_at: datetime
 
     model_config = {"from_attributes": True}
@@ -625,7 +625,7 @@ class ReconciliationOut(BaseModel):
     discrepancy: Decimal
     discrepancy_notes: str | None
     suggested_reason: str | None
-    reconciled_by: int
+    reconciled_by: int | None = None
     reconciled_by_username: str | None
     reconciled_at: datetime
     edited_by: int | None = None
@@ -662,7 +662,7 @@ class ProjectOut(BaseModel):
     estimated_cost: Decimal
     expected_month: date
     financial_year_id: int | None
-    created_by: int
+    created_by: int | None = None
     created_at: datetime
     active: bool
     completed: bool
@@ -733,7 +733,7 @@ class ProjectUpdate(BaseModel):
 class ReportOut(BaseModel):
     id: int
     title: str
-    generated_by: int
+    generated_by: int | None = None
     generated_by_username: str | None
     generated_at: datetime
     date_from: date
@@ -975,7 +975,7 @@ class ImportBatchOut(BaseModel):
     imported_records: int
     failed_records: int
     status: str
-    imported_by: int
+    imported_by: int | None = None
     imported_by_username: str | None = None
     imported_at: datetime
     notes: str | None
@@ -1257,7 +1257,7 @@ class DebtPaymentOut(BaseModel):
     amount: Decimal
     payment_date: date
     notes: str | None
-    recorded_by: int
+    recorded_by: int | None = None
     recorded_by_username: str | None = None
     created_at: datetime
 
@@ -1332,7 +1332,7 @@ class DebtOut(BaseModel):
     notes: str | None
     is_paid_off: bool
     paid_off_date: date | None
-    created_by: int
+    created_by: int | None = None
     created_at: datetime
     updated_at: datetime
     active: bool
@@ -1402,7 +1402,7 @@ class CategoryBudgetOut(BaseModel):
     status: str  # "under_budget" | "warning" | "over_budget"
     percent_used: Decimal
 
-    created_by: int
+    created_by: int | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -1472,7 +1472,7 @@ class SavingsGoalOut(BaseModel):
     category_name: str | None = None
     financial_year_id: int | None
     status: str
-    created_by: int
+    created_by: int | None = None
     created_at: datetime
     updated_at: datetime
 
