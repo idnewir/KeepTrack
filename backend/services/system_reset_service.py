@@ -11,16 +11,25 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from models.audit_log import AuditLog
+from models.budget import BudgetNotificationSent, CategoryBudget, SavingsGoal
 from models.category import Category
 from models.contribution import Contribution
+from models.debt import Debt, DebtMilestone, DebtPayment
+from models.error_log import ErrorLog
 from models.financial_year import FinancialYear
+from models.folder_watcher_log import FolderWatcherLog
+from models.import_batch import ImportBatch
 from models.invoice import Invoice
 from models.invoice_file import InvoiceFile
+from models.mfa_remember_token import MfaRememberToken
 from models.monthly_reconciliation import MonthlyReconciliation
+from models.notification import Notification
 from models.planned_project import PlannedProject
 from models.report import Report
 from models.setting import Setting
 from models.system_event import SystemEvent
+from models.transaction_rule import TransactionRule
 from models.user import User
 from services import storage_service
 
@@ -132,26 +141,48 @@ def _wipe_uploaded_files(storage_root: str) -> None:
 
 def perform_reset(db: Session, *, wipe_files: bool) -> None:
     """Deletes all app data and reseeds default categories/settings, leaving
-    only the Superadmin account and the (never-touched) system_events log.
+    only the Superadmin account, the (never-touched) system_events log, and
+    the permanent audit_log_archive.
 
     Deletion order follows the FK dependency chain — every table with a
-    foreign key into another is cleared before the table it points to.
-    There is no `notifications` table to clear: docs/database-schema.md
-    documents one, but it was never built — dashboard notifications are
-    computed live from other tables, not stored (see docs/decisions-log.md's
-    2026-08-04 main dashboard build entry). Nothing here needs to touch it.
+    foreign key into another is cleared before the table it points to. This
+    must be kept in sync with the Alembic migrations: any new table with a
+    users/categories/financial_years/invoices/debts FK needs a line here,
+    before whatever it points to. See docs/decisions-log.md.
     """
     # Read before the settings table is wiped/reseeded below — an Admin may
     # have configured a custom storage_path, and _wipe_uploaded_files needs
     # to know where the files it's deleting actually are.
     storage_root = storage_service.get_storage_root(db)
 
+    # Tables that only reference users (or, for folder_watcher_log, invoices
+    # via ON DELETE SET NULL) — clear before the final user purge below.
+    # audit_log_archive is deliberately not included: it is the permanent
+    # record and is never touched by a reset.
+    db.query(Notification).delete()
+    db.query(MfaRememberToken).delete()
+    db.query(AuditLog).delete()
+    db.query(ErrorLog).delete()
+    db.query(FolderWatcherLog).delete()
+
+    # Budget Planning / Debt Tracking — children before their parents
+    # (categories, financial_years, debts, users).
+    db.query(BudgetNotificationSent).delete()
+    db.query(DebtMilestone).delete()
+    db.query(DebtPayment).delete()
+    db.query(Debt).delete()
+    db.query(SavingsGoal).delete()
+    db.query(CategoryBudget).delete()
+    db.query(TransactionRule).delete()
+    db.query(ImportBatch).delete()
+
+    # Core financial tables — children before financial_years/categories/users.
     db.query(MonthlyReconciliation).delete()
     db.query(Contribution).delete()
+    db.query(Report).delete()
     db.query(InvoiceFile).delete()
     db.query(Invoice).delete()
     db.query(PlannedProject).delete()
-    db.query(Report).delete()
     db.query(FinancialYear).delete()
 
     db.query(Category).delete()
