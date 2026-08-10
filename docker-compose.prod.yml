@@ -37,7 +37,7 @@ services:
   # 5. docker compose -f docker-compose.prod.yml up -d
   # ═══════════════════════════════════════════════════════════
   traefik:
-    image: traefik:v3.3
+    image: traefik:v2.11
     restart: unless-stopped
     # Required for Docker Engine compatibility
     # Adjust version if needed (1.41 works with Docker Engine 20.10+)
@@ -51,9 +51,9 @@ services:
       - '--providers.docker.network=keeptrack'
       - '--entrypoints.web.address=:80'
       - '--entrypoints.websecure.address=:443'
-      - '--ping=true'
       - '--log.level=INFO'
       - '--accesslog=true'
+      - '--ping=true'
       # SSL via Let's Encrypt — uncomment to enable HTTPS
       # - '--certificatesresolvers.letsencrypt.acme.httpchallenge=true'
       # - '--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web'
@@ -70,11 +70,10 @@ services:
     networks:
       - keeptrack
     healthcheck:
-      # `--ping` is required here even though the container's own command
-      # already has `--ping=true` — this is a separate, one-off invocation
-      # of the traefik binary that doesn't inherit the running process's
-      # flags, so it needs to be told explicitly to check the ping endpoint.
-      test: ['CMD', 'traefik', 'healthcheck', '--ping']
+      # Traefik v2 has no `traefik healthcheck` subcommand, so we hit the
+      # `--ping` endpoint directly instead.
+      test: ['CMD', 'wget', '--quiet', '--tries=1',
+             '--spider', 'http://localhost:8080/ping']
       interval: 30s
       timeout: 10s
       retries: 3
