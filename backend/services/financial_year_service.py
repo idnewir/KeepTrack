@@ -18,6 +18,7 @@ from calendar import monthrange
 from datetime import date, timedelta
 from decimal import Decimal
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from models.category import Category
@@ -89,19 +90,52 @@ def get_previous_financial_year(db: Session, today: date | None = None) -> Finan
 
 
 def get_or_create_financial_year(db: Session, for_date: date | None = None) -> FinancialYear:
+    """Financial year rollover (Settings, per docs/features.md#8-settings)
+    isn't built yet, so there's nowhere else a row for a given FY would come
+    from — every call site relies on this lazily creating one the first time
+    it's asked for. That lazy-create is a plain check-then-insert, which is
+    only safe because of the race handling below: this function is called
+    from many places in the same request (e.g. a single dashboard load fans
+    out to /dashboard/summary, /dashboard/notifications, budget/debt fields)
+    and from background threads (budget_notification_service's daily check),
+    any of which can land on an empty financial_years table at the same
+    moment — most reliably right after a system reset, which deletes every
+    row. Two callers can both SELECT, both find nothing, and both attempt to
+    INSERT the same label; the second INSERT hits the table's UNIQUE
+    constraint on label and raises IntegrityError. Rather than serialising
+    every caller behind a lock, the loser simply rolls back and re-fetches
+    the row the winner just committed — a standard "INSERT, and on conflict
+    SELECT" upsert, since Postgres has nothing cheaper than a real UNIQUE
+    constraint to arbitrate who wins. See docs/decisions-log.md."""
     start, end, label = fy_bounds_for(db, for_date or date.today())
 
-    fy = db.query(FinancialYear).filter(FinancialYear.label == label).first()
+    fy = (
+        db.query(FinancialYear)
+        .filter(FinancialYear.label == label, FinancialYear.start_date == start, FinancialYear.end_date == end)
+        .first()
+    )
     if fy is not None:
         return fy
 
-    # Financial year rollover (Settings, per docs/features.md#8-settings)
-    # isn't built yet, so there's nowhere else a row for the current FY would
-    # come from. Creating it lazily here is what lets the dashboard, and
-    # anything with a financial_year_id FK, work before that page exists.
     fy = FinancialYear(label=label, start_date=start, end_date=end)
     db.add(fy)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Someone else won the race and already committed a row with this
+        # label between our SELECT above and our INSERT just now — label is
+        # the column the UNIQUE constraint actually lives on, so that's what
+        # recovers the winner's row regardless of whether its stored
+        # start/end happen to match what we computed (they should, per
+        # fy_bounds_for, but the constraint itself only protects label).
+        db.rollback()
+        fy = db.query(FinancialYear).filter(FinancialYear.label == label).first()
+        if fy is None:
+            # The IntegrityError wasn't actually this race (e.g. a genuine
+            # schema/data problem) — nothing to recover, so surface it.
+            raise
+        return fy
+
     db.refresh(fy)
     return fy
 
