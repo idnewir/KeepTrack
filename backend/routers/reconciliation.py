@@ -17,7 +17,7 @@ from models.schemas import (
 )
 from models.user import User
 from services import audit_service, financial_year_service as fy_service
-from services.date_service import get_effective_start_date
+from services.date_service import get_app_start_date
 from services.export_pdf_service import generate_table_export_pdf
 from services.reconciliation_service import calculated_balance_for_month, suggest_reason
 from services.settings_service import get_site_name
@@ -31,9 +31,27 @@ router = APIRouter(
 
 
 def _filtered_reconciliations_query(db: Session, financial_year_id: int | None, is_stale: bool | None = None):
-    query = db.query(MonthlyReconciliation).filter(
-        MonthlyReconciliation.month >= get_effective_start_date(db)
-    )
+    """Deliberately filters on the raw app_start_date setting, not
+    date_service.get_effective_start_date() — that helper's fallback (no
+    app_start_date set) resolves to the start of the financial year
+    containing *today*, which is the right floor for a "today-relative"
+    check (e.g. the dashboard's overdue-reconciliation scan, or the
+    reconciliation page's month-tile picker, both of which only ever look at
+    the current FY) but the wrong one here: this query can be asked about
+    any financial year via financial_year_id, including ones entirely in the
+    past. Applying today's-FY-start as a blanket floor would incorrectly
+    hide a genuinely-reconciled historical year's rows (none of which are
+    ever >= today's FY start). A reconciliation row can never predate its
+    own financial year's start_date (enforced at creation below), so
+    filtering on app_start_date alone — only when it's actually set — already
+    yields "the later of the FY's own start and the app start date" for
+    whichever FY is being asked about, without needing to know which FY that
+    is. See docs/decisions-log.md.
+    """
+    query = db.query(MonthlyReconciliation)
+    app_start_date = get_app_start_date(db)
+    if app_start_date is not None:
+        query = query.filter(MonthlyReconciliation.month >= app_start_date)
     if financial_year_id is not None:
         query = query.filter(MonthlyReconciliation.financial_year_id == financial_year_id)
     if is_stale is not None:
@@ -210,6 +228,13 @@ def create_reconciliation(
     month_date = date(payload.month.year, payload.month.month, 1)
     if month_date < fy.start_date or month_date > fy.end_date:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "That month falls outside the selected financial year")
+
+    app_start_date = get_app_start_date(db)
+    if app_start_date is not None and month_date < app_start_date:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "That month is before the app's start date and cannot be reconciled.",
+        )
 
     existing = (
         db.query(MonthlyReconciliation)
