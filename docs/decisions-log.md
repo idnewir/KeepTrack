@@ -1863,3 +1863,8 @@ After those fixes: `docker compose ... ps` showed all four containers (`traefik`
 
 **Decision:** `docker-compose.prod.yml`'s `traefik` service now pins `traefik:v3.3` instead of `v3.0`.
 **Rationale:** Requested as a fix for the Docker-Engine-29.x-compatibility issue noted in the "Known issue" above. Verified before committing to that claim: pulled `traefik:v3.3` and ran it against the same Docker Engine (29.6.2) that produced the original failure — it fails identically (`Error response from daemon: ""`, same hardcoded `GET /v1.24/version` negotiation probe). So this bump is **not** a fix for that issue; the same known-issue note still applies regardless of which v3.x patch tag is pinned. Made the change anyway since a newer patch release carries other upstream fixes on its own merits, but recording here so the pinned tag doesn't silently imply the compatibility problem was resolved.
+
+## 2026-08-10 — Add Proxmox LXC deployment instructions
+
+**Decision:** `docs/deployment.md` gained a new "Deploying on Proxmox LXC" section covering two paths: the community-scripts Proxmox Helper Scripts one-line installer (recommended), and a fully manual LXC creation/Docker install walkthrough — plus LXC-specific notes on storage (NFS/extra disk mounts for `keeptrack_storage`), network access, updating, Proxmox `vzdump` backup, and troubleshooting (nesting/keyctl, RAM, the `keeptrack` Docker network).
+**Rationale:** The existing "Proxmox specific" section only briefly recommended LXC over a VM; it didn't walk through actually provisioning one. Documentation-only change, no code touched.
